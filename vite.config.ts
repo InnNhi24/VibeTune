@@ -10,7 +10,8 @@ export default defineConfig({
     port: 5000,
     hmr: {
       clientPort: 5000
-    }
+    },
+    allowedHosts: true
   },
   resolve: {
     alias: {
