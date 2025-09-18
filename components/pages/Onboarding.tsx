@@ -12,7 +12,7 @@ interface OnboardingProps {
 
 export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex flex-col justify-center p-4">
       <div className="max-w-4xl mx-auto w-full">
         {/* Desktop Layout: Side by side */}
         <div className="grid lg:grid-cols-2 gap-8 items-center">
@@ -62,7 +62,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
               >
                 <Button 
                   onClick={onSignUp} 
-                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                  className="w-full bg-accent hover:bg-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                   size="lg"
                 >
                   <UserPlus className="w-5 h-5 mr-2" />
@@ -77,7 +77,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
                 <Button 
                   onClick={onSignIn} 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full border-2 border-accent text-accent hover:bg-accent/10 transition-all duration-200"
                   size="lg"
                 >
                   <LogIn className="w-5 h-5 mr-2" />
@@ -110,7 +110,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
               <h3 className="text-lg font-semibold text-center mb-6">See Your Progress</h3>
               
               {/* Progress Card */}
-              <Card className="bg-card/80 backdrop-blur-sm">
+              <Card className="bg-background/95 backdrop-blur-sm border-secondary/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <TrendingUp className="w-5 h-5 text-success" />
@@ -140,7 +140,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
               </Card>
 
               {/* AI Feedback Preview */}
-              <Card className="bg-card/80 backdrop-blur-sm">
+              <Card className="bg-background/95 backdrop-blur-sm border-secondary/20">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <MessageCircle className="w-5 h-5 text-accent" />

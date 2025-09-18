@@ -443,8 +443,8 @@ function AppContent() {
     const isSlowLoading = loadingTime > 5000; // Show additional info after 5 seconds
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-6 max-w-sm mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+        <div className="text-center space-y-6 max-w-sm mx-auto bg-background/95 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-secondary/20">
           {/* VibeTune Logo */}
           <div className="flex items-center justify-center gap-3">
             <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center">

@@ -141,7 +141,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex flex-col justify-center p-4">
       <div className="max-w-sm mx-auto w-full space-y-6">
         {/* Header */}
         <motion.div
@@ -189,7 +189,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card>
+          <Card className="bg-background/95 backdrop-blur-sm border-secondary/20 shadow-lg">
             <CardHeader>
               <CardTitle>{isLogin ? "Sign In" : "Create Account"}</CardTitle>
               <CardDescription>
@@ -289,7 +289,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
 
                 <Button 
                   type="submit" 
-                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                  className="w-full bg-accent hover:bg-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                   disabled={isLoading}
                 >
                   {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
@@ -306,7 +306,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-accent/30 text-foreground hover:bg-accent/10 hover:border-accent transition-all duration-200"
                   onClick={() => handleOAuthLogin('google')}
                   disabled={isLoading}
                 >
@@ -316,7 +316,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-accent/30 text-foreground hover:bg-accent/10 hover:border-accent transition-all duration-200"
                   onClick={() => handleOAuthLogin('github')}
                   disabled={isLoading}
                 >

@@ -1,0 +1,24 @@
+Please update the onboarding, auth, and primary call-to-action screens of the VibeTune app to strictly follow the brand color palette below. The current design (see attached screenshot) does not use these colors and needs to be corrected.
+Required Color Palette
+Primary background: #FDEFB2 (soft, bright, inviting)
+Secondary accent: #F9D776 (for highlights, gradients, card backgrounds)
+CTA buttons: #8686AF (for Sign Up and other primary actions, high contrast on light backgrounds)
+Success state: #90CDC3
+Error state: #FF746C
+Global background: #FFFDF5 (for app body, cards, modals)
+Text: #1F2937 (dark, readable on all backgrounds)
+Application Instructions
+All main screens should use #FDEFB2 as the primary background, not gray/white.
+Gradients from #FDEFB2 to #F9D776 should be used for onboarding screens and main card backgrounds.
+CTA (Sign Up) button must be #8686AF, fully filled, with white text, rounded corners and soft shadow.
+Log In button can be outlined or contrasted, making use of the palette, but should visually distinguish from primary CTA.
+Any status, progress, or feedback indicators must use either #90CDC3 (success) or #FF746C (error), as appropriate.
+All body and heading text must be #1F2937 for clarity and accessibility.
+Card backgrounds and containers should not use pure white, but #FFFDF5 as global background.
+Typography & Details
+Use friendly sans-serif fonts (Inter, Poppins, Noto Sans), with recommended sizes and line-height for ESL readability.
+Button hover/active states should include scale and shadow effects.
+Overall layout should keep space and visual comfort for mobile-first usage.
+Reference
+Attached screenshot shows the current design which does not use brand colors. Please update all backgrounds, buttons, and accents to the palette above and provide a corrected version.
+Strictly implement this color palette across all VibeTune screens and components. Do not substitute any colors, and avoid using grayscale backgrounds or buttons. Explain how palette is applied for each UI element.

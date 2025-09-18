@@ -98,7 +98,7 @@ export class AuthService {
     }
   }
 
-  static async signInWithOAuth(provider: 'google' | 'apple' | 'facebook') {
+  static async signInWithOAuth(provider: 'google' | 'github' | 'apple' | 'facebook') {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
