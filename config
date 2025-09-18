@@ -1,0 +1,41 @@
+modules = ["nodejs-20", "web"]
+
+[nix]
+channel = "stable-25_05"
+
+[agent]
+expertMode = true
+integrations = ["javascript_supabase:1.0.0"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "VibeTune Dev Server"
+
+[[workflows.workflow]]
+name = "VibeTune Dev Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VITE_SUPABASE_URL=\"https://qwvxgdrhjtgqwwksqebf.supabase.co\" VITE_SUPABASE_ANON_KEY=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3dnhnZHJoanRncXd3a3NxZWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxNTA2NDIsImV4cCI6MjA3MzcyNjY0Mn0.A37IkjTB0pZCs1JQEuE65IL6OQt0gJk1Wt6YpVpGnKA\" npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[deployment]
+deploymentTarget = "autoscale"
+run = ["npm", "run", "preview"]
+build = ["npm", "run", "build"]
