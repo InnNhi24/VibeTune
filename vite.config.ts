@@ -8,15 +8,23 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5000,
-    hmr: {
-      clientPort: 5000
-    },
-    allowedHosts: true
+    hmr: false,
+    allowedHosts: true,
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      'Cross-Origin-Opener-Policy': 'unsafe-none'
+    }
   },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./")
     }
   },
-  envPrefix: 'SUPABASE_'
+  envPrefix: 'SUPABASE_',
+  define: {
+    __DEV__: false
+  },
+  build: {
+    sourcemap: false
+  }
 })

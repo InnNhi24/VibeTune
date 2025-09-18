@@ -16,10 +16,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "VibeTune Frontend"
+args = "VibeTune Dev Server"
 
 [[workflows.workflow]]
-name = "VibeTune Frontend"
+name = "VibeTune Dev Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]
@@ -33,10 +33,6 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 34839
-externalPort = 3000
 
 [[ports]]
 localPort = 42777
