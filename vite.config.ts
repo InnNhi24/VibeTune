@@ -17,9 +17,5 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./")
     }
   },
-  define: {
-    // Define environment variables for the client
-    'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL),
-    'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY),
-  }
+  envPrefix: 'SUPABASE_'
 })
