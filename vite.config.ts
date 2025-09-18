@@ -20,7 +20,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./")
     }
   },
-  envPrefix: 'SUPABASE_',
+  envPrefix: 'VITE_',
   define: {
     __DEV__: false
   },
