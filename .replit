@@ -5,6 +5,7 @@ channel = "stable-25_05"
 
 [agent]
 expertMode = true
+integrations = ["javascript_supabase:1.0.0"]
 
 [workflows]
 runButton = "Project"
@@ -33,10 +34,6 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 42777
-externalPort = 3001
 
 [deployment]
 deploymentTarget = "autoscale"
