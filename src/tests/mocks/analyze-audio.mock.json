@@ -1,0 +1,162 @@
+{
+  "data": {
+    "overall_score": 82,
+    "pronunciation_score": 85,
+    "rhythm_score": 78,
+    "intonation_score": 80,
+    "fluency_score": 84,
+    "detailed_feedback": {
+      "strengths": [
+        "Clear consonant articulation",
+        "Good sentence stress patterns",
+        "Natural speaking pace"
+      ],
+      "improvements": [
+        "Work on vowel length consistency",
+        "Practice question intonation",
+        "Focus on word stress in multisyllabic words"
+      ],
+      "specific_issues": [
+        {
+          "type": "pronunciation",
+          "word": "important",
+          "severity": "medium",
+          "feedback": "The primary stress should be on the second syllable",
+          "suggestion": "Practice saying im-POR-tant with emphasis on POR"
+        },
+        {
+          "type": "intonation",
+          "word": "really",
+          "severity": "low",
+          "feedback": "Use rising intonation to show emphasis",
+          "suggestion": "Let your voice go up when saying 'really' to show you mean it"
+        }
+      ]
+    },
+    "word_level_analysis": [
+      {
+        "word": "i",
+        "start_time": 0.0,
+        "end_time": 0.2,
+        "confidence": 0.95,
+        "stress_correct": true,
+        "pronunciation_score": 88,
+        "issues": []
+      },
+      {
+        "word": "think",
+        "start_time": 0.2,
+        "end_time": 0.6,
+        "confidence": 0.92,
+        "stress_correct": true,
+        "pronunciation_score": 85,
+        "issues": []
+      },
+      {
+        "word": "learning",
+        "start_time": 0.6,
+        "end_time": 1.1,
+        "confidence": 0.88,
+        "stress_correct": true,
+        "pronunciation_score": 82,
+        "issues": []
+      },
+      {
+        "word": "english",
+        "start_time": 1.1,
+        "end_time": 1.6,
+        "confidence": 0.91,
+        "stress_correct": true,
+        "pronunciation_score": 87,
+        "issues": []
+      },
+      {
+        "word": "prosody",
+        "start_time": 1.6,
+        "end_time": 2.2,
+        "confidence": 0.86,
+        "stress_correct": true,
+        "pronunciation_score": 83,
+        "issues": []
+      },
+      {
+        "word": "is",
+        "start_time": 2.2,
+        "end_time": 2.4,
+        "confidence": 0.94,
+        "stress_correct": true,
+        "pronunciation_score": 90,
+        "issues": []
+      },
+      {
+        "word": "really",
+        "start_time": 2.4,
+        "end_time": 2.9,
+        "confidence": 0.89,
+        "stress_correct": false,
+        "pronunciation_score": 76,
+        "issues": ["stress placement"]
+      },
+      {
+        "word": "important",
+        "start_time": 2.9,
+        "end_time": 3.6,
+        "confidence": 0.87,
+        "stress_correct": false,
+        "pronunciation_score": 74,
+        "issues": ["stress placement"]
+      },
+      {
+        "word": "for",
+        "start_time": 3.6,
+        "end_time": 3.8,
+        "confidence": 0.93,
+        "stress_correct": true,
+        "pronunciation_score": 88,
+        "issues": []
+      },
+      {
+        "word": "effective",
+        "start_time": 3.8,
+        "end_time": 4.4,
+        "confidence": 0.85,
+        "stress_correct": true,
+        "pronunciation_score": 81,
+        "issues": []
+      },
+      {
+        "word": "communication",
+        "start_time": 4.4,
+        "end_time": 5.2,
+        "confidence": 0.84,
+        "stress_correct": true,
+        "pronunciation_score": 79,
+        "issues": []
+      }
+    ],
+    "suggestions": [
+      "Practice multisyllabic word stress with a metronome",
+      "Record yourself and compare with native speakers",
+      "Focus on rising intonation for emphasis and questions",
+      "Work on connected speech patterns"
+    ],
+    "next_focus_areas": [
+      "Word stress in compound words",
+      "Question intonation patterns",
+      "Rhythm in connected speech",
+      "Emphasis through stress and intonation"
+    ],
+    "vocab_suggestions": [
+      {
+        "word": "communication",
+        "simpler_alternative": "talking",
+        "definition": "The act of sharing information or ideas"
+      }
+    ],
+    "guidance": "Great work on your pronunciation! Your consonants are very clear and your pace is natural. Focus on word stress patterns, especially in longer words like 'important' and 'communication'. Practice emphasizing the right syllables - this will make your English sound much more natural. Keep up the excellent progress!"
+  },
+  "powered_by": "VibeTune AI Mock Analysis",
+  "processing_time_ms": 1240,
+  "audio_duration_seconds": 5.2,
+  "confidence_level": 0.88
+}
