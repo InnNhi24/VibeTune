@@ -82,14 +82,28 @@ export class SimpleAuthService {
           id: authData.user.id,
           email: authData.user.email || email,
           username: username,
-          level: null, // New users start with no level so they go to level selection
+          level: null, // Will be fetched from profiles table if exists
           placement_test_completed: false,
           created_at: authData.user.created_at || new Date().toISOString(),
           last_login: new Date().toISOString(),
           device_id: this.getDeviceId()
         };
 
-        return { data: { user: authData.user, profile }, error: null };
+        // Fetch profile from database to get actual level and placement_test_completed status
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Error fetching profile after signup:', profileError);
+          // Fallback to basic profile if fetching fails
+          return { data: { user: authData.user, profile }, error: null };
+        }
+
+        const finalProfile = profileData ? { ...profile, ...profileData } : profile;
+        return { data: { user: authData.user, profile: finalProfile }, error: null };
       }
 
       return { data: authData, error: null };
@@ -138,14 +152,28 @@ export class SimpleAuthService {
                    data.user.user_metadata?.display_name ||
                    data.user.user_metadata?.name || 
                    email.split('@')[0] || 'User',
-          level: null, // Returning users also start with no level for now - they'll need to go through level selection
+          level: null, // Will be fetched from profiles table if exists
           placement_test_completed: false,
           created_at: data.user.created_at || new Date().toISOString(),
           last_login: new Date().toISOString(),
           device_id: this.getDeviceId()
         };
 
-        return { data: { user: data.user, profile }, error: null };
+        // Fetch profile from database to get actual level and placement_test_completed status
+        const { data: profileData, error: profileError } = await supabase
+          .from(\'profiles\')
+          .select(\'*\')
+          .eq(\'id\', data.user.id)
+          .single();
+
+        if (profileError && profileError.code !== \'PGRST116\') {
+          console.error(\'Error fetching profile after signin:\', profileError);
+          // Fallback to basic profile if fetching fails
+          return { data: { user: data.user, profile }, error: null };
+        }
+
+        const finalProfile = profileData ? { ...profile, ...profileData } : profile;
+        return { data: { user: data.user, profile: finalProfile }, error: null };
       } else if (data.user && !data.session) {
         // User exists but no session - likely unconfirmed email
         return { 
