@@ -27,7 +27,27 @@ export class SimpleAuthService {
           // After successful server signup, sign in the user
           const signInResult = await this.signIn({ email, password });
           if (signInResult.data?.profile) {
-            return signInResult;
+            // Ensure profile is created with initial level and placement test status
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: signInResult.data.user.id,
+                email: signInResult.data.user.email || email,
+                username: username,
+                level: null, // New users start with no level
+                placement_test_completed: false,
+                created_at: signInResult.data.user.created_at || new Date().toISOString(),
+                last_login: new Date().toISOString(),
+                device_id: this.getDeviceId()
+              }, { onConflict: 'id' });
+            
+            const { data: updatedProfile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', signInResult.data.user.id)
+              .single();
+
+            return { data: { user: signInResult.data.user, profile: updatedProfile }, error: null };
           }
         }
       } catch (serverError) {
@@ -151,9 +171,9 @@ export class SimpleAuthService {
           .eq('id', data.user.id)
           .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
+        if (profileError && profileError.code !== 'PGRST116') { // PGRST116 means no rows found
           console.error('Error fetching profile after signin:', profileError);
-          // Fallback to basic profile if fetching fails
+          // If profile not found or error, create a basic one with null level
           const profile: Profile = {
             id: data.user.id,
             email: data.user.email || email,
@@ -161,23 +181,29 @@ export class SimpleAuthService {
                      data.user.user_metadata?.display_name ||
                      data.user.user_metadata?.name || 
                      email.split('@')[0] || 'User',
-            level: null, // Default to null if profile fetch fails
+            level: null, // Default to null if profile fetch fails or not found
             placement_test_completed: false,
             created_at: data.user.created_at || new Date().toISOString(),
             last_login: new Date().toISOString(),
             device_id: this.getDeviceId()
           };
+          // Attempt to upsert this basic profile to ensure it exists
+          await supabase
+            .from('profiles')
+            .upsert(profile, { onConflict: 'id' });
+
           return { data: { user: data.user, profile }, error: null };
         }
 
-        // If profile exists, use its data
+        // If profile exists, use its data, ensuring username is prioritized from profileData
         const profile: Profile = {
           id: data.user.id,
           email: data.user.email || email,
-          username: data.user.user_metadata?.username || 
-                   data.user.user_metadata?.display_name ||
-                   data.user.user_metadata?.name || 
-                   email.split('@')[0] || 'User',
+          username: profileData?.username || 
+                    data.user.user_metadata?.username || 
+                    data.user.user_metadata?.display_name ||
+                    data.user.user_metadata?.name || 
+                    email.split('@')[0] || 'User',
           level: profileData?.level || null, // Use fetched level or null
           placement_test_completed: profileData?.placement_test_completed || false, // Use fetched status or false
           created_at: data.user.created_at || new Date().toISOString(),
