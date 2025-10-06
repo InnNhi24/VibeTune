@@ -77,33 +77,33 @@ export class SimpleAuthService {
       if (authData.user && authData.session) {
         console.log('✅ User created and signed in immediately');
         
-        // Create a profile object from auth data
+        // Create a profile object from auth data with initial null level and false placement_test_completed
         const profile: Profile = {
           id: authData.user.id,
           email: authData.user.email || email,
           username: username,
-          level: null, // Will be fetched from profiles table if exists
+          level: null, // New users start with no level, will be set after selection/placement test
           placement_test_completed: false,
           created_at: authData.user.created_at || new Date().toISOString(),
           last_login: new Date().toISOString(),
           device_id: this.getDeviceId()
         };
 
-        // Fetch profile from database to get actual level and placement_test_completed status
-        const { data: profileData, error: profileError } = await supabase
+        // Upsert profile into database with initial null level and false placement_test_completed
+        await supabase
           .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
+          .upsert({
+            id: authData.user.id,
+            email: authData.user.email || email,
+            username: username,
+            level: null, // Ensure level is null on initial signup
+            placement_test_completed: false,
+            created_at: profile.created_at,
+            last_login: profile.last_login,
+            device_id: profile.device_id
+          }, { onConflict: 'id' });
 
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Error fetching profile after signup:', profileError);
-          // Fallback to basic profile if fetching fails
-          return { data: { user: authData.user, profile }, error: null };
-        }
-
-        const finalProfile = profileData ? { ...profile, ...profileData } : profile;
-        return { data: { user: authData.user, profile: finalProfile }, error: null };
+        return { data: { user: authData.user, profile }, error: null };
       }
 
       return { data: authData, error: null };
@@ -144,7 +144,33 @@ export class SimpleAuthService {
       });
 
       if (data.user && data.session) {
-        // Create profile from auth user data
+        // Fetch profile from database to get actual level and placement_test_completed status
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Error fetching profile after signin:', profileError);
+          // Fallback to basic profile if fetching fails
+          const profile: Profile = {
+            id: data.user.id,
+            email: data.user.email || email,
+            username: data.user.user_metadata?.username || 
+                     data.user.user_metadata?.display_name ||
+                     data.user.user_metadata?.name || 
+                     email.split('@')[0] || 'User',
+            level: null, // Default to null if profile fetch fails
+            placement_test_completed: false,
+            created_at: data.user.created_at || new Date().toISOString(),
+            last_login: new Date().toISOString(),
+            device_id: this.getDeviceId()
+          };
+          return { data: { user: data.user, profile }, error: null };
+        }
+
+        // If profile exists, use its data
         const profile: Profile = {
           id: data.user.id,
           email: data.user.email || email,
@@ -152,28 +178,28 @@ export class SimpleAuthService {
                    data.user.user_metadata?.display_name ||
                    data.user.user_metadata?.name || 
                    email.split('@')[0] || 'User',
-          level: null, // Will be fetched from profiles table if exists
-          placement_test_completed: false,
+          level: profileData?.level || null, // Use fetched level or null
+          placement_test_completed: profileData?.placement_test_completed || false, // Use fetched status or false
           created_at: data.user.created_at || new Date().toISOString(),
           last_login: new Date().toISOString(),
           device_id: this.getDeviceId()
         };
 
-        // Fetch profile from database to get actual level and placement_test_completed status
-        const { data: profileData, error: profileError } = await supabase
-          .from(\'profiles\')
-          .select(\'*\')
-          .eq(\'id\', data.user.id)
-          .single();
+        // Update last login in background
+        setTimeout(async () => {
+          try {
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: data.user.id,
+                last_login: new Date().toISOString()
+              }, { onConflict: 'id' });
+          } catch (error) {
+            console.warn('Profile last_login update failed (non-blocking):', error);
+          }
+        }, 0);
 
-        if (profileError && profileError.code !== \'PGRST116\') {
-          console.error(\'Error fetching profile after signin:\', profileError);
-          // Fallback to basic profile if fetching fails
-          return { data: { user: data.user, profile }, error: null };
-        }
-
-        const finalProfile = profileData ? { ...profile, ...profileData } : profile;
-        return { data: { user: data.user, profile: finalProfile }, error: null };
+        return { data: { user: data.user, profile }, error: null };
       } else if (data.user && !data.session) {
         // User exists but no session - likely unconfirmed email
         return { 
@@ -301,27 +327,23 @@ export class SimpleAuthService {
       const { data: session } = await supabase.auth.getSession();
       
       if (session?.session?.user) {
-        console.log('✅ Real user with session - creating profile from session data');
-        // Real user with session - merge updates with session data
-        const profile: Profile = {
-          id: userId,
-          email: session.session.user.email || '',
-          username: session.session.user.user_metadata?.username || 
-                   session.session.user.user_metadata?.display_name ||
-                   session.session.user.user_metadata?.name || 
-                   session.session.user.email?.split('@')[0] || 'User',
-          // Properly handle level updates - use provided value or keep existing
-          level: updates.level !== undefined ? updates.level : null,
-          // Properly handle placement test status - use provided value or keep existing
-          placement_test_completed: updates.placement_test_completed !== undefined ? updates.placement_test_completed : false,
-          placement_test_score: updates.placement_test_score,
-          created_at: session.session.user.created_at || new Date().toISOString(),
-          last_login: new Date().toISOString(),
-          device_id: this.getDeviceId()
-        };
+        console.log('✅ Real user with session - updating profile in DB');
+        // Real user with session - upsert updates to DB
+        const { data: updatedProfile, error: updateError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            ...updates,
+            last_login: new Date().toISOString()
+          }, { onConflict: 'id' })
+          .select()
+          .single();
 
-        console.log('✅ Profile created from session data:', profile);
-        return { data: profile, error: null };
+        if (updateError) {
+          console.error('Error updating profile in DB:', updateError);
+          return { data: null, error: updateError };
+        }
+        return { data: updatedProfile, error: null };
       } 
       
       // No session - this is likely a demo user, use existing profile data
