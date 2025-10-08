@@ -5,9 +5,11 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Separator } from "./ui/separator";
 import { Mic, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { SimpleAuthService } from "../services/authServiceSimple";
+import { useAppStore } from "../store/appStore";
 
 interface AuthScreenProps {
-  onAuthComplete: (user: { email: string; username: string; level: string }) => void;
+  onAuthComplete: () => void;
 }
 
 export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
@@ -19,24 +21,51 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
     username: "",
     confirmPassword: ""
   });
+  const [error, setError] = useState<string | null>(null);
+  const setUser = useAppStore((state) => state.setUser);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock authentication - in real app would connect to Supabase
-    onAuthComplete({
-      email: formData.email,
-      username: formData.username || formData.email.split('@')[0],
-      level: "Beginner"
-    });
+    setError(null);
+
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      if (isLogin) {
+        const { user, profile } = await SimpleAuthService.signIn(formData.email, formData.password);
+        if (user && profile) {
+          setUser(profile);
+          onAuthComplete();
+        } else {
+          setError("Sign in failed. Please check your credentials.");
+        }
+      } else {
+        const { user, profile } = await SimpleAuthService.signUp(formData.email, formData.password, formData.username);
+        if (user && profile) {
+          setUser(profile);
+          onAuthComplete();
+        } else {
+          setError("Sign up failed. Please try again.");
+        }
+      }
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      setError(err.message || "An unexpected error occurred.");
+    }
   };
 
-  const handleOAuthLogin = (provider: string) => {
-    // Mock OAuth - in real app would use Supabase Auth
-    onAuthComplete({
-      email: `user@${provider}.com`,
-      username: `User`,
-      level: "Beginner"
-    });
+  const handleOAuthLogin = async (provider: 'google' | 'github' | 'apple') => {
+    setError(null);
+    try {
+      await SimpleAuthService.signInWithOAuth(provider);
+      // Supabase handles redirect, onAuthComplete will be called after redirect
+    } catch (err: any) {
+      console.error("OAuth error:", err);
+      setError(err.message || "An unexpected error occurred during OAuth.");
+    }
   };
 
   return (
@@ -138,6 +167,8 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
                 </div>
               )}
 
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+
               <Button 
                 type="submit" 
                 className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
@@ -164,10 +195,19 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
                 type="button"
                 variant="outline"
                 className="w-full"
+                onClick={() => handleOAuthLogin('github')}
+              >
+                Continue with GitHub
+              </Button>
+              {/* Apple OAuth is not directly supported by SimpleAuthService in this context */}
+              {/* <Button
+                type="button"
+                variant="outline"
+                className="w-full"
                 onClick={() => handleOAuthLogin('apple')}
               >
                 Continue with Apple
-              </Button>
+              </Button> */}
             </div>
 
             <div className="mt-4 text-center">
@@ -197,3 +237,4 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
     </div>
   );
 }
+
