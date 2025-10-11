@@ -149,14 +149,8 @@ const getStorage = () => {
   if (typeof window !== 'undefined') {
     return createJSONStorage(() => localStorage);
   }
-  // For React Native
-  try {
-    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-    return createJSONStorage(() => AsyncStorage);
-  } catch {
-    // Fallback to sessionStorage for web
-    return createJSONStorage(() => sessionStorage);
-  }
+  // Fallback to sessionStorage for web
+  return createJSONStorage(() => sessionStorage);
 };
 
 // Create store

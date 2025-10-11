@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Onboarding } from "./components/pages/Onboarding";
 import { Auth } from "./components/pages/Auth";
 import { MainAppScreen } from "./components/MainAppScreen";
-import { PlacementTest } from "./components/PlacementTest";
+import { AIPlacementTest } from "./components/AIPlacementTest";
 import { LevelSelection } from "./components/LevelSelection";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SimpleAuthService } from "./services/authServiceSimple";
@@ -362,9 +362,15 @@ function AppContent() {
       );
 
     case 'placement-test':
-      console.log('📄 Rendering: Placement Test');
+      console.log('📄 Rendering: AI Placement Test');
+      if (!user) {
+        console.log('⚠️ No user for placement test, redirecting to signin');
+        setCurrentState('signin');
+        return null;
+      }
       return (
-        <PlacementTest
+        <AIPlacementTest
+          user={user}
           onComplete={handlePlacementTestComplete}
           onSkip={handlePlacementTestSkip}
           onBack={() => setCurrentState('level-selection')}
@@ -390,6 +396,9 @@ function AppContent() {
           user={user}
           onLogout={handleLogout}
           onStartPlacementTest={() => setCurrentState('placement-test')}
+          onUserUpdate={(updatedUser) => {
+            dispatch(appActions.setUser(updatedUser));
+          }}
         />
       );
 

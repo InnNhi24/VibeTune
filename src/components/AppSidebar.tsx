@@ -42,13 +42,15 @@ interface AppSidebarProps {
   conversations: Conversation[];
   onConversationSelect: (conversation: Conversation) => void;
   onLogout: () => void;
+  onSettings?: () => void;
 }
 
 export function AppSidebar({
   user,
   conversations,
   onConversationSelect,
-  onLogout
+  onLogout,
+  onSettings
 }: AppSidebarProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   
@@ -342,7 +344,12 @@ export function AppSidebar({
 
       {/* Settings Footer */}
       <div className="p-4 border-t border-sidebar-border">
-        <Button variant="outline" className="w-full justify-start">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start"
+          onClick={onSettings}
+          disabled={!onSettings}
+        >
           <Settings className="w-4 h-4 mr-2" />
           Settings
         </Button>

@@ -33,7 +33,7 @@ export class SimpleAuthService {
               .upsert({
                 id: signInResult.data.user.id,
                 email: signInResult.data.user.email || email,
-                username: username,
+                username: username, // Ensure username is saved
                 level: null, // New users start with no level
                 placement_test_completed: false,
                 created_at: signInResult.data.user.created_at || new Date().toISOString(),
@@ -101,7 +101,7 @@ export class SimpleAuthService {
         const profile: Profile = {
           id: authData.user.id,
           email: authData.user.email || email,
-          username: username,
+          username: username, // Ensure username is saved
           level: null, // New users start with no level, will be set after selection/placement test
           placement_test_completed: false,
           created_at: authData.user.created_at || new Date().toISOString(),
@@ -115,7 +115,7 @@ export class SimpleAuthService {
           .upsert({
             id: authData.user.id,
             email: authData.user.email || email,
-            username: username,
+            username: username, // Ensure username is saved
             level: null, // Ensure level is null on initial signup
             placement_test_completed: false,
             created_at: profile.created_at,
@@ -207,23 +207,29 @@ export class SimpleAuthService {
           level: profileData?.level || null, // Use fetched level or null
           placement_test_completed: profileData?.placement_test_completed || false, // Use fetched status or false
           created_at: data.user.created_at || new Date().toISOString(),
-          last_login: new Date().toISOString(),
+          last_login: new Date().toISOString(), // Update last_login here
           device_id: this.getDeviceId()
         };
 
-        // Update last login in background
-        setTimeout(async () => {
-          try {
-            await supabase
-              .from('profiles')
-              .upsert({
-                id: data.user.id,
-                last_login: new Date().toISOString()
-              }, { onConflict: 'id' });
-          } catch (error) {
-            console.warn('Profile last_login update failed (non-blocking):', error);
-          }
-        }, 0);
+        // Update last login immediately (not in background)
+        try {
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              email: profile.email,
+              username: profile.username,
+              level: profile.level,
+              placement_test_completed: profile.placement_test_completed,
+              placement_test_score: profile.placement_test_score,
+              created_at: profile.created_at,
+              last_login: new Date().toISOString(),
+              device_id: profile.device_id
+            }, { onConflict: 'id' });
+          console.log('✅ Last login updated successfully');
+        } catch (error) {
+          console.warn('⚠️ Profile last_login update failed:', error);
+        }
 
         return { data: { user: data.user, profile }, error: null };
       } else if (data.user && !data.session) {
@@ -350,25 +356,46 @@ export class SimpleAuthService {
       console.log('🔄 SimpleAuthService.updateProfile called:', { userId, updates, hasExistingProfile: !!existingProfile });
       
       // Check if we have a Supabase session (real user)
-      const { data: session } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      if (session?.session?.user) {
+      if (sessionData?.session?.user) {
         console.log('✅ Real user with session - updating profile in DB');
+        
+        // First, get the current profile to merge with updates
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+        
+        // Prepare the update data, ensuring we don't lose existing data
+        const updateData = {
+          id: userId,
+          email: currentProfile?.email || sessionData.session.user.email || updates.email,
+          username: updates.username || currentProfile?.username || sessionData.session.user.user_metadata?.username || 'User',
+          level: updates.level !== undefined ? updates.level : currentProfile?.level,
+          placement_test_completed: updates.placement_test_completed !== undefined ? updates.placement_test_completed : currentProfile?.placement_test_completed || false,
+          placement_test_score: updates.placement_test_score !== undefined ? updates.placement_test_score : currentProfile?.placement_test_score,
+          created_at: currentProfile?.created_at || sessionData.session.user.created_at || new Date().toISOString(),
+          last_login: new Date().toISOString(), // Always update last_login
+          device_id: currentProfile?.device_id || this.getDeviceId()
+        };
+        
+        console.log('📝 Upserting profile data:', updateData);
+        
         // Real user with session - upsert updates to DB
         const { data: updatedProfile, error: updateError } = await supabase
           .from('profiles')
-          .upsert({
-            id: userId,
-            ...updates,
-            last_login: new Date().toISOString()
-          }, { onConflict: 'id' })
+          .upsert(updateData, { onConflict: 'id' })
           .select()
           .single();
 
         if (updateError) {
-          console.error('Error updating profile in DB:', updateError);
+          console.error('❌ Error updating profile in DB:', updateError);
           return { data: null, error: updateError };
         }
+        
+        console.log('✅ Profile updated successfully in DB:', updatedProfile);
         return { data: updatedProfile, error: null };
       } 
       
@@ -378,13 +405,15 @@ export class SimpleAuthService {
         const profile: Profile = {
           ...existingProfile,
           // Apply updates, preserving existing values unless explicitly updated
+          email: updates.email || existingProfile.email,
+          username: updates.username || existingProfile.username,
           level: updates.level !== undefined ? updates.level : existingProfile.level,
           placement_test_completed: updates.placement_test_completed !== undefined ? updates.placement_test_completed : existingProfile.placement_test_completed,
           placement_test_score: updates.placement_test_score !== undefined ? updates.placement_test_score : existingProfile.placement_test_score,
           last_login: new Date().toISOString(),
         };
 
-        console.log('✅ Profile created from existing profile:', profile);
+        console.log('✅ Demo profile updated:', profile);
         return { data: profile, error: null };
       }
       
@@ -392,8 +421,8 @@ export class SimpleAuthService {
       console.warn('⚠️ No session or existing profile - creating basic profile');
       const profile: Profile = {
         id: userId,
-        email: `demo@vibetune.com`,
-        username: 'Demo User',
+        email: updates.email || `demo@vibetune.com`,
+        username: updates.username || 'Demo User',
         level: updates.level || null,
         placement_test_completed: updates.placement_test_completed || false,
         placement_test_score: updates.placement_test_score,
@@ -441,42 +470,105 @@ export class SimpleAuthService {
       );
       
       if (!sessionResult) {
-        console.log('⚠️ Session check timed out');
-        return null;
+        console.log('⚠️ No session found or timeout occurred.');
+        return { data: { session: null, user: null }, error: null };
       }
-      
-      const { data: { session } } = sessionResult;
-      console.log('✅ Session found:', !!session?.user);
-      return session;
-    } catch (error) {
-      console.log('⚠️ Session check failed:', error?.message || error);
-      return null;
-    }
-  }
 
-  static onAuthStateChange(callback: (event: string, session: any) => void) {
-    return supabase.auth.onAuthStateChange(callback);
+      const { data: { session, user }, error } = sessionResult;
+
+      if (error) {
+        console.error('Error getting session:', error);
+        return { data: null, error };
+      }
+
+      if (user) {
+        // Fetch profile from database to get actual level and placement_test_completed status
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') { // PGRST116 means no rows found
+          console.error('Error fetching profile during session check:', profileError);
+          // If profile not found or error, create a basic one with null level
+          const profile: Profile = {
+            id: user.id,
+            email: user.email || '',
+            username: user.user_metadata?.username || 
+                      user.user_metadata?.display_name ||
+                      user.user_metadata?.name || 
+                      user.email?.split('@')[0] || 'User',
+            level: null,
+            placement_test_completed: false,
+            created_at: user.created_at || new Date().toISOString(),
+            last_login: new Date().toISOString(),
+            device_id: this.getDeviceId()
+          };
+          await supabase.from('profiles').upsert(profile, { onConflict: 'id' });
+          return { data: { session, user, profile }, error: null };
+        }
+
+        // If profile exists, use its data, ensuring username is prioritized from profileData
+        const profile: Profile = {
+          id: user.id,
+          email: user.email || '',
+          username: profileData?.username || 
+                    user.user_metadata?.username || 
+                    user.user_metadata?.display_name ||
+                    user.user_metadata?.name || 
+                    user.email?.split('@')[0] || 'User',
+          level: profileData?.level || null,
+          placement_test_completed: profileData?.placement_test_completed || false,
+          created_at: user.created_at || new Date().toISOString(),
+          last_login: new Date().toISOString(),
+          device_id: this.getDeviceId()
+        };
+
+        // Update last login in background
+        setTimeout(async () => {
+          try {
+            await supabase
+              .from('profiles')
+              .upsert({
+                id: user.id,
+                last_login: new Date().toISOString()
+              }, { onConflict: 'id' });
+          } catch (error) {
+            console.warn('Profile last_login update failed (non-blocking):', error);
+          }
+        }, 0);
+
+        return { data: { session, user, profile }, error: null };
+      }
+
+      return { data: { session, user }, error: null };
+    } catch (error: any) {
+      console.error('Error in getCurrentSession:', error);
+      return { data: null, error };
+    }
   }
 }
 
-// Test function to verify auth is working
-export const testAuth = async () => {
-  console.log('Testing authentication system...');
-  
+
+
+// Test function for authentication system
+export async function testAuth(): Promise<boolean> {
   try {
-    // Test connection
+    console.log('🔍 Testing authentication system...');
+    
+    // Test Supabase connection
     const { data, error } = await supabase.auth.getSession();
-    console.log('Session test result:', { hasSession: !!data.session, error: !!error });
     
     if (error) {
-      console.error('Session error:', error);
+      console.error('❌ Auth test failed:', error);
       return false;
     }
     
-    console.log('Authentication system is working!');
+    console.log('✅ Auth system test passed');
     return true;
   } catch (error) {
-    console.error('Auth test failed:', error);
+    console.error('❌ Auth test error:', error);
     return false;
   }
-};
+}

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Button } from "./ui/button";
 import { AppSidebar } from "./AppSidebar";
 import { ChatPanel } from "./ChatPanel";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { AIConnectionStatus } from "./AIConnectionStatus";
+import { Settings } from "./Settings";
 import { Menu, Mic, TrendingUp, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { Profile } from "../services/supabaseClient";
@@ -23,12 +24,14 @@ interface MainAppScreenProps {
   user: Profile;
   onLogout: () => void;
   onStartPlacementTest: () => void;
+  onUserUpdate?: (updatedUser: Profile) => void;
 }
 
-export function MainAppScreen({ user, onLogout, onStartPlacementTest }: MainAppScreenProps) {
+export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpdate }: MainAppScreenProps) {
   // Use user's actual level, fallback to Beginner if no level set
   const currentLevel = user.level || "Beginner";
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   
   // Get state from Zustand store
   const conversations = useConversations();
@@ -93,6 +96,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest }: MainAppS
           conversations={conversations}
           onConversationSelect={handleConversationSelect}
           onLogout={onLogout}
+          onSettings={() => setShowSettings(true)}
         />
       </div>
 
@@ -114,6 +118,10 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest }: MainAppS
                   conversations={conversations}
                   onConversationSelect={handleConversationSelect}
                   onLogout={onLogout}
+                  onSettings={() => {
+                    setShowSettings(true);
+                    setIsSidebarOpen(false);
+                  }}
                 />
               </SheetContent>
             </Sheet>
@@ -186,6 +194,25 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest }: MainAppS
           />
         </div>
       </div>
+
+      {/* Settings Modal/Overlay */}
+      {showSettings && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <Settings
+            user={user}
+            onUserUpdate={(updatedUser) => {
+              if (onUserUpdate) {
+                onUserUpdate(updatedUser);
+              }
+            }}
+            onBack={() => setShowSettings(false)}
+            onStartPlacementTest={() => {
+              setShowSettings(false);
+              onStartPlacementTest();
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
