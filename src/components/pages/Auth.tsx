@@ -409,7 +409,19 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           <Button 
             variant="outline"
             className="w-full"
-            onClick={() => alert("Sign in with Google not yet implemented")}
+            onClick={async () => {
+              setIsLoading(true);
+              setError("");
+              setSuccess("");
+              try {
+                const { error } = await SimpleAuthService.signInWithOAuth("google");
+                if (error) throw error;
+              } catch (err: any) {
+                setError(err.message || "Failed to sign in with Google");
+              } finally {
+                setIsLoading(false);
+              }
+            }}
             disabled={isLoading}
           >
             Sign in with Google
@@ -417,7 +429,19 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           <Button 
             variant="outline"
             className="w-full"
-            onClick={() => alert("Sign in with GitHub not yet implemented")}
+            onClick={async () => {
+              setIsLoading(true);
+              setError("");
+              setSuccess("");
+              try {
+                const { error } = await SimpleAuthService.signInWithOAuth("github");
+                if (error) throw error;
+              } catch (err: any) {
+                setError(err.message || "Failed to sign in with GitHub");
+              } finally {
+                setIsLoading(false);
+              }
+            }}
             disabled={isLoading}
           >
             Sign in with GitHub
