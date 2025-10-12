@@ -15,11 +15,14 @@ import {
   User as UserIcon,
   Zap,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Send,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Profile } from "../services/supabaseClient";
 import { SimpleAuthService } from "../services/authServiceSimple";
+import { Input } from "./ui/input";
 
 interface AIPlacementTestProps {
   user: Profile;
@@ -50,66 +53,47 @@ interface TestResults {
 
 const CONVERSATION_TOPICS = [
   {
-    id: 'greetings',
-    name: 'Basic Greetings',
+    id: 'introduction',
+    name: 'Personal Introduction',
     difficulty: 'beginner',
-    questions: [
-      "Hi there! How are you doing today?",
-      "What's your name and where are you from?",
-      "Tell me a bit about yourself."
-    ]
+    prompt: "Let's start with a simple introduction. Tell me about yourself - your name, where you're from, and what you do."
   },
   {
     id: 'daily_life',
     name: 'Daily Routines',
     difficulty: 'beginner',
-    questions: [
-      "What does a typical day look like for you?",
-      "What time do you usually wake up and go to bed?",
-      "What's your favorite meal of the day and why?"
-    ]
+    prompt: "Describe a typical day in your life. What time do you wake up, what do you do for work or study, and how do you spend your evenings?"
   },
   {
     id: 'hobbies',
     name: 'Hobbies & Interests',
     difficulty: 'intermediate',
-    questions: [
-      "What do you like to do in your free time?",
-      "Have you picked up any new hobbies recently?",
-      "If you could learn any new skill, what would it be?"
-    ]
+    prompt: "What are your hobbies and interests? How did you get started with them, and what do you enjoy most about them?"
   },
   {
     id: 'travel',
     name: 'Travel & Culture',
     difficulty: 'intermediate',
-    questions: [
-      "What's the most interesting place you've ever visited?",
-      "How do you think travel changes a person?",
-      "What cultural differences have you noticed between countries?"
-    ]
+    prompt: "Tell me about a place you've visited or would like to visit. What makes it special, and how do you think travel affects people?"
   },
   {
-    id: 'future_plans',
+    id: 'future_goals',
     name: 'Goals & Aspirations',
     difficulty: 'advanced',
-    questions: [
-      "Where do you see yourself in five years?",
-      "What's the biggest challenge you're facing right now?",
-      "How do you think technology will change our lives in the future?"
-    ]
+    prompt: "What are your goals for the future? How do you plan to achieve them, and what challenges do you expect to face?"
   }
 ];
 
 export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacementTestProps) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [currentTopicIndex, setCurrentTopicIndex] = useState(0);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [results, setResults] = useState<TestResults | null>(null);
   const [timeRemaining, setTimeRemaining] = useState(900); // 15 minutes
   const [error, setError] = useState<string | null>(null);
+  const [userInput, setUserInput] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Timer effect
@@ -135,7 +119,11 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
       const initialMessage: ConversationMessage = {
         id: 'initial',
         role: 'ai',
-        content: `Hello! I'm your AI conversation partner for this placement test. We'll have a natural conversation covering different topics to assess your English prosody skills. This will help us determine the best learning level for you. Ready to begin?`,
+        content: `Hello! I'm your AI conversation partner for this placement test. We'll have a natural conversation covering different topics to assess your English prosody skills. This will help us determine the best learning level for you. 
+
+I'll ask you about 5 different topics, and you can respond by typing your answers. Try to be as natural and detailed as possible - imagine we're having a friendly conversation!
+
+Ready to begin?`,
         timestamp: new Date(),
         topic: 'introduction'
       };
@@ -143,33 +131,25 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
       
       // After a brief pause, ask the first question
       setTimeout(() => {
-        askNextQuestion();
+        askCurrentQuestion();
       }, 2000);
     };
 
     startTest();
   }, []);
 
-  const askNextQuestion = () => {
-    const currentTopic = CONVERSATION_TOPICS[currentTopicIndex];
-    const currentQuestion = currentTopic.questions[currentQuestionIndex];
-
-    if (!currentQuestion) {
-      // Move to next topic or complete test
-      if (currentTopicIndex < CONVERSATION_TOPICS.length - 1) {
-        setCurrentTopicIndex(prev => prev + 1);
-        setCurrentQuestionIndex(0);
-        return;
-      } else {
-        completeTest();
-        return;
-      }
+  const askCurrentQuestion = () => {
+    if (currentTopicIndex >= CONVERSATION_TOPICS.length) {
+      completeTest();
+      return;
     }
 
+    const currentTopic = CONVERSATION_TOPICS[currentTopicIndex];
+    
     const questionMessage: ConversationMessage = {
-      id: `question-${currentTopicIndex}-${currentQuestionIndex}`,
+      id: `question-${currentTopicIndex}`,
       role: 'ai',
-      content: currentQuestion,
+      content: currentTopic.prompt,
       timestamp: new Date(),
       topic: currentTopic.id
     };
@@ -177,8 +157,11 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
     setMessages(prev => [...prev, questionMessage]);
   };
 
-  const handleUserResponse = async (response: string, isAudio: boolean = false) => {
+  const handleUserResponse = async (response: string) => {
+    if (!response.trim()) return;
+
     setIsLoading(true);
+    setIsAnalyzing(true);
     setError(null);
 
     try {
@@ -189,98 +172,131 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
         content: response,
         timestamp: new Date(),
         topic: CONVERSATION_TOPICS[currentTopicIndex].id,
-        isAudioResponse: isAudio
+        isAudioResponse: false
       };
 
       setMessages(prev => [...prev, userMessage]);
+      setUserInput('');
 
-      // Simulate AI analysis and scoring
-      const score = await analyzeResponse(response, CONVERSATION_TOPICS[currentTopicIndex]);
-      userMessage.score = score;
+      // Analyze response with AI
+      const analysis = await analyzeResponseWithAI(response, CONVERSATION_TOPICS[currentTopicIndex]);
+      userMessage.score = analysis.score;
 
-      // Generate AI follow-up or move to next question
-      const followUp = generateFollowUp(response, score);
+      // Generate AI follow-up
+      const followUpMessage: ConversationMessage = {
+        id: `followup-${Date.now()}`,
+        role: 'ai',
+        content: analysis.feedback,
+        timestamp: new Date(),
+        topic: CONVERSATION_TOPICS[currentTopicIndex].id
+      };
       
-      if (followUp) {
-        const followUpMessage: ConversationMessage = {
-          id: `followup-${Date.now()}`,
-          role: 'ai',
-          content: followUp,
-          timestamp: new Date(),
-          topic: CONVERSATION_TOPICS[currentTopicIndex].id
-        };
+      setTimeout(() => {
+        setMessages(prev => [...prev, followUpMessage]);
         
+        // Move to next topic after follow-up
         setTimeout(() => {
-          setMessages(prev => [...prev, followUpMessage]);
-          
-          // Move to next question after follow-up
-          setTimeout(() => {
-            setCurrentQuestionIndex(prev => prev + 1);
-            askNextQuestion();
-          }, 1500);
-        }, 1000);
-      } else {
-        // Move directly to next question
-        setTimeout(() => {
-          setCurrentQuestionIndex(prev => prev + 1);
-          askNextQuestion();
-        }, 1000);
-      }
+          setCurrentTopicIndex(prev => prev + 1);
+          askCurrentQuestion();
+        }, 1500);
+      }, 1000);
 
     } catch (err: any) {
       console.error('Error processing response:', err);
       setError('Failed to process your response. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
-  const analyzeResponse = async (response: string, topic: any): Promise<number> => {
-    // Simulate AI analysis - in a real app, this would call an AI service
-    const responseLength = response.length;
-    const wordCount = response.split(' ').length;
-    
-    // Basic scoring based on response quality indicators
-    let score = 50; // Base score
-    
-    // Length and complexity bonus
-    if (wordCount >= 10) score += 20;
-    if (wordCount >= 20) score += 10;
-    if (responseLength > 100) score += 10;
-    
-    // Topic difficulty adjustment
-    if (topic.difficulty === 'advanced') score = Math.min(score * 0.9, 100);
-    if (topic.difficulty === 'beginner') score = Math.min(score * 1.1, 100);
-    
-    // Add some randomness to simulate real AI analysis
-    score += Math.random() * 20 - 10;
-    
-    return Math.max(0, Math.min(100, Math.round(score)));
-  };
+  const analyzeResponseWithAI = async (response: string, topic: any): Promise<{ score: number; feedback: string }> => {
+    try {
+      // Use OpenAI API to analyze the response
+      const analysisPrompt = `
+You are an English language assessment AI specializing in prosody and conversational skills. 
 
-  const generateFollowUp = (response: string, score: number): string | null => {
-    if (score >= 80) {
-      const positiveFollowUps = [
-        "Great answer! I can hear the confidence in your response.",
-        "Excellent! Your pronunciation is very clear.",
-        "That's a thoughtful response with good intonation.",
-        "Perfect! You're expressing yourself very naturally."
+Analyze this student response for a ${topic.difficulty} level topic about "${topic.name}":
+
+Student Response: "${response}"
+
+Provide a JSON response with:
+1. score: A number from 0-100 based on:
+   - Vocabulary richness and appropriateness
+   - Grammar accuracy
+   - Response completeness and relevance
+   - Natural conversational flow
+   - Complexity appropriate for ${topic.difficulty} level
+
+2. feedback: A brief, encouraging response (1-2 sentences) that:
+   - Acknowledges their response positively
+   - Provides subtle guidance if needed
+   - Maintains conversational flow
+
+Format: {"score": number, "feedback": "string"}
+`;
+
+      const response_data = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY || 'sk-placeholder'}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert English language assessor. Respond only with valid JSON.'
+            },
+            {
+              role: 'user',
+              content: analysisPrompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 200
+        })
+      });
+
+      if (!response_data.ok) {
+        throw new Error('AI analysis failed');
+      }
+
+      const data = await response_data.json();
+      const analysis = JSON.parse(data.choices[0].message.content);
+      
+      return {
+        score: Math.max(0, Math.min(100, analysis.score)),
+        feedback: analysis.feedback
+      };
+    } catch (error) {
+      console.warn('AI analysis failed, using fallback:', error);
+      
+      // Fallback analysis
+      const wordCount = response.split(' ').length;
+      const responseLength = response.length;
+      
+      let score = 50; // Base score
+      if (wordCount >= 10) score += 20;
+      if (wordCount >= 25) score += 15;
+      if (responseLength > 100) score += 10;
+      
+      // Topic difficulty adjustment
+      if (topic.difficulty === 'advanced') score = Math.min(score * 0.9, 100);
+      if (topic.difficulty === 'beginner') score = Math.min(score * 1.1, 100);
+      
+      const feedbackOptions = [
+        "Thank you for sharing that! Your response shows good understanding.",
+        "Great! I can see you're expressing yourself clearly.",
+        "That's interesting! You're communicating your thoughts well.",
+        "Nice response! You're doing well with this topic."
       ];
-      return positiveFollowUps[Math.floor(Math.random() * positiveFollowUps.length)];
-    } else if (score >= 60) {
-      const neutralFollowUps = [
-        "Good! Let's continue with the next topic.",
-        "Nice! I can understand you clearly.",
-        "That's helpful information, thank you."
-      ];
-      return neutralFollowUps[Math.floor(Math.random() * neutralFollowUps.length)];
-    } else {
-      const encouragingFollowUps = [
-        "Thank you for sharing. Let's try another topic.",
-        "I appreciate your response. Let's continue.",
-        "Thanks! Let's move on to something different."
-      ];
-      return encouragingFollowUps[Math.floor(Math.random() * encouragingFollowUps.length)];
+      
+      return {
+        score: Math.round(score),
+        feedback: feedbackOptions[Math.floor(Math.random() * feedbackOptions.length)]
+      };
     }
   };
 
@@ -314,7 +330,7 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
         topicScores,
         strengths: generateStrengths(averageScore, topicScores),
         improvements: generateImprovements(averageScore, topicScores),
-        totalQuestions: CONVERSATION_TOPICS.reduce((sum, topic) => sum + topic.questions.length, 0),
+        totalQuestions: CONVERSATION_TOPICS.length,
         completedQuestions: userMessages.length
       };
       
@@ -338,34 +354,36 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
 
   const generateStrengths = (score: number, topicScores: Record<string, number>): string[] => {
     const strengths = [];
-    if (score >= 70) strengths.push("Clear pronunciation");
-    if (score >= 60) strengths.push("Good conversational flow");
+    if (score >= 70) strengths.push("Clear and coherent communication");
+    if (score >= 60) strengths.push("Good conversational engagement");
+    if (score >= 80) strengths.push("Rich vocabulary usage");
     
     // Find best topic
     const bestTopic = Object.entries(topicScores).reduce((best, [topic, score]) => 
       score > best.score ? { topic, score } : best, { topic: '', score: 0 });
     
     if (bestTopic.score >= 70) {
-      strengths.push(`Strong performance in ${bestTopic.topic.toLowerCase()}`);
+      strengths.push(`Excellent performance discussing ${bestTopic.topic.toLowerCase()}`);
     }
     
-    return strengths.length > 0 ? strengths : ["Willingness to communicate"];
+    return strengths.length > 0 ? strengths : ["Willingness to communicate and engage"];
   };
 
   const generateImprovements = (score: number, topicScores: Record<string, number>): string[] => {
     const improvements = [];
-    if (score < 60) improvements.push("Focus on pronunciation clarity");
-    if (score < 70) improvements.push("Practice natural intonation patterns");
+    if (score < 60) improvements.push("Focus on expanding response detail and complexity");
+    if (score < 70) improvements.push("Practice using more varied vocabulary");
+    if (score < 50) improvements.push("Work on grammar accuracy and sentence structure");
     
     // Find weakest topic
     const weakestTopic = Object.entries(topicScores).reduce((worst, [topic, score]) => 
       score < worst.score ? { topic, score } : worst, { topic: '', score: 100 });
     
-    if (weakestTopic.score < 60) {
-      improvements.push(`More practice with ${weakestTopic.topic.toLowerCase()}`);
+    if (weakestTopic.score < 60 && Object.keys(topicScores).length > 1) {
+      improvements.push(`Additional practice with ${weakestTopic.topic.toLowerCase()} discussions`);
     }
     
-    return improvements.length > 0 ? improvements : ["Continue practicing regularly"];
+    return improvements.length > 0 ? improvements : ["Continue practicing to build confidence"];
   };
 
   const handleTimeUp = () => {
@@ -382,9 +400,14 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
   };
 
   const getProgress = () => {
-    const totalQuestions = CONVERSATION_TOPICS.reduce((sum, topic) => sum + topic.questions.length, 0);
-    const currentProgress = (currentTopicIndex * 3) + currentQuestionIndex;
-    return Math.min((currentProgress / totalQuestions) * 100, 100);
+    return Math.min((currentTopicIndex / CONVERSATION_TOPICS.length) * 100, 100);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && userInput.trim() && !isLoading) {
+      e.preventDefault();
+      handleUserResponse(userInput);
+    }
   };
 
   // Completion screen
@@ -464,30 +487,35 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
               <ArrowLeft className="w-4 h-4" />
             </Button>
           )}
-          <div className="text-center flex-1">
-            <h1 className="text-2xl font-bold">AI Conversation Placement Test</h1>
-            <p className="text-muted-foreground">
-              Topic: {CONVERSATION_TOPICS[currentTopicIndex]?.name}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <h1 className="text-xl font-bold">AI Placement Test</h1>
+              <p className="text-sm text-muted-foreground">
+                Topic {currentTopicIndex + 1} of {CONVERSATION_TOPICS.length}
+              </p>
+            </div>
           </div>
-          <div className="w-10" />
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-sm font-medium">{formatTime(timeRemaining)}</div>
+              <div className="text-xs text-muted-foreground">remaining</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={onSkip}>
+              Skip Test
+            </Button>
+          </div>
         </div>
 
-        {/* Progress and Timer */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm">Progress</span>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm">{formatTime(timeRemaining)}</span>
-              </div>
-            </div>
-            <Progress value={getProgress()} className="w-full" />
-          </CardContent>
-        </Card>
+        {/* Progress */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Progress</span>
+            <span>{Math.round(getProgress())}%</span>
+          </div>
+          <Progress value={getProgress()} className="h-2" />
+        </div>
 
-        {/* Error Display */}
+        {/* Error Alert */}
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -495,69 +523,103 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
           </Alert>
         )}
 
-        {/* Conversation */}
-        <Card className="h-96">
+        {/* Chat Interface */}
+        <Card className="flex-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
               Conversation
             </CardTitle>
             <CardDescription>
-              Have a natural conversation with the AI to assess your English prosody skills
+              {currentTopicIndex < CONVERSATION_TOPICS.length 
+                ? `Current topic: ${CONVERSATION_TOPICS[currentTopicIndex].name}`
+                : "Test completed"
+              }
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-64 overflow-y-auto space-y-4">
-            <AnimatePresence>
-              {messages.map((message) => (
+          <CardContent>
+            {/* Messages */}
+            <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+              <AnimatePresence>
+                {messages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`flex gap-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        message.role === 'ai' ? 'bg-accent text-accent-foreground' : 'bg-primary text-primary-foreground'
+                      }`}>
+                        {message.role === 'ai' ? <Bot className="w-4 h-4" /> : <UserIcon className="w-4 h-4" />}
+                      </div>
+                      <div className={`rounded-lg p-3 ${
+                        message.role === 'ai' 
+                          ? 'bg-muted text-muted-foreground' 
+                          : 'bg-primary text-primary-foreground'
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {message.score && (
+                          <div className="mt-2 text-xs opacity-70">
+                            Score: {message.score}%
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              
+              {isAnalyzing && (
                 <motion.div
-                  key={message.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className="flex gap-3 justify-start"
                 >
-                  <div className={`flex gap-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      message.role === 'ai' ? 'bg-accent text-accent-foreground' : 'bg-primary text-primary-foreground'
-                    }`}>
-                      {message.role === 'ai' ? <Bot className="w-4 h-4" /> : <UserIcon className="w-4 h-4" />}
+                  <div className="flex gap-3 max-w-[80%]">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-accent text-accent-foreground">
+                      <Bot className="w-4 h-4" />
                     </div>
-                    <div className={`p-3 rounded-lg ${
-                      message.role === 'ai' 
-                        ? 'bg-muted text-muted-foreground' 
-                        : 'bg-primary text-primary-foreground'
-                    }`}>
-                      <p className="text-sm">{message.content}</p>
-                      {message.score && (
-                        <Badge variant="outline" className="mt-2 text-xs">
-                          Score: {message.score}%
-                        </Badge>
-                      )}
+                    <div className="rounded-lg p-3 bg-muted text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Analyzing your response...</span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
-            <div ref={messagesEndRef} />
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            {currentTopicIndex < CONVERSATION_TOPICS.length && !isCompleted && (
+              <div className="flex gap-2">
+                <Input
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your response here..."
+                  disabled={isLoading}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={() => handleUserResponse(userInput)}
+                  disabled={!userInput.trim() || isLoading}
+                  size="icon"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {/* Recording Controls */}
-        <Card>
-          <CardContent className="p-4">
-            <RecordingControls
-              onSendMessage={(message) => handleUserResponse(message, true)}
-              disabled={isLoading || isCompleted}
-              placeholder="Speak your response or type it here..."
-            />
-          </CardContent>
-        </Card>
-
-        {/* Skip Option */}
-        <div className="text-center">
-          <Button variant="link" onClick={onSkip} disabled={isLoading}>
-            Skip placement test and start with Beginner level
-          </Button>
-        </div>
       </div>
     </div>
   );
