@@ -8,10 +8,10 @@ import { motion } from "motion/react";
 interface OnboardingProps {
   onSignUp: () => void;
   onSignIn: () => void;
-  onDemoUser?: (user: any) => void; // Optional demo user function
+
 }
 
-export function Onboarding({ onSignUp, onSignIn, onDemoUser }: OnboardingProps) {
+export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center p-4">
       <div className="max-w-4xl mx-auto w-full">
@@ -96,42 +96,7 @@ export function Onboarding({ onSignUp, onSignIn, onDemoUser }: OnboardingProps) 
             </motion.div>
             
             {/* Demo Button - Temporary for Testing */}
-            {onDemoUser && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.0 }}
-                className="max-w-md mx-auto lg:mx-0"
-              >
-                <div className="border-2 border-success/30 bg-success/10 rounded-lg p-4 space-y-3">
-                  <p className="text-sm font-medium text-success-foreground text-center">🧪 Testing Mode</p>
-                  <Button 
-                    onClick={() => {
-                      console.log('🧪 Creating demo user from onboarding...');
-                      const demoProfile = {
-                        id: 'demo-user-' + Date.now(),
-                        email: 'demo@vibetune.com',
-                        username: 'Demo User',
-                        level: null,
-                        placement_test_completed: false,
-                        created_at: new Date().toISOString(),
-                        last_login: new Date().toISOString(),
-                        device_id: 'demo-device-' + Date.now()
-                      };
-                      console.log('📝 Demo profile created:', demoProfile);
-                      console.log('🚀 Calling onDemoUser...');
-                      onDemoUser(demoProfile);
-                    }}
-                    className="w-full bg-success hover:bg-success/90 text-success-foreground font-semibold"
-                  >
-                    🎭 Skip to App with Demo User
-                  </Button>
-                  <p className="text-xs text-muted-foreground text-center">
-                    Test navigation without authentication
-                  </p>
-                </div>
-              </motion.div>
-            )}
+
             
             {/* Info Text */}
             <motion.div

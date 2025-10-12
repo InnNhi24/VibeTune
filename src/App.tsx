@@ -241,7 +241,7 @@ function AppContent() {
         <Onboarding
           onSignUp={handleSignUp}
           onSignIn={handleSignIn}
-          onDemoUser={handleAuthComplete}
+
         />
       );
 
