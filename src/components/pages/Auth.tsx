@@ -379,7 +379,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
               {/* Toggle between signin/signup */}
               <div className="mt-4 text-center text-sm">
                 <span className="text-muted-foreground">
-                  {isLogin ? "Don't have an account? " : "Already have an account? "}
+                  {isLogin ? "Don\'t have an account? " : "Already have an account? "}
                 </span>
                 <Button
                   variant="link"
@@ -397,6 +397,31 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
               </div>
             </CardContent>
           </Card>
+        </motion.div>
+
+        {/* Social Login Options */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-3"
+        >
+          <Button 
+            variant="outline"
+            className="w-full"
+            onClick={() => alert("Sign in with Google not yet implemented")}
+            disabled={isLoading}
+          >
+            Sign in with Google
+          </Button>
+          <Button 
+            variant="outline"
+            className="w-full"
+            onClick={() => alert("Sign in with GitHub not yet implemented")}
+            disabled={isLoading}
+          >
+            Sign in with GitHub
+          </Button>
         </motion.div>
 
         {/* Demo User and Testing */}
@@ -417,7 +442,8 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
               onClick={testConnection}
               disabled={isLoading}
             >
-              {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Test Connection"}
+              {isLoading && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
+              Test Connection
             </Button>
             <Button 
               variant="outline"
@@ -439,7 +465,8 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
               }}
               disabled={isLoading}
             >
-              {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Check Auth"}
+              {isLoading && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
+              Check Auth
             </Button>
           </div>
           
@@ -455,6 +482,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
             variant="ghost" 
             onClick={onBack}
             disabled={isLoading}
+
           >
             Back to Welcome
           </Button>
