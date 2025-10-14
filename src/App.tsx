@@ -23,10 +23,13 @@ function AppContent() {
 
   // Simplified initialization - check auth once and set state accordingly
   useEffect(() => {
-    if (isInitialized) return;
+    if (isInitialized) {
+      console.log("App already initialized, skipping.");
+      return;
+    }
     
     const initializeApp = async () => {
-      console.log('🚀 Initializing VibeTune...');
+      console.log('🚀 Initializing VibeTune... Current state:', currentState, 'isInitialized:', isInitialized, 'authChecked:', authChecked);
       setIsInitialized(true);
 
       try {
@@ -39,7 +42,7 @@ function AppContent() {
         const sessionResult = await SimpleAuthService.getCurrentSession();
         
         if (sessionResult?.data?.user && sessionResult?.data?.profile) {
-          console.log('✅ Found existing session with profile');
+          console.log('✅ Found existing session with profile. User ID:', sessionResult.data.user.id);
           dispatch(appActions.setUser(sessionResult.data.profile));
           
           // Navigate based on user's level status
@@ -51,17 +54,20 @@ function AppContent() {
         } else {
           console.log('❌ No valid session found');
           setCurrentState('onboarding');
+          console.log('➡️ Setting state to onboarding after no session.');
         }
       } catch (error) {
         console.warn('⚠️ Session check failed:', error);
         setCurrentState('onboarding');
+        console.log('➡️ Setting state to onboarding after session check failed.');
       } finally {
         setAuthChecked(true);
+        console.log('Auth check completed. authChecked set to true.');
       }
     };
 
     initializeApp();
-  }, [dispatch, isInitialized]);
+  }, [dispatch, isInitialized, authChecked]); // Added authChecked to dependencies to ensure re-evaluation if it changes unexpectedly
 
   const handleSignUp = () => {
     console.log('📝 Navigating to signup');
@@ -233,7 +239,7 @@ function AppContent() {
   }
 
   // Render current screen based on state
-  console.log('🖼️ Rendering screen:', currentState, 'User:', !!user, 'User level:', user?.level);
+  console.log('🖼️ Rendering screen:', currentState, 'User:', !!user, 'User level:', user?.level, 'authChecked:', authChecked);
   
   switch (currentState) {
     case 'onboarding':
@@ -332,3 +338,4 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
