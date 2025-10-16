@@ -1,81 +1,236 @@
-# VibeTune - AI Prosody Learning App
+# 🎧 VibeTune — AI Prosody Learning App
 
-VibeTune is a mobile-first AI prosody learning application designed for English learners. It helps users improve their pronunciation, grammar, vocabulary, and conversation skills through AI-powered conversations that simulate casual coffee-chat style interactions.
+## 🧭 Overview
 
-## Project Overview
+VibeTune is a mobile-first AI-powered prosody learning app designed to help English learners improve their pronunciation, prosody, grammar, vocabulary, and conversational fluency through friendly, natural-sounding chats with an AI tutor — just like having a casual coffee conversation ☕.
 
-### 1. Platform & Technologies
+The app analyzes speech rhythm, intonation, pacing, and phrasing, providing real-time feedback on pronunciation, grammatical accuracy, and vocabulary usage. Learners can communicate with the AI via text or voice, receive grammar and vocabulary feedback, review interactive flashcards, and progress through adaptive difficulty levels tailored to their performance.
 
-*   **Frontend:** iOS/Android (React Native / Capacitor)
-*   **Backend:** Supabase (Authentication, Database, RLS)
-*   **AI Integration:** OpenAI (text/audio), Deepgram (speech-to-text), TTS (optional)
-*   **CI/CD:** Vercel (web hosting, mobile app build), GitHub Actions
-*   **Architecture:** Offline-first (supports offline sync, conflict handling optional)
-*   **Monitoring:** Supabase logs, event tracking
+## ⚙️ Tech Stack
 
-### 2. Key Features
+| Layer               | Technology                                             |
+| :------------------ | :----------------------------------------------------- |
+| Frontend (Mobile/Web) | React Native (mobile), Capacitor, Vite (web demo / PWA) |
+| Backend & Database  | Supabase (Auth, Postgres Database, RLS, Realtime)      |
+| AI Integration      | OpenAI (GPT-4 / GPT-3.5-Turbo) for conversational AI and language feedback |
+| Speech Recognition  | Deepgram (real-time speech-to-text transcription)      |
+| Text-to-Speech (optional) | OpenAI TTS / ElevenLabs                                |
+| Edge Functions      | Supabase Edge Functions (Deno)                         |
+| CI/CD               | GitHub Actions                                         |
+| Deployment          | Web via Vercel (GitHub → Vercel) • Mobile via Capacitor / EAS |
+| Monitoring & Analytics | Supabase logs + custom analytics_events table          |
+| Offline-first (optional) | Local SQLite cache + conflict resolution (Last-Writer-Wins) |
 
-*   **Adaptive AI Conversation:** Personalized learning based on user level.
-*   **Text/Audio Input:** With live transcription for immediate feedback.
-*   **Grammar & Vocabulary Feedback:** Includes flashcards for effective learning.
-*   **Level Selection Flow:**
-    *   **Placement Test:** AI-driven assessment to determine user proficiency.
-    *   **Self-Select Level:** Users can choose Beginner, Intermediate, or Advanced.
-    *   **Change Level:** Requires a Replacement Test to update proficiency.
-*   **Mobile-first UI/UX:** Chat interface similar to popular messaging apps, with visual feedback for grammar and vocabulary.
-*   **Analytics Tracking:** For retention and engagement monitoring.
+## 🧱 Database Schema & Security
 
-### 3. Setup and Installation
+### Tables
 
-To get the VibeTune project up and running locally, follow these steps:
+| Table            | Fields                                                                                                                                                                                                | Description                                     |
+| :--------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------- |
+| `profiles`       | `id`, `email`, `username`, `level` (Beginner / Intermediate / Advanced), `placement_test_completed`, `placement_test_score`, `last_login`, `device_id`                                                  | Stores user information and learning level      |
+| `conversations`  | `id`, `profile_id`, `topic`, `is_placement_test`, `started_at`, `ended_at`                                                                                                                            | Each conversation or placement test session     |
+| `messages`       | `id`, `conversation_id`, `sender` (user / ai), `type` (text / audio), `content`, `audio_url`, `prosody_feedback`, `vocab_suggestions`, `guidance`, `retry_of_message_id`, `version`, `created_at` | Stores message content and AI feedback          |
+| `analytics_events` | `id`, `profile_id`, `event_type`, `metadata`, `created_at`                                                                                                                                            | Tracks app usage and learning analytics         |
+| `feedback_rating` (optional) | `id`, `message_id`, `profile_id`, `rating`, `created_at`                                                                                                                                              | User ratings for AI feedback quality            |
 
-1.  **Clone the repository:**
+### Security & RLS
 
-    ```bash
-    gh repo clone InnNhi24/VibeTune
-    cd VibeTune
+Row-Level Security (RLS) is enabled on all tables, ensuring users can only access and modify their own data.
+
+**Indexes:**
+
+*   `messages(conversation_id, created_at DESC)`
+*   `conversations(profile_id, started_at DESC)`
+*   `analytics_events(profile_id, created_at DESC)`
+
+## 🧭 User Flow
+
+### 1️⃣ Onboarding
+
+Users sign in via email OTP or Google/GitHub (Supabase Auth). They then choose one of two paths:
+
+*   **Placement Test:** A conversational assessment with the AI to automatically determine their English level.
+*   **Self-Select Level:** Manually select Beginner, Intermediate, or Advanced.
+
+### 2️⃣ Placement Test
+
+The AI initiates a casual chat (e.g., “Tell me about your hobbies”, “What’s your favorite food?”).
+
+*   Deepgram transcribes voice input to text in real time.
+*   OpenAI analyzes the transcript for:
+    *   Grammar accuracy
+    *   Vocabulary range and usage
+    *   Prosody metrics (pitch, rate, pauses, energy)
+*   A final level (Beginner / Intermediate / Advanced) is automatically assigned and saved to `profiles.level`.
+
+### 3️⃣ Main Chat
+
+Users select a topic; the AI adjusts conversation difficulty accordingly.
+
+*   Grammar corrections and vocabulary tips are presented naturally during the chat.
+*   After each conversation:
+    *   A grammar feedback summary is displayed.
+    *   Vocabulary flashcards are generated.
+    *   Optional AI voice playback (TTS).
+
+### 4️⃣ Replacement Test
+
+To change their level, users must complete a replacement test with the AI.
+
+### 5️⃣ Offline Mode (optional)
+
+Messages and conversations are stored locally and synced automatically when the user reconnects. Conflict handling strategy: client-wins.
+
+## 🧠 AI & Edge Function Architecture
+
+### `chat-stream` Function
+
+Handles both text and voice input for AI conversations.
+
+**Input:**
+
+```json
+{ "conversationId": "uuid", "text": "Hello!", "audioUrl": null }
+```
+
+**Process:**
+
+1.  If `audioUrl` is provided → send to Deepgram → receive transcript and timing data.
+2.  Call OpenAI with a “friendly tutor” prompt → request structured feedback:
+
+    ```json
+    {
+      "turn_feedback": {
+        "grammar": [{"error": "I am agree", "suggest": "I agree"}],
+        "vocab": [{"word": "excited", "explain": "feeling happy and eager", "CEFR": "B1"}],
+        "prosody": {"rate": 0.7, "pitch": 0.8, "energy": 0.6, "pauses": [{"t": 1.2, "dur": 0.4}]}
+      },
+      "guidance": "Try speaking a little slower next time."
+    }
     ```
 
-2.  **Install Dependencies:**
+3.  Save both the user and AI messages to Supabase.
+4.  Return `{ replyText, feedback }` to the client.
 
-    ```bash
-    npm install
-    ```
+### `placement-score` Function
 
-3.  **Environment Variables:**
+Calculates overall language level from placement test results. Aggregates grammar, vocabulary, and prosody scores, then updates `profiles.level` accordingly.
 
-    Create a `.env` file in the root of the project and add your API keys and Supabase credentials. Refer to `src/env.example` for the required variables.
+### `events-ingest` Function
 
-    ```
-    VITE_SUPABASE_URL=your_supabase_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    VITE_OPENAI_API_KEY=your_openai_api_key
-    VITE_DEEPGRAM_API_KEY=your_deepgram_api_key
-    ```
+Logs analytics events into `analytics_events`. Implements basic rate-limiting by `user_id` and `device_id`.
 
-4.  **Run the Development Server:**
+**Example events:** `session_start`, `session_end`, `ai_first_token`, `feedback_shown`, `flashcards_reviewed`.
 
-    ```bash
-    npm run dev
-    ```
+## 🎨 UI / UX Design
 
-    The application will be accessible at `http://localhost:3000/`.
+### Screens
 
-### 4. Recent Fixes
+| Screen            | Description                                          |
+| :---------------- | :--------------------------------------------------- |
+| Welcome / Login   | Supabase Auth login (Email OTP / Google / GitHub)    |
+| Level Selection   | Choose Placement Test or Self-Select Level           |
+| Placement Test    | Real-time chat with transcript and instant feedback  |
+| Main Chat         | Text + voice chat interface with feedback highlights |
+| Flashcards Review | Displays learned vocabulary after each session       |
+| Settings          | Change level (Replacement Test), toggle TTS, delete data |
 
-*   **Resolved 
+### Design Philosophy:
 
-Registration/Login Bounceback Error:** Fixed a `ReferenceError: React is not defined` issue in `MainAppScreen.tsx` that caused a bounceback during user registration and login flows. The application now successfully navigates to the main interface after authentication.
+*   Friendly, approachable, and conversational tone.
+*   Soft pastel color palette for a calm learning environment.
+*   Feedback panels use color cues (green = correct, red = error, yellow = suggestion).
+*   Smooth animations via Framer Motion or React Native Reanimated.
 
-## Next Steps
+## 🔐 Environment Variables
 
-Based on the project overview, the following are the next steps to complete the project:
+| Variable                  | Scope         | Description                                     |
+| :------------------------ | :------------ | :---------------------------------------------- |
+| `VITE_SUPABASE_URL`       | Client        | Supabase project URL                            |
+| `VITE_SUPABASE_ANON_KEY`  | Client        | Public anon key for Supabase                    |
+| `OPENAI_API_KEY`          | Edge Functions | Access key for GPT API                          |
+| `DEEPGRAM_API_KEY`        | Edge Functions | Real-time speech-to-text                        |
+| `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions | Elevated DB access for server functions         |
+| `TTS_API_KEY`             | Edge Functions | Optional text-to-speech service                 |
+| `APP_ENV`                 | All           | `development` / `production`                    |
+| `VERCEL_TOKEN`            | GitHub Actions | Deploy token for Vercel CI/CD                   |
 
-*   Implement self-selected level + replacement test flow.
-*   Connect AI conversation (OpenAI + Deepgram + optional TTS).
-*   Enable live transcription for audio input.
-*   UI polish: grammar/vocab feedback, chat bubbles, flashcards.
-*   Testing: unit, e2e, manual for all core flows.
-*   CI/CD: deploy web & mobile builds.
-*   Optional: offline sync, conflict resolution.
+⚠️ **Never hard-code secrets.** Store environment variables securely in GitHub, Vercel, and Supabase according to their respective scopes.
+
+## 🧪 Testing & Quality Assurance
+
+| Test Type         | Purpose                                                              |
+| :---------------- | :------------------------------------------------------------------- |
+| Unit Tests        | Validate grammar/vocab/prosody parser, placement scoring logic       |
+| Integration Tests | Mock Deepgram & OpenAI calls, validate feedback schema               |
+| E2E Tests (Playwright / Detox) | Simulate user login → choose level → chat → receive feedback |
+| Manual QA         | Evaluate response latency, speech accuracy, feedback clarity         |
+| Monitoring        | Supabase logs + `analytics_events` table for usage tracking          |
+
+## 🚀 Deployment Pipeline
+
+### Deployment Flow
+
+GitHub → Vercel (Web)
+        ↳ Supabase (Edge Functions)
+
+### Web Deployment
+
+1.  Push changes to GitHub `main` branch.
+2.  Vercel automatically deploys using environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
+3.  Web app live at project domain (e.g., `https://vibetune.vercel.app`).
+
+### Edge Functions Deployment
+
+Use Supabase CLI:
+
+```bash
+supabase functions deploy chat-stream
+supabase functions deploy placement-score
+supabase functions deploy events-ingest
+```
+
+### Mobile Deployment
+
+Build with Capacitor / EAS for iOS and Android. Inject environment variables at build time.
+
+## 📊 Analytics & Metrics
+
+Tracked events include:
+
+*   `session_start`, `session_end`
+*   `asr_partial`, `asr_final`
+*   `ai_first_token`
+*   `feedback_shown`, `flashcards_reviewed`
+*   `level_changed`
+*   `retention_day1`, `retention_day7`
+
+All stored in `analytics_events` with metadata for retention and engagement analysis.
+
+## 🗺️ Product Roadmap
+
+| Sprint   | Goal                                      | Deliverables                               |
+| :------- | :---------------------------------------- | :----------------------------------------- |
+| Sprint 1 | Authentication + Database schema + RLS    | Supabase migrations, auth setup            |
+| Sprint 2 | Edge Functions + AI/ASR integration       | `chat-stream`, `placement-score`           |
+| Sprint 3 | Chat UI + Grammar & Vocabulary Feedback   | Interactive chat experience                |
+| Sprint 4 | Replacement Test + Analytics              | Adaptive learning & tracking               |
+| Sprint 5 | Offline Sync + Polish + Deploy            | MVP live on Vercel + TestFlight            |
+
+## ✅ Deliverables
+
+*   Supabase migrations with RLS and indexes
+*   Edge Functions: `chat-stream`, `placement-score`, `events-ingest`
+*   React Hooks & UI Components
+*   Offline caching (optional)
+*   Unit, Integration, and E2E Tests
+*   CI/CD workflows: GitHub pipelines
+*   Documentation: `README.md`, `SECURITY.md`, `.env` setup guide
+*   Verified production deployment on Vercel and Supabase
+
+## 🧡 Credits
+
+Developed by Group 1
+Bachelor of Data Science – SP Jain School of Global Management
+Focus areas: AI-powered language learning, speech prosody analysis, and intelligent tutoring systems.
 
