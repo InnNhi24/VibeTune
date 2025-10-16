@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Alert, AlertDescription } from "../ui/alert";
-import { Mic, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { SimpleAuthService, testAuth } from "../../services/authServiceSimple";
+import { Mic, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
+import { SimpleAuthService } from "../../services/authServiceSimple";
 import { Profile } from "../../services/supabaseClient";
 import { motion } from "motion/react";
 import { validateEmail, validatePassword } from "../../utils/helpers";
@@ -163,46 +163,6 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const testConnection = async () => {
-    try {
-      setError('');
-      setSuccess('');
-      console.log('🔍 Testing authentication system...');
-      
-      const authResult = await testAuth();
-      if (authResult) {
-        setSuccess('✓ Authentication system is working! You can now sign up or sign in.');
-      } else {
-        setError('✗ Authentication system test failed. Check console for details.');
-      }
-      
-    } catch (err: any) {
-      console.error('❌ Connection test error:', err);
-      setError(`Connection test failed: ${err.message}`);
-    }
-  };
-
-  const createDemoUser = () => {
-    console.log('🧪 Creating demo user...');
-    setSuccess('Creating demo user...');
-    
-    const demoProfile: Profile = {
-      id: 'demo-user-' + Date.now(),
-      email: 'demo@vibetune.com',
-      username: 'Demo User',
-      level: null, // No level to test level selection flow
-      placement_test_completed: false,
-      created_at: new Date().toISOString(),
-      last_login: new Date().toISOString(),
-      device_id: 'demo-device-' + Date.now()
-    };
-    
-    setTimeout(() => {
-      console.log('✅ Demo profile created, completing auth...');
-      onAuthComplete(demoProfile);
-    }, 500);
   };
 
   return (
@@ -379,7 +339,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
               {/* Toggle between signin/signup */}
               <div className="mt-4 text-center text-sm">
                 <span className="text-muted-foreground">
-                  {isLogin ? "Don\'t have an account? " : "Already have an account? "}
+                  {isLogin ? "Don't have an account? " : "Already have an account? "}
                 </span>
                 <Button
                   variant="link"
@@ -448,70 +408,14 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           </Button>
         </motion.div>
 
-        {/* Demo User and Testing */}
-        <div className="space-y-3">
-          <Button 
-            variant="default"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
-            onClick={createDemoUser}
-            disabled={isLoading}
-          >
-            🎭 Continue with Demo User
-          </Button>
-          
-          <div className="grid grid-cols-2 gap-2">
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={testConnection}
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
-              Test Connection
-            </Button>
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                setIsLoading(true);
-                try {
-                  const result = await testAuth();
-                  if (result) {
-                    setSuccess('✓ Auth system working');
-                  } else {
-                    setError('✗ Auth system failed');
-                  }
-                } catch (err: any) {
-                  setError('Auth test error: ' + err.message);
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading}
-            >
-              {isLoading && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
-              Check Auth
-            </Button>
-          </div>
-          
-          <div className="text-xs text-muted-foreground text-center space-y-1">
-            <p>💡 Having trouble? Try the demo user button above</p>
-            <p>🔄 Or check your email for confirmation if you just signed up</p>
-          </div>
-        </div>
-
-        {/* Back Button */}
-        <div className="text-center">
-          <Button 
-            variant="ghost" 
-            onClick={onBack}
-            disabled={isLoading}
-
-          >
-            Back to Welcome
+        <div className="mt-6 text-center">
+          <Button variant="link" onClick={onBack} className="text-sm">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Onboarding
           </Button>
         </div>
       </div>
     </div>
   );
 }
+
