@@ -70,7 +70,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
                 whileTap={{ scale: 0.98 }}
               >
                 <Button 
-                  onClick={onSignUp} 
+                  onClick={() => { console.log('Onboarding: Sign Up clicked'); onSignUp(); }} 
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                   size="lg"
                 >
@@ -84,7 +84,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
                 whileTap={{ scale: 0.98 }}
               >
                 <Button 
-                  onClick={onSignIn} 
+                  onClick={() => { console.log('Onboarding: Sign In clicked'); onSignIn(); }} 
                   variant="outline" 
                   className="w-full"
                   size="lg"
@@ -182,3 +182,4 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
     </div>
   );
 }
+
