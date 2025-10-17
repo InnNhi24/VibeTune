@@ -231,6 +231,8 @@ All stored in `analytics_events` with metadata for retention and engagement anal
 ## 🧡 Credits
 
 Developed by Group 1
+
 Bachelor of Data Science – SP Jain School of Global Management
+
 Focus areas: AI-powered language learning, speech prosody analysis, and intelligent tutoring systems.
 
