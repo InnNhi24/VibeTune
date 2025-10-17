@@ -21,82 +21,62 @@ function AppContent() {
   const [authChecked, setAuthChecked] = useState(false);
   const { user } = state;
 
-  // Simplified initialization - check auth once and set state accordingly
   useEffect(() => {
     if (isInitialized) {
-      console.log("App already initialized, skipping.");
       return;
     }
     
     const initializeApp = async () => {
-      console.log('🚀 Initializing VibeTune... Current state:', currentState, 'isInitialized:', isInitialized, 'authChecked:', authChecked);
       setIsInitialized(true);
 
       try {
-        // Set offline status safely
         if (typeof navigator !== 'undefined') {
           dispatch(appActions.setOffline(!navigator.onLine));
         }
 
-        // Check for existing session
         const sessionResult = await SimpleAuthService.getCurrentSession();
         
         if (sessionResult?.data?.user && sessionResult?.data?.profile) {
-          console.log('✅ Found existing session with profile. User ID:', sessionResult.data.user.id);
           dispatch(appActions.setUser(sessionResult.data.profile));
           
-          // Navigate based on user's level status
           if (!sessionResult.data.profile.level) {
             setCurrentState('level-selection');
           } else {
             setCurrentState('main-app');
           }
         } else {
-          console.log('❌ No valid session found');
           setCurrentState('onboarding');
-          console.log('➡️ Setting state to onboarding after no session.');
         }
       } catch (error) {
         console.warn('⚠️ Session check failed:', error);
         setCurrentState('onboarding');
-        console.log('➡️ Setting state to onboarding after session check failed.');
       } finally {
         setAuthChecked(true);
-        console.log('Auth check completed. authChecked set to true.');
       }
     };
 
     initializeApp();
-  }, [dispatch, isInitialized, authChecked]); // Added authChecked to dependencies to ensure re-evaluation if it changes unexpectedly
+  }, [dispatch, isInitialized]);
 
   const handleSignUp = () => {
-    console.log('📝 Navigating to signup');
     setCurrentState('signup');
     trackEvent('onboarding_signup_clicked');
   };
 
   const handleSignIn = () => {
-    console.log('🔑 Navigating to signin');
     setCurrentState('signin');
     trackEvent('onboarding_signin_clicked');
   };
 
   const handleAuthComplete = useCallback((userData: Profile) => {
-    console.log('🚀 Auth completed for user:', userData.id);
-    
-    // Set user in context immediately
     dispatch(appActions.setUser(userData));
     
-    // Navigate based on user's level status
     if (!userData.level) {
-      console.log('🎯 User has no level - navigating to level selection');
       setCurrentState('level-selection');
     } else {
-      console.log('🎯 User has level - navigating to main app');
       setCurrentState('main-app');
     }
     
-    // Background tasks
     setTimeout(() => {
       try {
         SyncManager.enableAutoSync().catch(error => 
@@ -117,11 +97,8 @@ function AppContent() {
   }, [dispatch, trackEvent]);
 
   const handlePlacementTestComplete = async (results: { level: string; score: number }) => {
-    console.log('🎯 Placement test completed:', results);
-    
     if (user) {
       try {
-        // Update profile with placement test results
         const { data: updatedProfile } = await SimpleAuthService.updateProfile(user.id, { 
           level: results.level as Profile['level'],
           placement_test_completed: true,
@@ -132,7 +109,6 @@ function AppContent() {
           dispatch(appActions.setUser(updatedProfile));
         }
         
-        // Track completion
         trackEvent('placement_test_completed', {
           userId: user.id,
           score: results.score,
@@ -146,22 +122,17 @@ function AppContent() {
       }
     }
     
-    // Navigate to main app
     setCurrentState('main-app');
   };
 
   const handlePlacementTestSkip = () => {
-    console.log('⏭️ Placement test skipped');
     setCurrentState('main-app');
     trackEvent('placement_test_skipped', { userId: user?.id });
   };
 
   const handleLevelSelection = async (level: string) => {
-    console.log('🎯 Level selected:', level);
-    
     if (user) {
       try {
-        // Update profile with selected level
         const { data: updatedProfile } = await SimpleAuthService.updateProfile(user.id, { 
           level: level as Profile['level'],
           placement_test_completed: false
@@ -171,7 +142,6 @@ function AppContent() {
           dispatch(appActions.setUser(updatedProfile));
         }
         
-        // Track selection
         trackEvent('level_selected', { 
           userId: user.id, 
           level,
@@ -184,29 +154,22 @@ function AppContent() {
       }
     }
     
-    // Navigate to main app
     setCurrentState('main-app');
   };
 
   const handleStartLevelSelection = () => {
-    console.log('🎯 Starting level selection');
     setCurrentState('level-selection');
     trackEvent('level_selection_started', { userId: user?.id });
   };
 
   const handleLogout = useCallback(async () => {
-    console.log('🚪 Starting logout...');
-    
     try {
-      // Track logout
       trackEvent('user_logout_initiated', { userId: user?.id }).catch(error => 
         console.warn('Logout tracking failed:', error)
       );
       
-      // Sign out from Supabase
       await SimpleAuthService.signOut();
       
-      // Reset sync cache
       SyncManager.resetAuthCache().catch(error => 
         console.warn('Sync reset failed:', error)
       );
@@ -214,19 +177,16 @@ function AppContent() {
     } catch (error) {
       console.warn('⚠️ Logout cleanup failed:', error);
     } finally {
-      // Clear local state and navigate to onboarding
       dispatch(appActions.setUser(null));
       setCurrentState('onboarding');
     }
   }, [dispatch, trackEvent, user?.id]);
 
   const handleBackToOnboarding = () => {
-    console.log('🔙 Back to onboarding');
     setCurrentState('onboarding');
     trackEvent('auth_back_to_onboarding');
   };
 
-  // Show loading screen while checking authentication
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -238,9 +198,6 @@ function AppContent() {
     );
   }
 
-  // Render current screen based on state
-  console.log('🖼️ Rendering screen:', currentState, 'User:', !!user, 'User level:', user?.level, 'authChecked:', authChecked);
-  
   switch (currentState) {
     case 'onboarding':
       return (
@@ -281,7 +238,6 @@ function AppContent() {
 
     case 'placement-test':
       if (!user) {
-        console.log('⚠️ No user for placement test, redirecting to signin');
         setCurrentState('signin');
         return null;
       }
@@ -296,7 +252,6 @@ function AppContent() {
 
     case 'main-app':
       if (!user) {
-        console.log('⚠️ User is null in main-app, redirecting to signin');
         setCurrentState('signin');
         return null;
       }
@@ -328,7 +283,6 @@ function AppContent() {
   }
 }
 
-// Main App component with context provider and error boundary
 export default function App() {
   return (
     <ErrorBoundary>
@@ -338,4 +292,3 @@ export default function App() {
     </ErrorBoundary>
   );
 }
-

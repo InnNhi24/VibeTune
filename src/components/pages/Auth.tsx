@@ -29,7 +29,6 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
     confirmPassword: ""
   });
 
-  // Update isLogin when mode prop changes
   useEffect(() => {
     setIsLogin(mode === 'signin');
   }, [mode]);
@@ -41,9 +40,8 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
     setIsLoading(true);
 
     try {
-      console.log('🔄 Starting authentication...', { isLogin, email: formData.email });
+      console.log('Auth: Starting authentication...', { isLogin, email: formData.email });
       
-      // Validation
       if (!validateEmail(formData.email)) {
         throw new Error('Please enter a valid email address');
       }
@@ -81,14 +79,13 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
         });
       }
 
-      console.log('🔄 Auth result:', { success: !!result.data, error: !!result.error });
+      console.log('Auth: Auth result:', { success: !!result.data, error: !!result.error });
 
       if (result.error) {
-        console.error('❌ Auth error:', result.error);
+        console.error('Auth: Auth error:', result.error);
         
         let errorMessage = result.error.message || 'An error occurred during authentication';
         
-        // Handle specific errors
         if (errorMessage.includes('Invalid login credentials')) {
           errorMessage = 'Invalid email or password. Please check your credentials and try again.';
         } else if (errorMessage.includes('User already registered')) {
@@ -103,22 +100,20 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
       }
 
       if (result.data?.profile) {
-        console.log('✅ Authentication successful with profile');
+        console.log('Auth: Authentication successful with profile');
         setSuccess(isLogin ? 'Welcome back!' : 'Account created successfully!');
         
-        // Small delay to show success message, then complete auth
         setTimeout(() => {
           onAuthComplete(result.data.profile);
         }, 500);
         
       } else if (result.data?.needsConfirmation) {
-        console.log('📧 User needs email confirmation');
+        console.log('Auth: User needs email confirmation');
         const message = result.data.message || 
           'Please check your email and click the confirmation link, then try signing in.';
         
         setSuccess(message);
         
-        // Switch to login mode if we're in signup
         if (!isLogin) {
           setTimeout(() => {
             setIsLogin(true);
@@ -126,12 +121,12 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           }, 3000);
         }
       } else {
-        console.warn('⚠️ Unexpected result structure:', result);
+        console.warn('Auth: Unexpected result structure:', result);
         throw new Error('Authentication completed but no user data received');
       }
 
     } catch (err: any) {
-      console.error('❌ Authentication error:', err);
+      console.error('Auth: Authentication error:', err);
       setError(err.message || 'An unexpected error occurred during authentication');
     } finally {
       setIsLoading(false);
@@ -139,6 +134,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
   };
 
   const handleForgotPassword = async () => {
+    console.log('Auth: Initiating password reset for email:', formData.email);
     if (!formData.email) {
       setError('Please enter your email address first');
       return;
@@ -158,8 +154,31 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
         throw error;
       }
       setSuccess('Password reset email sent! Check your inbox.');
+      console.log('Auth: Password reset email sent successfully.');
     } catch (err: any) {
+      console.error('Auth: Failed to send password reset email:', err);
       setError(err.message || 'Failed to send password reset email');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSocialSignIn = async (provider: 'google' | 'github') => {
+    console.log(`Auth: Attempting social sign-in with ${provider}`);
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const { error } = await SimpleAuthService.signInWithOAuth(provider);
+      if (error) {
+        console.error(`Auth: Social sign-in with ${provider} failed:`, error);
+        throw error;
+      }
+      console.log(`Auth: Social sign-in with ${provider} initiated. Redirecting...`);
+      // Supabase OAuth usually handles redirection, so no further action here
+    } catch (err: any) {
+      console.error(`Auth: Error during social sign-in with ${provider}:`, err);
+      setError(err.message || `Failed to sign in with ${provider}`);
     } finally {
       setIsLoading(false);
     }
@@ -344,6 +363,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                 <Button
                   variant="link"
                   onClick={() => {
+                    console.log('Auth: Toggling between signin/signup');
                     setIsLogin(!isLogin);
                     setError('');
                     setSuccess('');
@@ -369,19 +389,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           <Button 
             variant="outline"
             className="w-full"
-            onClick={async () => {
-              setIsLoading(true);
-              setError("");
-              setSuccess("");
-              try {
-                const { error } = await SimpleAuthService.signInWithOAuth("google");
-                if (error) throw error;
-              } catch (err: any) {
-                setError(err.message || "Failed to sign in with Google");
-              } finally {
-                setIsLoading(false);
-              }
-            }}
+            onClick={() => handleSocialSignIn("google")}
             disabled={isLoading}
           >
             Sign in with Google
@@ -389,19 +397,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           <Button 
             variant="outline"
             className="w-full"
-            onClick={async () => {
-              setIsLoading(true);
-              setError("");
-              setSuccess("");
-              try {
-                const { error } = await SimpleAuthService.signInWithOAuth("github");
-                if (error) throw error;
-              } catch (err: any) {
-                setError(err.message || "Failed to sign in with GitHub");
-              } finally {
-                setIsLoading(false);
-              }
-            }}
+            onClick={() => handleSocialSignIn("github")}
             disabled={isLoading}
           >
             Sign in with GitHub
@@ -418,4 +414,5 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
     </div>
   );
 }
+
 
