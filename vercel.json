@@ -1,3 +1,24 @@
 {
-  "outputDirectory": "build"
+  "build": {
+    "env": {
+      "OPENAI_API_KEY": "@openai_api_key",
+      "DEEPGRAM_API_KEY": "@deepgram_api_key",
+      "SUPABASE_URL": "@supabase_url",
+      "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+      "SUPABASE_ANON_KEY": "@supabase_anon_key",
+      "ALLOWED_ORIGINS": "@allowed_origins"
+    }
+  },
+  "functions": {
+    "backend/dist/index.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/backend/dist/index.js"
+    }
+  ]
 }
+
