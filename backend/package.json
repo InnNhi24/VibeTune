@@ -12,8 +12,10 @@
   "dependencies": {
     "@deepgram/sdk": "^4.11.2",
     "@supabase/supabase-js": "^2.75.1",
+    "@types/cors": "^2.8.19",
     "@types/node": "^24.8.1",
     "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "openai": "^6.5.0",

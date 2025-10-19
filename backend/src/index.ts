@@ -1,5 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import chatRoute from './routes/chat';
 import placementScoreRoute from './routes/placementScore';
@@ -10,6 +11,19 @@ dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',');
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 
 app.use(bodyParser.json());
 
