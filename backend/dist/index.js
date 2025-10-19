@@ -9,6 +9,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const chat_1 = __importDefault(require("./routes/chat"));
 const placementScore_1 = __importDefault(require("./routes/placementScore"));
 const eventsIngest_1 = __importDefault(require("./routes/eventsIngest"));
+const feedback_1 = __importDefault(require("./routes/feedback"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const port = process.env.PORT || 3000;
@@ -16,6 +17,7 @@ app.use(body_parser_1.default.json());
 app.post('/chat', chat_1.default);
 app.post('/placement-score', placementScore_1.default);
 app.post('/events-ingest', eventsIngest_1.default);
+app.post('/feedback', feedback_1.default);
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
