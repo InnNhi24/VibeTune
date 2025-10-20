@@ -27,10 +27,10 @@ app.use(cors({
 
 app.use(bodyParser.json());
 
-app.post('/chat', chatRoute);
-app.post('/placement-score', placementScoreRoute);
-app.post('/events-ingest', eventsIngestRoute);
-app.post('/feedback', feedbackRoute);
+app.post("/api/chat", chatRoute);
+app.post("/api/placement-score", placementScoreRoute);
+app.post("/api/events-ingest", eventsIngestRoute);
+app.post("/api/feedback", feedbackRoute);
 
 if (process.env.VERCEL !== '1') {
   app.listen(port, () => {

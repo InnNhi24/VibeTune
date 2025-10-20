@@ -27,10 +27,10 @@ app.use((0, cors_1.default)({
     credentials: true,
 }));
 app.use(body_parser_1.default.json());
-app.post('/chat', chat_1.default);
-app.post('/placement-score', placementScore_1.default);
-app.post('/events-ingest', eventsIngest_1.default);
-app.post('/feedback', feedback_1.default);
+app.post("/api/chat", chat_1.default);
+app.post("/api/placement-score", placementScore_1.default);
+app.post("/api/events-ingest", eventsIngest_1.default);
+app.post("/api/feedback", feedback_1.default);
 if (process.env.VERCEL !== '1') {
     app.listen(port, () => {
         console.log(`Server running on port ${port}`);
