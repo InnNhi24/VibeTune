@@ -275,7 +275,7 @@ export const useAppStore = create<AppStore>()(
                   const { projectId } = await import('../utils/supabase/info');
                   
                   // Add timeout to prevent hanging
-                  const fetchPromise = fetch(`https://${projectId}.supabase.co/functions/v1/make-server-b2083953/api/analytics`, {
+                  const fetchPromise = fetch(`/api/analytics`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -336,7 +336,7 @@ export const useAppStore = create<AppStore>()(
             const { projectId } = await import('../utils/supabase/info');
             
             // Get history from server with timeout
-            const fetchPromise = fetch(`https://${projectId}.supabase.co/functions/v1/make-server-b2083953/api/get-history`, {
+            const fetchPromise = fetch(`/api/get-history`, {
               headers: {
                 'Authorization': `Bearer ${session.access_token}`,
               }
@@ -379,7 +379,7 @@ export const useAppStore = create<AppStore>()(
               if (retryQueue.length > 0) {
                 for (const message of retryQueue) {
                   try {
-                    await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-b2083953/api/save-message`, {
+                    await fetch(`/api/save-message`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',

@@ -6,19 +6,42 @@
       "SUPABASE_URL": "@supabase_url",
       "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
       "SUPABASE_ANON_KEY": "@supabase_anon_key",
-      "ALLOWED_ORIGINS": "@allowed_origins"
+      "ALLOWED_ORIGINS": "@allowed_origins",
+      "VERCEL": "1"
     }
   },
   "functions": {
-    "backend/dist/index.js": {
-      "runtime": "nodejs18.x"
+    "api/**/*.ts": {
+      "runtime": "node:20.x"
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/backend/dist/index.js"
+      "destination": "/api/chat.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/(.*)"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, Content-Type, Authorization"
+        }
+      ]
     }
   ]
 }
-

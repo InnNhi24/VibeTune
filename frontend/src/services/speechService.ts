@@ -31,7 +31,7 @@ interface SpeechServiceError {
 }
 
 export class SpeechService {
-  private static readonly API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-b2083953`;
+  
 
   /**
    * Transcribe audio using Deepgram API
@@ -67,7 +67,7 @@ export class SpeechService {
         detect_language: false // We know it's English learning
       }));
 
-      const response = await fetch(`${this.API_BASE}/api/speech/transcribe`, {
+      const response = await fetch(`/api/speech/transcribe`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`
@@ -106,7 +106,7 @@ export class SpeechService {
     try {
       const authToken = await this.getAuthToken();
 
-      const response = await fetch(`${this.API_BASE}/api/speech/synthesize`, {
+      const response = await fetch(`/api/speech/synthesize`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -153,7 +153,7 @@ export class SpeechService {
         formData.append('expected_text', expectedText);
       }
 
-      const response = await fetch(`${this.API_BASE}/api/speech/analyze-prosody`, {
+      const response = await fetch(`/api/speech/analyze-prosody`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`
@@ -213,7 +213,7 @@ export class SpeechService {
     error?: string;
   }> {
     try {
-      const response = await fetch(`${this.API_BASE}/api/speech/health`, {
+      const response = await fetch(`/api/speech/health`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`

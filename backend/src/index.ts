@@ -32,7 +32,11 @@ app.post('/placement-score', placementScoreRoute);
 app.post('/events-ingest', eventsIngestRoute);
 app.post('/feedback', feedbackRoute);
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+export default app;
 
