@@ -1,15 +1,6 @@
 {
-  "build": {
-    "env": {
-      "OPENAI_API_KEY": "@openai_api_key",
-      "DEEPGRAM_API_KEY": "@deepgram_api_key",
-      "SUPABASE_URL": "@supabase_url",
-      "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
-      "SUPABASE_ANON_KEY": "@supabase_anon_key",
-      "ALLOWED_ORIGINS": "@allowed_origins",
-      "VERCEL": "1"
-    }
-  },
+  "buildCommand": "npm run build --workspace=frontend && npm run build --workspace=backend",
+  "outputDirectory": "frontend/dist",
   "functions": {
     "api/chat.ts": {
       "runtime": "node:20.x",
