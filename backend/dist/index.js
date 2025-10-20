@@ -31,7 +31,10 @@ app.post('/chat', chat_1.default);
 app.post('/placement-score', placementScore_1.default);
 app.post('/events-ingest', eventsIngest_1.default);
 app.post('/feedback', feedback_1.default);
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
+if (process.env.VERCEL !== '1') {
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}
+exports.default = app;
 //# sourceMappingURL=index.js.map

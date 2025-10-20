@@ -22,7 +22,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/frontend/(.*)"
+      "destination": "/frontend/dist/$1"
     }
   ],
   "headers": [
