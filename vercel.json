@@ -1,24 +1,49 @@
 {
-  "builds": [
+  "build": {
+    "env": {
+      "OPENAI_API_KEY": "@openai_api_key",
+      "DEEPGRAM_API_KEY": "@deepgram_api_key",
+      "SUPABASE_URL": "@supabase_url",
+      "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+      "SUPABASE_ANON_KEY": "@supabase_anon_key",
+      "ALLOWED_ORIGINS": "@allowed_origins",
+      "VERCEL": "1"
+    }
+  },
+  "functions": {
+    "api/chat.ts": {
+      "runtime": "node:20.x",
+      "memory": 1024,
+      "includeFiles": ["backend/dist/**", "backend/node_modules/**"]
+    }
+  },
+  "rewrites": [
     {
-      "src": "api/chat.ts",
-      "use": "@vercel/node",
-      "config": { "includeFiles": ["backend/dist/**", "backend/node_modules/**"] }
+      "source": "/api/(.*)",
+      "destination": "/api/chat"
     },
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "source": "/(.*)",
+      "destination": "/frontend/dist/$1"
     }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api/chat"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/dist/$1"
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, Content-Type, Authorization"
+        }
+      ]
     }
   ]
 }
