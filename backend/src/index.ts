@@ -10,33 +10,23 @@ import feedbackRoute from './routes/feedback';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
-
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',');
-
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim());
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) cb(null, true);
+    else cb(new Error('Not allowed by CORS'));
   },
-  credentials: true,
+  credentials: true
 }));
-
 app.use(bodyParser.json());
 
-app.post("/api/chat", chatRoute);
-app.post("/api/placement-score", placementScoreRoute);
-app.post("/api/events-ingest", eventsIngestRoute);
-app.post("/api/feedback", feedbackRoute);
+app.post('/api/chat', chatRoute);
+app.post('/api/placement-score', placementScoreRoute);
+app.post('/api/events-ingest', eventsIngestRoute);
+app.post('/api/feedback', feedbackRoute);
 
-if (process.env.VERCEL !== '1') {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  });
+if (!process.env.VERCEL) {
+  app.listen(process.env.PORT || 3000, () => console.log('Server running locally'));
 }
-
 export default app;
 
