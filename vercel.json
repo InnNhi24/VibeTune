@@ -1,9 +1,9 @@
 {
   "functions": { "api/*.ts": { "runtime": "@vercel/node@3.0.0" } },
   "buildCommand": "npm ci && npm run -w backend build && npm run -w frontend build",
-  "outputDirectory": "frontend/dist",
+  "outputDirectory": "frontend/build",
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/(.*)", "dest": "/frontend/dist/$1" }
+    { "src": "/(.*)", "dest": "/frontend/build/$1" }
   ]
 }
