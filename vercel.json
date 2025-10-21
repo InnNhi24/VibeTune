@@ -5,7 +5,7 @@
     "api/chat.ts": {
       "runtime": "node:20.x",
       "memory": 1024,
-      "includeFiles": ["backend/dist/**", "backend/node_modules/**"]
+      "includeFiles": "backend/dist/**,backend/node_modules/**"
     }
   },
   "rewrites": [
