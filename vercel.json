@@ -1,41 +1,23 @@
 {
-  "buildCommand": "npm run build --workspace=frontend && npm run build --workspace=backend",
-  "outputDirectory": "frontend/dist",
-  "functions": {
-    "api/chat.ts": {
-      "runtime": "node:20.x",
-      "memory": 1024,
-      "includeFiles": "backend/dist/**,backend/node_modules/**"
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "options": { "distDir": "dist" }
+    },
+    {
+      "src": "backend/dist/index.js",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/chat"
+      "destination": "/backend/dist/index.js"
     },
     {
       "source": "/(.*)",
       "destination": "/frontend/dist/$1"
     }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "X-Requested-With, Content-Type, Authorization"
-        }
-      ]
-    }
   ]
 }
-
