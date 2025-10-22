@@ -1,11 +1,9 @@
 {
   "version": 2,
   "functions": {
-    "api/**/*.[jt]s": {
-      "runtime": "nodejs20.x"
-    }
+    "api/**/*.[jt]s": { "runtime": "nodejs20.x" }
   },
-  "buildCommand": "npm ci && npm run -w backend build && npm run -w frontend build",
+  "buildCommand": "npm ci && npm run -w frontend build && npm run -w backend build",
   "outputDirectory": "frontend/build",
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
