@@ -1,5 +1,5 @@
 {
-  "functions": { "api/*.ts": { "runtime": "nodejs20.x" } },
+  "functions": { "api/*.ts": { "runtime": "@vercel/nodejs@20.x" } },
   "buildCommand": "npm ci && npm run -w backend build && npm run -w frontend build",
   "outputDirectory": "frontend/build",
   "routes": [
