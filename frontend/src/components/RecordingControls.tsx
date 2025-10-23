@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
-import { Mic, MicOff, RotateCcw, Send, Loader2, Play, Pause, Volume2, Settings } from "lucide-react";
+import { Mic, MicOff, RotateCcw, Send, Loader2, Play, Pause, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { aiProsodyService, ConversationContext } from "../services/aiProsodyService";
+import { liveTranscriptionService } from "../services/liveTranscriptionService";
 
 interface RecordingControlsProps {
   onSendMessage: (message: string, isAudio: boolean, audioBlob?: Blob) => void;
@@ -30,10 +31,9 @@ export function RecordingControls({
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [aiReady, setAiReady] = useState(false);
   
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const recordingTimerRef = useRef<NodeJS.Timeout>();
   const feedbackTimerRef = useRef<NodeJS.Timeout>();
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   // Check AI service status
   useEffect(() => {
@@ -110,56 +110,51 @@ export function RecordingControls({
       };
       
       mediaRecorder.start();
+      
+      await liveTranscriptionService.start(
+        (transcript, isFinal) => {
+          setRecordedMessage(transcript);
+          if (!isFinal && transcript) {
+            setAnalysisProgress(Math.min(transcript.length * 2, 90));
+          }
+        },
+        (error) => {
+          console.error('Live transcription error:', error);
+        }
+      );
+      
       setRecordingState('recording');
       setRecordingTime(0);
     } catch (error) {
       console.error('Failed to start recording:', error);
-      // Fallback to mock recording
-      setRecordingState('recording');
-      setRecordingTime(0);
     }
   };
 
-  const handleStopRecording = () => {
+  const handleStopRecording = async () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
     }
     
     setRecordingState('processing');
-    setAnalysisProgress(0);
+    setAnalysisProgress(50);
     
-    // Simulate processing with progress
-    const progressInterval = setInterval(() => {
-      setAnalysisProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          return 100;
-        }
-        return prev + Math.random() * 15;
-      });
-    }, 200);
-    
-    // Simulate transcription and analysis
-    setTimeout(() => {
-      clearInterval(progressInterval);
+    try {
+      const finalTranscript = await liveTranscriptionService.stop();
+      setRecordedMessage(finalTranscript);
       setAnalysisProgress(100);
       
-      if (aiReady && showAIFeedback) {
+      if (aiReady && showAIFeedback && finalTranscript) {
         setRecordingState('analyzing');
-        // Mock transcription
-        const mockTranscription = "I think learning English prosody is really important for effective communication.";
-        setRecordedMessage(mockTranscription);
-        
         setTimeout(() => {
           setRecordingState('ready');
         }, 1500);
       } else {
-        // Basic transcription without AI analysis
-        const mockTranscription = "I think learning English prosody is really important for effective communication.";
-        setRecordedMessage(mockTranscription);
         setRecordingState('ready');
       }
-    }, 2000);
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+      setRecordingState('ready');
+    }
   };
 
   const handlePlayback = () => {
