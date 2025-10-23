@@ -1,9 +1,7 @@
 {
   "functions": {
-    "api/chat.ts": {
-      "runtime": "nodejs20.x",
-      "memory": 1024,
-      "includeFiles": ["backend/dist/**", "backend/node_modules/**"]
+    "api/**/*.{js,ts}": {
+      "runtime": "nodejs20.x"
     }
   },
   "rewrites": [
@@ -34,6 +32,7 @@
         }
       ]
     }
-  ]
+  ],
+  "buildCommand": "npm ci && npm run -w frontend build && npm run -w backend build",
+  "outputDirectory": "frontend/build"
 }
-
