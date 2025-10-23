@@ -31,9 +31,12 @@ app.post('/api/events-ingest', eventsIngest_1.default);
 app.post('/api/feedback', feedback_1.default);
 const frontendPath = path_1.default.join(__dirname, '../../frontend/build');
 app.use(express_1.default.static(frontendPath));
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
     if (!req.path.startsWith('/api')) {
         res.sendFile(path_1.default.join(frontendPath, 'index.html'));
+    }
+    else {
+        next();
     }
 });
 if (!process.env.VERCEL) {
