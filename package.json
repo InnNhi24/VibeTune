@@ -9,9 +9,8 @@
   "scripts": {
     "build": "npm run build --workspace=frontend && npm run build --workspace=backend"
   },
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=20 <23" },
   "dependencies": {
     "serverless-http": "^3.2.0"
   }
 }
-
