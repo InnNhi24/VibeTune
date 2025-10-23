@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/**/*.{js,ts}": {
-      "maxDuration": 10
+      "runtime": "nodejs20.x"
     }
   },
   "rewrites": [
@@ -11,7 +11,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/frontend/build/$1"
+      "destination": "/frontend/dist/$1"
     }
   ],
   "headers": [
