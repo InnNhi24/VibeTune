@@ -10,6 +10,10 @@ VibeTune is an AI-powered prosody learning app that helps English learners impro
 - Updated Vite configuration to run on port 5000 with 0.0.0.0 binding
 - Fixed Express 5 compatibility with static file serving
 - Configured CORS to allow all origins for development
+- **Fixed AI Backend Integration**: Changed from mock responses to real OpenAI API calls via `/api/chat`
+- **Added Live Transcription**: Implemented chunked audio transcription (2-second chunks) via `/api/live-transcribe` endpoint
+- Created `LiveTranscriptionService` for real-time speech-to-text
+- Backend safely handles Deepgram API integration without exposing keys to frontend
 
 ## Project Architecture
 
@@ -65,10 +69,11 @@ cd backend && npm run build
 ```
 
 ### API Routes
-- `POST /api/chat` - AI conversation endpoint
+- `POST /api/chat` - AI conversation endpoint (OpenAI GPT)
 - `POST /api/placement-score` - Placement test scoring
 - `POST /api/events-ingest` - Analytics events
 - `POST /api/feedback` - User feedback
+- `POST /api/live-transcribe` - Live audio transcription (Deepgram, 2-second chunks)
 
 ## Replit-Specific Configuration
 

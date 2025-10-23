@@ -268,23 +268,53 @@ export function useConversation({ user, topic = 'General Conversation', isPlacem
   }, [state.conversation, saveMessageOffline]);
 
   // Generate AI response
-  const generateAIResponse = useCallback(async (userMessage: string) => {
+  const generateAIResponse = useCallback(async (userMessage: string, audioUrl?: string) => {
     if (!user || !state.conversation) return;
 
-    // Simulate AI processing delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      setState(prev => ({ ...prev, isLoading: true }));
 
-    const responses = [
-      "That's a great point! Your pronunciation of key words was excellent. Can you tell me more about that topic?",
-      "I noticed good rhythm in your speech. Let's practice with a question: What do you think about the importance of clear communication?",
-      "Your intonation on that last sentence was very natural. How do you usually practice speaking English?",
-      "Excellent! I can hear improvement in your stress patterns. What's your favorite way to learn new vocabulary?",
-      "That's interesting! Your pace was good there. Can you give me an example of what you mean?",
-      `Nice job! For ${user.level.toLowerCase()} level, you're doing well. Let's try discussing something more complex about ${state.conversation.topic.toLowerCase()}.`
-    ];
+      // Call backend API /api/chat
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId: state.conversation.id,
+          profileId: user.id,
+          text: userMessage,
+          audioUrl: audioUrl || null,
+          deviceId: localStorage.getItem('device_id') || undefined
+        })
+      });
 
-    const response = responses[Math.floor(Math.random() * responses.length)];
-    await addAIMessage(response);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract reply text from the response
+      const replyText = data.aiResponse?.replyText || data.replyText || "I'm processing your message...";
+      
+      // Add AI response to the conversation
+      await addAIMessage(replyText);
+
+      setState(prev => ({ ...prev, isLoading: false }));
+
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      
+      // Fallback to a generic response if API fails
+      await addAIMessage("I'm having trouble connecting right now. Please try again.");
+      
+      setState(prev => ({
+        ...prev,
+        error: 'Failed to get AI response',
+        isLoading: false
+      }));
+    }
   }, [user, state.conversation, addAIMessage]);
 
   // Retry message with new analysis

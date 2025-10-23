@@ -7,6 +7,7 @@ import chatRoute from './routes/chat';
 import placementScoreRoute from './routes/placementScore';
 import eventsIngestRoute from './routes/eventsIngest';
 import feedbackRoute from './routes/feedback';
+import liveTranscribeRoute from './routes/liveTranscribe';
 
 dotenv.config();
 
@@ -19,12 +20,13 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
 
 app.post('/api/chat', chatRoute);
 app.post('/api/placement-score', placementScoreRoute);
 app.post('/api/events-ingest', eventsIngestRoute);
 app.post('/api/feedback', feedbackRoute);
+app.post('/api/live-transcribe', liveTranscribeRoute);
 
 const frontendPath = path.join(__dirname, '../../frontend/build');
 app.use(express.static(frontendPath));

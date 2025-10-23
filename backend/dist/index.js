@@ -12,6 +12,7 @@ const chat_1 = __importDefault(require("./routes/chat"));
 const placementScore_1 = __importDefault(require("./routes/placementScore"));
 const eventsIngest_1 = __importDefault(require("./routes/eventsIngest"));
 const feedback_1 = __importDefault(require("./routes/feedback"));
+const liveTranscribe_1 = __importDefault(require("./routes/liveTranscribe"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '*').split(',').map(s => s.trim());
@@ -24,11 +25,12 @@ app.use((0, cors_1.default)({
     },
     credentials: true
 }));
-app.use(body_parser_1.default.json());
+app.use(body_parser_1.default.json({ limit: '50mb' }));
 app.post('/api/chat', chat_1.default);
 app.post('/api/placement-score', placementScore_1.default);
 app.post('/api/events-ingest', eventsIngest_1.default);
 app.post('/api/feedback', feedback_1.default);
+app.post('/api/live-transcribe', liveTranscribe_1.default);
 const frontendPath = path_1.default.join(__dirname, '../../frontend/build');
 app.use(express_1.default.static(frontendPath));
 app.use((req, res, next) => {
