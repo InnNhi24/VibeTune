@@ -7,7 +7,7 @@ import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { AIConnectionStatus } from "./AIConnectionStatus";
 import { Settings } from "./Settings";
 import { Menu, Mic, TrendingUp, Zap } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { useAppStore, useConversations, useSync } from "../store/appStore";
 

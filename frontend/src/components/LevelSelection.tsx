@@ -7,7 +7,7 @@ import { Label } from "./ui/label";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { GraduationCap, TrendingUp, ArrowLeft, CheckCircle2, Lock, AlertCircle, Zap, Star, Info } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 
 interface LevelSelectionProps {

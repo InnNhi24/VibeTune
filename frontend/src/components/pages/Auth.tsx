@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "../ui/alert";
 import { Mic, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
 import { SimpleAuthService } from "../../services/authServiceSimple";
 import { Profile } from "../../services/supabaseClient";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { validateEmail, validatePassword } from "../../utils/helpers";
 
 interface AuthProps {

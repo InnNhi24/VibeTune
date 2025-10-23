@@ -25,7 +25,7 @@ import {
   Music,
   Utensils
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 
 interface Conversation {

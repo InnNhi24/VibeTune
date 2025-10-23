@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Settings, Key, Zap, AlertCircle, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { aiProsodyService } from "../services/aiProsodyService";
 
 interface AIConfigDialogProps {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import { Mic, UserPlus, LogIn, TrendingUp, MessageCircle, Star } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 
 interface OnboardingProps {
   onSignUp: () => void;

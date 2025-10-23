@@ -33,6 +33,6 @@
       ]
     }
   ],
-  "buildCommand": "npm ci && npm run -w frontend build && npm run -w backend build",
+  "buildCommand": "npm ci && npm run build",
   "outputDirectory": "frontend/build"
 }

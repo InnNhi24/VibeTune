@@ -12,7 +12,7 @@ import { RecordingControls } from "./RecordingControls";
 import { ProsodyFeedback } from "./ProsodyFeedback";
 import { AIConnectionStatus } from "./AIConnectionStatus";
 import { Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext, ProsodyAnalysis, AIResponse } from "../services/aiProsodyService";
 import { useAppStore, useMessages, Message as StoreMessage } from "../store/appStore";
 

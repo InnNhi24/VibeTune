@@ -19,7 +19,7 @@ import {
   Award,
   AlertTriangle
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { ProsodyAnalysis, ProsodyIssue } from "../services/aiProsodyService";
 
 interface ProsodyFeedbackProps {

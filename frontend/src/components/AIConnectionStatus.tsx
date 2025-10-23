@@ -3,7 +3,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { Zap, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { aiProsodyService } from "../services/aiProsodyService";
 
 interface AIConnectionStatusProps {

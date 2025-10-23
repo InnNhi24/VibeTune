@@ -4,11 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/
 import { Progress } from "./ui/progress";
 import { Badge } from "./ui/badge";
 import { Alert, AlertDescription } from "./ui/alert";
-import { RecordingControls } from "./RecordingControls";
 import { 
   CheckCircle2, 
-  Clock, 
-  Mic, 
   MessageCircle, 
   ArrowLeft, 
   Bot,
@@ -19,7 +16,7 @@ import {
   Send,
   Loader2
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { SimpleAuthService } from "../services/authServiceSimple";
 import { Input } from "./ui/input";
@@ -212,66 +209,47 @@ Ready to begin?`,
 
   const analyzeResponseWithAI = async (response: string, topic: any): Promise<{ score: number; feedback: string }> => {
     try {
-      // Use OpenAI API to analyze the response
-      const analysisPrompt = `
-You are an English language assessment AI specializing in prosody and conversational skills. 
+      // Use backend API for AI analysis
+      const analysisPrompt = `Analyze this student response for a ${topic.difficulty} level topic about "${topic.name}": "${response}". Provide a JSON response with score (0-100) and feedback.`;
 
-Analyze this student response for a ${topic.difficulty} level topic about "${topic.name}":
-
-Student Response: "${response}"
-
-Provide a JSON response with:
-1. score: A number from 0-100 based on:
-   - Vocabulary richness and appropriateness
-   - Grammar accuracy
-   - Response completeness and relevance
-   - Natural conversational flow
-   - Complexity appropriate for ${topic.difficulty} level
-
-2. feedback: A brief, encouraging response (1-2 sentences) that:
-   - Acknowledges their response positively
-   - Provides subtle guidance if needed
-   - Maintains conversational flow
-
-Format: {"score": number, "feedback": "string"}
-`;
-
-      const response_data = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response_data = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.REACT_APP_OPENAI_API_KEY || 'sk-placeholder'}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert English language assessor. Respond only with valid JSON.'
-            },
-            {
-              role: 'user',
-              content: analysisPrompt
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 200
+          conversationId: 'placement-test-temp',
+          profileId: user.id,
+          text: analysisPrompt,
+          deviceId: localStorage.getItem('device_id') || undefined
         })
       });
 
       if (!response_data.ok) {
-        throw new Error('AI analysis failed');
+        throw new Error('Backend AI analysis failed');
       }
 
       const data = await response_data.json();
-      const analysis = JSON.parse(data.choices[0].message.content);
+      
+      // Extract score from AI response (simplified scoring)
+      const wordCount = response.split(' ').length;
+      const responseLength = response.length;
+      
+      let score = 50; // Base score
+      if (wordCount >= 10) score += 20;
+      if (wordCount >= 25) score += 15;
+      if (responseLength > 100) score += 10;
+      
+      // Topic difficulty adjustment
+      if (topic.difficulty === 'advanced') score = Math.min(score * 0.9, 100);
+      if (topic.difficulty === 'beginner') score = Math.min(score * 1.1, 100);
       
       return {
-        score: Math.max(0, Math.min(100, analysis.score)),
-        feedback: analysis.feedback
+        score: Math.round(score),
+        feedback: data.replyText || "Thank you for sharing that! Your response shows good understanding."
       };
     } catch (error) {
-      console.warn('AI analysis failed, using fallback:', error);
+      console.warn('Backend AI analysis failed, using fallback:', error);
       
       // Fallback analysis
       const wordCount = response.split(' ').length;

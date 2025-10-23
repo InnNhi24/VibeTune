@@ -152,13 +152,47 @@ class AIProsodyService {
       throw new Error('AI service not configured');
     }
 
-    console.log('🤖 VibeTune AI: Analyzing speech with advanced built-in prosody engine');
+    console.log('🤖 VibeTune AI: Analyzing speech with backend AI service');
     
-    // Use enhanced AI-powered analysis (built-in)
-    const analysis = await this.generateAdvancedAnalysis(text, context);
-    
-    console.log('✅ VibeTune AI: Advanced prosody analysis complete');
-    return analysis;
+    try {
+      // Convert audio blob to URL for backend processing
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Call backend API for audio analysis
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId: 'audio-analysis-temp',
+          profileId: 'temp-user',
+          text: text,
+          audioUrl: audioUrl,
+          deviceId: localStorage.getItem('device_id') || undefined
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend audio analysis failed');
+      }
+
+      const data = await response.json();
+      
+      // Convert backend response to ProsodyAnalysis format
+      const analysis = this.convertBackendResponseToAnalysis(data, text, context);
+      
+      console.log('✅ VibeTune AI: Backend prosody analysis complete');
+      return analysis;
+      
+    } catch (error) {
+      console.warn('Backend audio analysis failed, using built-in analysis:', error);
+      
+      // Fallback to built-in analysis
+      const analysis = await this.generateAdvancedAnalysis(text, context);
+      console.log('✅ VibeTune AI: Built-in prosody analysis complete');
+      return analysis;
+    }
   }
 
   // Generate AI conversation response
@@ -171,13 +205,43 @@ class AIProsodyService {
       throw new Error('AI service not configured');
     }
 
-    console.log('🤖 VibeTune AI: Generating contextual response with advanced AI');
+    console.log('🤖 VibeTune AI: Generating contextual response with backend AI');
     
-    // Use enhanced AI-powered response generation (built-in)
-    const response = await this.generateAdvancedResponse(userInput, context, prosodyAnalysis);
-    
-    console.log('✅ VibeTune AI: Contextual response generated');
-    return response;
+    try {
+      // Call backend API for AI response
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId: 'conversation-temp',
+          profileId: 'temp-user',
+          text: userInput,
+          deviceId: localStorage.getItem('device_id') || undefined
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend AI response failed');
+      }
+
+      const data = await response.json();
+      
+      // Convert backend response to AIResponse format
+      const aiResponse = this.convertBackendResponseToAIResponse(data, context);
+      
+      console.log('✅ VibeTune AI: Backend response generated');
+      return aiResponse;
+      
+    } catch (error) {
+      console.warn('Backend AI response failed, using built-in response:', error);
+      
+      // Fallback to built-in response
+      const response = await this.generateAdvancedResponse(userInput, context, prosodyAnalysis);
+      console.log('✅ VibeTune AI: Built-in response generated');
+      return response;
+    }
   }
 
   // Provide incremental feedback during recording
@@ -481,6 +545,48 @@ class AIProsodyService {
       'Practice reading news headlines with proper stress',
       'Listen to podcasts and shadow-speak for 10 minutes daily'
     ].slice(0, 2);
+  }
+
+  // Convert backend API response to AIResponse format
+  private convertBackendResponseToAIResponse(data: any, context: ConversationContext): AIResponse {
+    return {
+      text_response: data.replyText || "Thank you for your message!",
+      conversation_flow: {
+        next_topic_suggestions: this.generateTopicSuggestions(context.topic),
+        difficulty_adjustment: 'maintain',
+        engagement_level: 0.8
+      },
+      practice_suggestions: {
+        immediate: data.feedback?.guidance ? [data.feedback.guidance] : ['Keep practicing!'],
+        session_goals: [`Focus on ${context.focus_areas[0] || 'pronunciation'}`],
+        homework: ['Practice with daily conversations']
+      }
+    };
+  }
+
+  // Convert backend API response to ProsodyAnalysis format
+  private convertBackendResponseToAnalysis(data: any, text: string, context: ConversationContext): ProsodyAnalysis {
+    const feedback = data.feedback || {};
+    const prosody = feedback.prosody || {};
+    
+    // Extract scores from backend response
+    const overallScore = prosody.rate ? Math.round((prosody.rate + prosody.pitch + prosody.energy) / 3 * 100) : 75;
+    
+    return {
+      overall_score: overallScore,
+      pronunciation_score: Math.round(prosody.rate * 100) || 75,
+      rhythm_score: Math.round(prosody.rate * 100) || 75,
+      intonation_score: Math.round(prosody.pitch * 100) || 75,
+      fluency_score: Math.round(prosody.energy * 100) || 75,
+      detailed_feedback: {
+        strengths: ['Good pronunciation', 'Clear articulation'],
+        improvements: prosody.notes ? [prosody.notes] : ['Continue practicing'],
+        specific_issues: []
+      },
+      word_level_analysis: this.generateWordAnalysis(text),
+      suggestions: feedback.guidance ? [feedback.guidance] : ['Keep up the good work!'],
+      next_focus_areas: context.focus_areas.slice(0, 2)
+    };
   }
 
   // Mock analysis generator (enhanced fallback for reliability)

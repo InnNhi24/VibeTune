@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Wifi, WifiOff, RefreshCw, AlertCircle, CheckCircle, Cloud, CloudOff } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore, useSync } from "../store/appStore";
 
 interface SyncStatusIndicatorProps {

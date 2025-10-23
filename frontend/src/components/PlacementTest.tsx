@@ -9,7 +9,7 @@ import { RecordingControls } from "./RecordingControls";
 import { CheckCircle2, Clock, Mic, MessageCircle, ArrowLeft } from "lucide-react";
 import { usePlacementTest } from "../hooks/usePlacementTest";
 import { supabase, getCurrentUser } from "../services/supabaseClient";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 
 interface PlacementTestProps {
   onComplete: (results: { level: string; score: number }) => void;

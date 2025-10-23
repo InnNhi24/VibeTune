@@ -16,7 +16,7 @@ import {
   CheckCircle2,
   TrendingUp
 } from "lucide-react";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { aiProsodyService, ProsodyAnalysis, ConversationContext } from "../services/aiProsodyService";
 
 interface DemoAIShowcaseProps {

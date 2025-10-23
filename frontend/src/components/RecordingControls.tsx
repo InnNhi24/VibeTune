@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { Mic, MicOff, RotateCcw, Send, Loader2, Play, Pause, Settings } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext } from "../services/aiProsodyService";
 import { liveTranscriptionService } from "../services/liveTranscriptionService";
 
