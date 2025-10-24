@@ -1,5 +1,9 @@
 name: VibeTune CI/CD Pipeline
 
+permissions:
+  contents: read
+  security-events: write
+
 on:
   push:
     branches: [ main, develop ]
@@ -140,20 +144,25 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
     - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-        
-    - name: Upload Trivy scan results to GitHub Security tab
+      run: |
+        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s --
+        ./bin/trivy fs --format sarif --output trivy-results.sarif .
+
+    # Upload SARIF only when running on a push within the same repository (avoid fork PR upload errors)
+    - name: Upload SARIF to Code Scanning
+      if: ${{ github.event_name == 'push' && github.repository == github.event.repository.full_name }}
       uses: github/codeql-action/upload-sarif@v3
-      if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+
+    # Save SARIF as artifact so it's available for inspection even when upload is skipped
+    - name: Save SARIF artifact
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-results
+        path: trivy-results.sarif
 
   # Deploy to Staging
   deploy-staging:

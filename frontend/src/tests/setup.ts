@@ -5,26 +5,30 @@
 import '@testing-library/jest-dom';
 import { beforeAll, afterEach, afterAll } from '@jest/globals';
 
-// Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+// Typed IntersectionObserver mock
+class IO implements IntersectionObserver {
+  readonly root: Element | null = null;
+  readonly rootMargin: string = '';
+  readonly thresholds: ReadonlyArray<number> = [];
   disconnect() {}
-  observe() {}
-  unobserve() {}
-};
+  observe(_: Element) {}
+  takeRecords(): IntersectionObserverEntry[] { return []; }
+  unobserve(_: Element) {}
+}
+(global as any).IntersectionObserver = IO as unknown as typeof IntersectionObserver;
 
-// Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
-  constructor() {}
+// Typed ResizeObserver mock (simple shim)
+class RO {
   disconnect() {}
-  observe() {}
-  unobserve() {}
-};
+  observe(_: Element) {}
+  unobserve(_: Element) {}
+}
+(global as any).ResizeObserver = RO;
 
-// Mock matchMedia
+// matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
+  value: jest.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -36,35 +40,32 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+// localStorage/sessionStorage shim
+const storage = () => {
+  let store: Record<string, string> = {};
+  return {
+    get length() { return Object.keys(store).length; },
+    key: (i: number) => Object.keys(store)[i] ?? null,
+    getItem: (k: string) => (k in store ? store[k] : null),
+    setItem: (k: string, v: string) => { store[k] = String(v); },
+    removeItem: (k: string) => { delete store[k]; },
+    clear: () => { store = {}; }
+  };
 };
-global.localStorage = localStorageMock;
+(global as any).localStorage  = storage() as unknown as Storage;
+(global as any).sessionStorage = storage() as unknown as Storage;
 
-// Mock sessionStorage
-const sessionStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-};
-global.sessionStorage = sessionStorageMock;
+// fetch mock
+(global as any).fetch = jest.fn();
 
-// Mock fetch
-global.fetch = jest.fn();
-
-// Mock navigator
+// navigator.onLine
 Object.defineProperty(navigator, 'onLine', {
   writable: true,
   value: true,
 });
 
-// Mock AudioContext
-global.AudioContext = jest.fn().mockImplementation(() => ({
+// AudioContext shim
+(global as any).AudioContext = jest.fn().mockImplementation(() => ({
   createMediaStreamSource: jest.fn(),
   createAnalyser: jest.fn(),
   createGain: jest.fn(),
@@ -75,41 +76,45 @@ global.AudioContext = jest.fn().mockImplementation(() => ({
   resume: jest.fn(),
 }));
 
-// Mock MediaRecorder
-global.MediaRecorder = jest.fn().mockImplementation(() => ({
-  start: jest.fn(),
-  stop: jest.fn(),
-  pause: jest.fn(),
-  resume: jest.fn(),
-  state: 'inactive',
-  ondataavailable: null,
-  onstop: null,
-  onerror: null,
-}));
+// Typed MediaRecorder shim
+class MR implements MediaRecorder {
+  readonly mimeType: string = 'audio/webm';
+  ignoreMutedMedia = false;
+  audioBitsPerSecond = 0;
+  videoBitsPerSecond = 0;
+  state: RecordingState = 'inactive';
+  stream!: MediaStream;
+  ondataavailable: ((this: MediaRecorder, ev: BlobEvent) => any) | null = null;
+  onerror: ((this: MediaRecorder, ev: Event) => any) | null = null;
+  onpause: ((this: MediaRecorder, ev: Event) => any) | null = null;
+  onresume: ((this: MediaRecorder, ev: Event) => any) | null = null;
+  onstart: ((this: MediaRecorder, ev: Event) => any) | null = null;
+  onstop: ((this: MediaRecorder, ev: Event) => any) | null = null;
+  start() { this.state = 'recording'; }
+  stop()  { this.state = 'inactive'; this.onstop?.(new Event('stop')); }
+  pause() { this.state = 'paused'; }
+  resume(){ this.state = 'recording'; }
+  requestData() { if (this.ondataavailable) { this.ondataavailable.call(this as any, (new Blob()) as any); } }
+  static isTypeSupported(_: string) { return true; }
+}
+(global as any).MediaRecorder = MR as unknown as typeof MediaRecorder;
 
-// Mock getUserMedia
+// getUserMedia shim
 Object.defineProperty(navigator, 'mediaDevices', {
   writable: true,
   value: {
     getUserMedia: jest.fn().mockResolvedValue({
-      getTracks: () => [{
-        stop: jest.fn(),
-        kind: 'audio',
-        enabled: true
-      }]
+      getTracks: () => [{ stop: jest.fn(), kind: 'audio', enabled: true }]
     }),
   },
 });
 
 // Setup before all tests
 beforeAll(() => {
-  // Suppress console warnings in tests
+  // Suppress specific console warnings in tests
   const originalWarn = console.warn;
-  console.warn = (...args) => {
-    if (
-      typeof args[0] === 'string' &&
-      args[0].includes('Warning: ReactDOM.render is no longer supported')
-    ) {
+  console.warn = (...args: any[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('Warning: ReactDOM.render is no longer supported')) {
       return;
     }
     originalWarn.call(console, ...args);
@@ -119,8 +124,8 @@ beforeAll(() => {
 // Cleanup after each test
 afterEach(() => {
   jest.clearAllMocks();
-  localStorageMock.clear();
-  sessionStorageMock.clear();
+  (global.localStorage as unknown as { clear?: () => void }).clear?.();
+  (global.sessionStorage as unknown as { clear?: () => void }).clear?.();
 });
 
 // Cleanup after all tests
