@@ -204,21 +204,37 @@ html {
 }
 
 /* Improve link readability (forgot password / sign up / back) */
-a,
-button.link {
-  color: #6b4aff; /* darker purple for contrast */
+/* Accessible links on light-cream background */
+a.link,
+.link-like {
+  color: #6B4AFF;              /* brand purple already used in app */
   text-decoration: none;
-  transition: color 0.2s;
+  font-weight: 500;
+}
+.link-like:hover,
+a.link:hover {
+  color: #4F3ACC;              /* darker for hover, AA contrast on #FFF9F0 */
+  text-decoration: underline;
 }
 
-a:hover,
-button.link:hover {
-  color: #4f3acc;
+/* muted variant for secondary links (Back) */
+a.link.muted {
+  color: #5C6470;              /* neutral-600 in your palette */
+}
+a.link.muted:hover {
+  color: #3E4550;              /* neutral-700 */
 }
 
 /* Settings page scrollable container */
-.settings-container {
+.settings-container,
+.settings-scroll {
   max-height: 100vh;
   overflow-y: auto;
   padding-bottom: 2rem;
+}
+
+/* If layout parent is accidentally hiding overflow, prefer visible for app content */
+main,
+.app-content {
+  overflow: visible;
 }
