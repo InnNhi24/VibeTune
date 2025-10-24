@@ -202,3 +202,23 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Improve link readability (forgot password / sign up / back) */
+a,
+button.link {
+  color: #6b4aff; /* darker purple for contrast */
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover,
+button.link:hover {
+  color: #4f3acc;
+}
+
+/* Settings page scrollable container */
+.settings-container {
+  max-height: 100vh;
+  overflow-y: auto;
+  padding-bottom: 2rem;
+}
