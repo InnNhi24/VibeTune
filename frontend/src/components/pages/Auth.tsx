@@ -350,7 +350,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                     variant="link"
                     onClick={handleForgotPassword}
                     disabled={isLoading}
-                    className="text-sm"
+                    className="text-sm text-foreground/80 hover:text-foreground"
                   >
                     Forgot your password?
                   </Button>
@@ -372,7 +372,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                       setFormData({ email: formData.email, password: '', username: '', confirmPassword: '' });
                     }}
                   disabled={isLoading}
-                  className="p-0 h-auto font-semibold"
+                  className="p-0 h-auto font-semibold text-foreground/80 hover:text-foreground"
                 >
                   {isLogin ? "Sign up" : "Sign in"}
                 </Button>
@@ -407,7 +407,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
         </motion.div>
 
         <div className="mt-6 text-center">
-          <Button variant="link" onClick={onBack} className="text-sm">
+          <Button variant="link" onClick={onBack} className="text-sm text-foreground/80 hover:text-foreground">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Onboarding
           </Button>
