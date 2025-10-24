@@ -62,9 +62,11 @@ const chatRoute = async (req, res) => {
                 }
             }
         }
+        // Create service-role client for DB operations
+        const supabaseServiceRole = (0, supabase_1.createServiceRoleClient)();
         // 4. Insert two rows into Supabase table `messages`
         // a) user message
-        const { error: userMessageError } = await supabase_1.supabaseServiceRole
+        const { error: userMessageError } = await supabaseServiceRole
             .from('messages')
             .insert({
             conversation_id: conversationId,
@@ -82,7 +84,7 @@ const chatRoute = async (req, res) => {
         }
         // b) ai message
         const { replyText, turn_feedback, guidance, scores } = aiResponse;
-        const { error: aiMessageError } = await supabase_1.supabaseServiceRole
+        const { error: aiMessageError } = await supabaseServiceRole
             .from('messages')
             .insert({
             conversation_id: conversationId,

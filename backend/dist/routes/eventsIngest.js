@@ -27,7 +27,8 @@ const eventsIngestRoute = async (req, res) => {
             }
             lastEventTimestamps[profileId][event_type] = now;
             // Insert into `analytics_events`
-            const { error } = await supabase_1.supabaseServiceRole
+            const supabaseServiceRole = (0, supabase_1.createServiceRoleClient)();
+            const { error } = await supabaseServiceRole
                 .from('analytics_events')
                 .insert({
                 profile_id: profileId,

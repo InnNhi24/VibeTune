@@ -8,8 +8,9 @@ const placementScoreRoute = async (req, res) => {
         return res.status(400).json({ error: 'Bad Request', details: 'Missing required fields: profileId, conversationId' });
     }
     try {
+        const supabaseServiceRole = (0, supabase_1.createServiceRoleClient)();
         // 2. Read all `messages.scores` for the conversation
-        const { data: messages, error: messagesError } = await supabase_1.supabaseServiceRole
+        const { data: messages, error: messagesError } = await supabaseServiceRole
             .from('messages')
             .select('scores')
             .eq('conversation_id', conversationId)
@@ -45,7 +46,7 @@ const placementScoreRoute = async (req, res) => {
             level = 'Advanced';
         }
         // 4. Update Supabase `profiles`
-        const { error: profileUpdateError } = await supabase_1.supabaseServiceRole
+        const { error: profileUpdateError } = await supabaseServiceRole
             .from('profiles')
             .update({
             level: level,

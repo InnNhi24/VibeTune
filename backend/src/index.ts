@@ -8,6 +8,10 @@ import placementScoreRoute from './routes/placementScore';
 import eventsIngestRoute from './routes/eventsIngest';
 import feedbackRoute from './routes/feedback';
 import liveTranscribeRoute from './routes/liveTranscribe';
+import speechRoute from './routes/liveTranscribe';
+import synthesizeRoute from './routes/synthesize';
+import analyzeProsodyRoute, { analyzeProsodyMiddleware } from './routes/analyzeProsody';
+import chatStreamRoute from './routes/chatStream';
 import { 
   securityHeaders, 
   sanitizeInput, 
@@ -38,6 +42,22 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint
 app.get('/health', healthCheck);
+// Aliases to match frontend API expectations
+app.get('/api/health', healthCheck);
+
+// Speech API compatibility routes expected by frontend (/api/speech/*)
+// Map /api/speech/transcribe -> existing liveTranscribeRoute
+app.post('/api/speech/transcribe', rateLimits.audio, liveTranscribeRoute);
+
+// Analyze prosody and synthesize endpoints are planned; return 501 until implemented.
+// Implemented TTS endpoint
+app.post('/api/speech/synthesize', rateLimits.ai, synthesizeRoute);
+
+// Prosody analysis accepts multipart/form-data (audio file) or JSON { audioData: base64 }
+app.post('/api/speech/analyze-prosody', rateLimits.ai, ...(Array.isArray(analyzeProsodyMiddleware) ? analyzeProsodyMiddleware : [analyzeProsodyMiddleware] ), analyzeProsodyRoute);
+
+// Chat streaming endpoint (SSE)
+app.post('/api/chat-stream', rateLimits.ai, chatStreamRoute);
 
 // API routes with rate limiting
 app.post('/api/chat', rateLimits.ai, chatRoute);
@@ -60,7 +80,7 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     error: 'Not Found',
     message: `Route ${req.originalUrl} not found`

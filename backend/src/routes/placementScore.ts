@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabaseServiceRole } from '../clients/supabase';
+import { createServiceRoleClient } from '../clients/supabase';
 
 const placementScoreRoute = async (req: Request, res: Response) => {
   const { profileId, conversationId } = req.body;
@@ -10,6 +10,7 @@ const placementScoreRoute = async (req: Request, res: Response) => {
   }
 
   try {
+    const supabaseServiceRole = createServiceRoleClient();
     // 2. Read all `messages.scores` for the conversation
     const { data: messages, error: messagesError } = await supabaseServiceRole
       .from('messages')

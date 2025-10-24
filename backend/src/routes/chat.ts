@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import openai from '../clients/openai';
 import deepgram from '../clients/deepgram';
-import { supabaseServiceRole } from '../clients/supabase';
+import { createServiceRoleClient } from '../clients/supabase';
 
 const chatRoute = async (req: Request, res: Response) => {
   const { conversationId, profileId, text, audioUrl, deviceId, retryOfMessageId, version } = req.body;
@@ -64,7 +64,10 @@ const chatRoute = async (req: Request, res: Response) => {
       }
     }
 
-    // 4. Insert two rows into Supabase table `messages`
+  // Create service-role client for DB operations
+  const supabaseServiceRole = createServiceRoleClient();
+
+  // 4. Insert two rows into Supabase table `messages`
     // a) user message
     const { error: userMessageError } = await supabaseServiceRole
       .from('messages')

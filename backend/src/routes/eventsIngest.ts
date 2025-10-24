@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabaseServiceRole } from '../clients/supabase';
+import { createServiceRoleClient } from '../clients/supabase';
 
 // Simple in-memory rate limiting map: { profileId: { eventType: lastEventTimestamp } }
 const lastEventTimestamps: { [profileId: string]: { [eventType: string]: number } } = {};
@@ -33,6 +33,7 @@ const eventsIngestRoute = async (req: Request, res: Response) => {
       lastEventTimestamps[profileId][event_type] = now;
 
       // Insert into `analytics_events`
+      const supabaseServiceRole = createServiceRoleClient();
       const { error } = await supabaseServiceRole
         .from('analytics_events')
         .insert({

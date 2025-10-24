@@ -9,7 +9,8 @@ const feedbackRoute = async (req, res) => {
     }
     try {
         // 2. Insert into feedback_rating
-        const { error } = await supabase_1.supabaseServiceRole
+        const supabaseServiceRole = (0, supabase_1.createServiceRoleClient)();
+        const { error } = await supabaseServiceRole
             .from('feedback_rating')
             .insert({
             message_id: messageId,

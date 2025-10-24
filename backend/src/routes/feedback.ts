@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { supabaseServiceRole } from '../clients/supabase';
+import { createServiceRoleClient } from '../clients/supabase';
 
 const feedbackRoute = async (req: Request, res: Response) => {
   const { messageId, profileId, rating } = req.body;
@@ -11,6 +11,7 @@ const feedbackRoute = async (req: Request, res: Response) => {
 
   try {
     // 2. Insert into feedback_rating
+    const supabaseServiceRole = createServiceRoleClient();
     const { error } = await supabaseServiceRole
       .from('feedback_rating')
       .insert({

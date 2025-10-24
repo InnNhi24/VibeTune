@@ -71,8 +71,17 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
   }
 
   // Sanitize query parameters
-  if (req.query) {
-    req.query = sanitizeObject(req.query);
+  if (req.query && typeof req.query === 'object') {
+    const sanitizedQuery = sanitizeObject(req.query);
+    // Don't replace req.query object (some frameworks expose it as a getter-only property).
+    // Instead, copy sanitized values onto the existing object when possible.
+    try {
+      Object.keys(sanitizedQuery).forEach((k) => {
+        try { (req.query as any)[k] = (sanitizedQuery as any)[k]; } catch { /* best effort */ }
+      });
+    } catch {
+      // If copying fails, skip silently to avoid breaking requests
+    }
   }
 
   next();

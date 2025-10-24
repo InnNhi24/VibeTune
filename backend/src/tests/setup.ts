@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Test Setup Configuration for VibeTune Backend
  */
@@ -7,6 +8,10 @@ import { beforeAll, afterAll, beforeEach } from '@jest/globals';
 
 // Load test environment variables
 config({ path: '.env.test' });
+
+// Prevent the Express app from auto-listening during tests
+process.env.VERCEL = '1';
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 // Mock external services
 jest.mock('../clients/openai', () => ({
@@ -71,6 +76,8 @@ beforeAll(async () => {
 afterAll(async () => {
   // Cleanup test database
   console.log('Cleaning up test environment...');
+  // Ensure any lingering timers or handles are cleared for Jest
+  jest.restoreAllMocks();
 });
 
 beforeEach(() => {

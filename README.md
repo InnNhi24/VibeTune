@@ -1,5 +1,7 @@
 # 🎧 VibeTune — AI Prosody Learning App
 
+Find your English rhythm — speak with confidence, not perfection.
+
 ## 🧭 Overview
 
 VibeTune is a mobile-first AI-powered prosody learning app designed to help English learners improve their pronunciation, prosody, grammar, vocabulary, and conversational fluency through friendly, natural-sounding chats with an AI tutor — just like having a casual coffee conversation ☕.
