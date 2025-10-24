@@ -2,6 +2,7 @@
  * Comprehensive Error Handling System for VibeTune
  * Provides centralized error management, logging, and user feedback
  */
+import logger from './logger';
 
 export enum ErrorType {
   NETWORK = 'NETWORK',
@@ -126,7 +127,7 @@ export class ErrorHandler {
         const recentErrors = storedErrors.slice(0, 50);
         localStorage.setItem('vibetune-errors', JSON.stringify(recentErrors));
       } catch (e) {
-        console.warn('Failed to store error in localStorage:', e);
+        logger.warn('Failed to store error in localStorage:', e);
       }
     }
   }
@@ -267,11 +268,11 @@ export class ErrorHandler {
     switch (severity) {
       case ErrorSeverity.CRITICAL:
       case ErrorSeverity.HIGH:
-        return console.error;
+        return logger.error;
       case ErrorSeverity.MEDIUM:
-        return console.warn;
+        return logger.warn;
       default:
-        return console.log;
+        return logger.info;
     }
   }
 }

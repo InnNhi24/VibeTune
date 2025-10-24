@@ -15,6 +15,7 @@ import { Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext, ProsodyAnalysis, AIResponse } from "../services/aiProsodyService";
 import { useAppStore, useMessages, Message as StoreMessage } from "../store/appStore";
+import { logger } from "../utils/logger";
 
 interface Message {
   id: string;
@@ -206,7 +207,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
       if (isAudio && audioBlob && aiReady) {
         const context = buildConversationContext();
         
-        try {
+          try {
           prosodyAnalysis = await aiProsodyService.analyzeAudio(
             audioBlob,
             messageText.trim(),
@@ -224,7 +225,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
           newHistoryEntry.audio_analysis = prosodyAnalysis;
           
         } catch (error) {
-          console.error('Audio analysis failed:', error);
+          logger.error('Audio analysis failed:', error);
           // Continue without analysis
           setMessages(prev => prev.map(msg => 
             msg.id === messageId 
@@ -249,7 +250,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
             setFocusAreas(prosodyAnalysis.next_focus_areas);
           }
         } catch (error) {
-          console.error('AI response generation failed:', error);
+          logger.error('AI response generation failed:', error);
           // Fallback to basic response
           aiResponse = {
             text_response: generateFallbackResponse(messageText, safeLevel),
@@ -306,7 +307,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
       }, aiReady ? 1500 : 800);
 
     } catch (error) {
-      console.error('Message processing failed:', error);
+      logger.error('Message processing failed:', error);
       setIsLoading(false);
       
       // Add error message

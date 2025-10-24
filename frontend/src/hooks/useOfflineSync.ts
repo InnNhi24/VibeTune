@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { logger } from '../utils/logger';
 
 interface OfflineMessage {
   id: string;
@@ -70,7 +71,7 @@ export function useOfflineSync() {
 
       return offlineMessage;
     } catch (error) {
-      console.error('Error saving message offline:', error);
+      logger.error('Error saving message offline:', error);
       throw error;
     }
   }, []);
@@ -99,7 +100,7 @@ export function useOfflineSync() {
 
       return offlineConversation;
     } catch (error) {
-      console.error('Error saving conversation offline:', error);
+      logger.error('Error saving conversation offline:', error);
       throw error;
     }
   }, []);
@@ -163,7 +164,7 @@ export function useOfflineSync() {
             syncErrors.push(`Failed to sync message: conversation not found`);
           }
         } catch (error) {
-          console.error('Error syncing message:', message.id, error);
+          logger.error('Error syncing message:', message.id, error);
           syncErrors.push(`Message sync failed: ${error}`);
         }
       }
@@ -184,8 +185,8 @@ export function useOfflineSync() {
 
       localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
 
-    } catch (error) {
-      console.error('Error syncing offline messages:', error);
+      } catch (error) {
+      logger.error('Error syncing offline messages:', error);
       setSyncState(prev => ({
         ...prev,
         isSyncing: false,
@@ -233,7 +234,7 @@ export function useOfflineSync() {
             syncedConversationIds.push(conversation.id);
           }
         } catch (error) {
-          console.error('Error syncing conversation:', conversation.id, error);
+          logger.error('Error syncing conversation:', conversation.id, error);
         }
       }
 
@@ -242,8 +243,8 @@ export function useOfflineSync() {
         pendingConversations: offlineConversations.filter(c => !c.synced).length
       }));
 
-    } catch (error) {
-      console.error('Error syncing offline conversations:', error);
+      } catch (error) {
+      logger.error('Error syncing offline conversations:', error);
     }
   }, []);
 
@@ -263,7 +264,7 @@ export function useOfflineSync() {
         resolvedMessages.push(localMsg);
       } else {
         // Conflict detected - server message wins, but log for potential manual resolution
-        console.log('Sync conflict resolved (server wins):', { local: localMsg, server: serverMsg });
+        logger.info('Sync conflict resolved (server wins):', { local: localMsg, server: serverMsg });
       }
     });
 
@@ -324,7 +325,7 @@ export function useOfflineSync() {
       localStorage.setItem(OFFLINE_CONVERSATIONS_KEY, JSON.stringify(filteredConversations));
       
     } catch (error) {
-      console.error('Error cleaning up synced items:', error);
+      logger.error('Error cleaning up synced items:', error);
     }
   }, []);
 

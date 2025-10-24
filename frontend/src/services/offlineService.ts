@@ -1,3 +1,4 @@
+import logger from '../utils/logger';
 interface OfflineMessage {
   id: string;
   conversation_id: string;
@@ -68,7 +69,7 @@ export class OfflineService {
       // Add to sync queue
       this.addToSyncQueue('message', offlineMessage.id);
     } catch (error) {
-      console.error('Failed to save message offline:', error);
+        logger.error('Failed to save message offline:', error);
     }
   }
 
@@ -90,7 +91,7 @@ export class OfflineService {
       
       this.addToSyncQueue('conversation', offlineConversation.id);
     } catch (error) {
-      console.error('Failed to save conversation offline:', error);
+        logger.error('Failed to save conversation offline:', error);
     }
   }
 
@@ -103,7 +104,7 @@ export class OfflineService {
       
       return messages.filter(msg => msg.conversation_id === conversationId);
     } catch (error) {
-      console.error('Failed to get offline messages:', error);
+        logger.error('Failed to get offline messages:', error);
       return [];
     }
   }
@@ -115,7 +116,7 @@ export class OfflineService {
       const existing = storage.getItem(this.STORAGE_KEYS.CONVERSATIONS);
       return existing ? JSON.parse(existing) : [];
     } catch (error) {
-      console.error('Failed to get offline conversations:', error);
+        logger.error('Failed to get offline conversations:', error);
       return [];
     }
   }
@@ -153,7 +154,7 @@ export class OfflineService {
       storage.setItem(storageKey, JSON.stringify(updatedItems));
       this.removeFromSyncQueue(type, id);
     } catch (error) {
-      console.error('Failed to mark item as synced:', error);
+        logger.error('Failed to mark item as synced:', error);
     }
   }
 
@@ -168,7 +169,7 @@ export class OfflineService {
       queue.push({ type, id, timestamp: Date.now() });
       storage.setItem(this.STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(queue));
     } catch (error) {
-      console.error('Failed to add to sync queue:', error);
+        logger.error('Failed to add to sync queue:', error);
     }
   }
 
@@ -184,7 +185,7 @@ export class OfflineService {
       
       storage.setItem(this.STORAGE_KEYS.SYNC_QUEUE, JSON.stringify(filtered));
     } catch (error) {
-      console.error('Failed to remove from sync queue:', error);
+      logger.error('Failed to remove from sync queue:', error);
     }
   }
 
@@ -195,7 +196,7 @@ export class OfflineService {
       const existing = storage.getItem(this.STORAGE_KEYS.SYNC_QUEUE);
       return existing ? JSON.parse(existing) : [];
     } catch (error) {
-      console.error('Failed to get sync queue:', error);
+        logger.error('Failed to get sync queue:', error);
       return [];
     }
   }
@@ -231,7 +232,7 @@ export class OfflineService {
         storage.setItem(this.STORAGE_KEYS.CONVERSATIONS, JSON.stringify(filtered));
       }
     } catch (error) {
-      console.error('Failed to clear synced items:', error);
+      logger.error('Failed to clear synced items:', error);
     }
   }
 
@@ -248,7 +249,7 @@ export class OfflineService {
       
       return deviceId;
     } catch (error) {
-      console.error('Failed to get device ID:', error);
+        logger.error('Failed to get device ID:', error);
       return 'unknown_device';
     }
   }
@@ -260,7 +261,7 @@ export class OfflineService {
       const existing = storage.getItem(this.STORAGE_KEYS.MESSAGES);
       return existing ? JSON.parse(existing) : [];
     } catch (error) {
-      console.error('Failed to get all offline messages:', error);
+        logger.error('Failed to get all offline messages:', error);
       return [];
     }
   }
@@ -271,7 +272,7 @@ export class OfflineService {
       const storage = this.getStorage();
       storage.setItem(this.STORAGE_KEYS.LAST_SYNC, Date.now().toString());
     } catch (error) {
-      console.error('Failed to update last sync:', error);
+      logger.error('Failed to update last sync:', error);
     }
   }
 
@@ -282,7 +283,7 @@ export class OfflineService {
       const lastSync = storage.getItem(this.STORAGE_KEYS.LAST_SYNC);
       return lastSync ? parseInt(lastSync) : 0;
     } catch (error) {
-      console.error('Failed to get last sync:', error);
+        logger.error('Failed to get last sync:', error);
       return 0;
     }
   }

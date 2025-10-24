@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { aiProsodyService, ProsodyAnalysis, ConversationContext } from "../services/aiProsodyService";
+import logger from '../utils/logger';
 
 interface DemoAIShowcaseProps {
   isVisible: boolean;
@@ -118,7 +119,7 @@ export function DemoAIShowcase({ isVisible, onClose }: DemoAIShowcaseProps) {
   };
 
   const handleDemoRecording = (message: string, isAudio: boolean) => {
-    console.log('Demo recording:', message, isAudio);
+    logger.info('Demo recording:', message, isAudio);
     // Simulate analysis
     setTimeout(() => {
       setDemoAnalysis(mockAnalysis);

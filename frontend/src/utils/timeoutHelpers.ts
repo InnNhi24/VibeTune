@@ -74,9 +74,11 @@ export async function tryWithTimeout<T>(
 ): Promise<T | null> {
   try {
     return await withTimeout(fn(), timeoutMs, 'Operation timed out');
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error;
     if (error.message.includes('timed out')) {
-      console.warn(`Operation timed out after ${timeoutMs}ms, using fallback value`);
+      const { logger } = await import('./logger');
+      logger.warn(`Operation timed out after ${timeoutMs}ms, using fallback value`);
       return fallbackValue;
     }
     throw error; // Re-throw non-timeout errors
@@ -147,18 +149,21 @@ export async function retryWithTimeout<T>(
   timeoutMs: number = 5000,
   backoffMs: number = 1000
 ): Promise<T> {
-  let lastError: Error;
+  let lastError: Error = new Error('Unknown error');
   
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await withTimeout(fn(), timeoutMs, `Attempt ${attempt + 1} timed out`);
-    } catch (error) {
-      lastError = error as Error;
-      console.warn(`Attempt ${attempt + 1} failed:`, error.message);
+    } catch (err) {
+      const error = err as Error;
+      lastError = error;
+      const { logger } = await import('./logger');
+      logger.warn(`Attempt ${attempt + 1} failed:`, error.message);
       
       if (attempt < maxRetries) {
         const delay = backoffMs * Math.pow(2, attempt);
-        console.log(`Retrying in ${delay}ms...`);
+  const { logger } = await import('./logger');
+  logger.info(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

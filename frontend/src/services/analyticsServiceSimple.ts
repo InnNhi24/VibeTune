@@ -1,3 +1,5 @@
+import logger from '../utils/logger';
+
 // Simple analytics service that only uses localStorage - no database writes
 export interface AnalyticsEvent {
   event_type: string;
@@ -14,16 +16,20 @@ export class SimpleAnalyticsService {
   // Initialize analytics service (localStorage only)
   static initialize() {
     try {
-      console.log('✅ Analytics ready (localStorage)');
+  logger.info('✅ Analytics ready (localStorage)');
       
       // Delayed cleanup to avoid blocking startup
       if (typeof window !== 'undefined') {
         setTimeout(() => {
-          this.cleanupOldEvents().catch(console.warn);
+          try {
+            this.cleanupOldEvents();
+          } catch (e) {
+            logger.warn('Cleanup old events failed:', e);
+          }
         }, 10000); // Much longer delay
       }
     } catch (error) {
-      console.warn('⚠️ Analytics init failed (non-critical):', error);
+      logger.warn('⚠️ Analytics init failed (non-critical):', error);
     }
   }
 
@@ -43,10 +49,10 @@ export class SimpleAnalyticsService {
         timestamp: Date.now()
       };
 
-      this.storeEvent(event);
-      console.log(`Analytics tracked: ${eventType}`, metadata);
+  this.storeEvent(event);
+  logger.info(`Analytics tracked: ${eventType}`, metadata);
     } catch (error) {
-      console.warn('Failed to track analytics event:', error);
+      logger.warn('Failed to track analytics event:', error);
     }
   }
 
@@ -69,7 +75,7 @@ export class SimpleAnalyticsService {
       
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(events));
     } catch (error) {
-      console.warn('Failed to store analytics event:', error);
+      logger.warn('Failed to store analytics event:', error);
     }
   }
 
@@ -83,7 +89,7 @@ export class SimpleAnalyticsService {
       const existing = localStorage.getItem(this.STORAGE_KEY);
       return existing ? JSON.parse(existing) : [];
     } catch (error) {
-      console.warn('Failed to get stored analytics events:', error);
+      logger.warn('Failed to get stored analytics events:', error);
       return [];
     }
   }
@@ -102,10 +108,10 @@ export class SimpleAnalyticsService {
       
       if (recentEvents.length !== events.length) {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(recentEvents));
-        console.log(`Cleaned up ${events.length - recentEvents.length} old analytics events`);
+        logger.info(`Cleaned up ${events.length - recentEvents.length} old analytics events`);
       }
     } catch (error) {
-      console.warn('Failed to cleanup old analytics events:', error);
+      logger.warn('Failed to cleanup old analytics events:', error);
     }
   }
 
@@ -173,7 +179,7 @@ export class SimpleAnalyticsService {
 
       return { data: summary, error: null };
     } catch (error) {
-      console.error('Failed to get user analytics:', error);
+      logger.error('Failed to get user analytics:', error);
       return { data: null, error };
     }
   }
@@ -218,10 +224,10 @@ export class SimpleAnalyticsService {
     try {
       if (typeof window !== 'undefined' && localStorage) {
         localStorage.removeItem(this.STORAGE_KEY);
-        console.log('All analytics events cleared');
+        logger.info('All analytics events cleared');
       }
     } catch (error) {
-      console.warn('Failed to clear analytics events:', error);
+      logger.warn('Failed to clear analytics events:', error);
     }
   }
 
@@ -229,10 +235,10 @@ export class SimpleAnalyticsService {
   static exportEvents() {
     try {
       const events = this.getStoredEvents();
-      console.log('Analytics Events Export:', events);
+      logger.info('Analytics Events Export:', events);
       return events;
     } catch (error) {
-      console.warn('Failed to export analytics events:', error);
+      logger.warn('Failed to export analytics events:', error);
       return [];
     }
   }

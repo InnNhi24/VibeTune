@@ -1,6 +1,7 @@
 // Import supabase for auth token
 import { supabase } from './supabaseClient';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { supabaseUrl, publicAnonKey } from '../utils/supabase/info';
+import logger from '../utils/logger';
 
 interface ProsodyAnalysis {
   prosodyErrors: Array<{
@@ -23,7 +24,10 @@ interface AnalyzeAudioRequest {
 }
 
 export class AudioAnalysisService {
-  private static readonly API_ENDPOINT = `https://${projectId}.supabase.co/functions/v1/make-server-b2083953/analyze-audio`;
+  private static readonly API_ENDPOINT = ((): string => {
+    if (supabaseUrl) return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/make-server-b2083953/analyze-audio`;
+    return 'https://<your-supabase-project>.supabase.co/functions/v1/make-server-b2083953/analyze-audio';
+  })();
   private static readonly RATE_LIMIT_KEY = 'audio_analysis_rate_limit';
   private static readonly MAX_REQUESTS_PER_MINUTE = 20;
 
@@ -74,7 +78,7 @@ export class AudioAnalysisService {
       
       return { data, error: null };
     } catch (error) {
-      console.error('Audio analysis error:', error);
+      logger.error('Audio analysis error:', error);
       
       // Return mock data for development/fallback
       const mockData = this.generateMockAnalysis(text || '', level);

@@ -6,6 +6,7 @@ import { Mic, MicOff, RotateCcw, Send, Loader2, Play, Pause, Settings } from "lu
 import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext } from "../services/aiProsodyService";
 import { liveTranscriptionService } from "../services/liveTranscriptionService";
+import { logger } from '../utils/logger';
 
 interface RecordingControlsProps {
   onSendMessage: (message: string, isAudio: boolean, audioBlob?: Blob) => void;
@@ -83,7 +84,7 @@ export function RecordingControls({
         setIncrementalFeedback(null);
       }, 3000);
     } catch (error) {
-      console.error('Failed to get incremental feedback:', error);
+      logger.error('Failed to get incremental feedback:', error);
     }
   };
 
@@ -119,14 +120,14 @@ export function RecordingControls({
           }
         },
         (error) => {
-          console.error('Live transcription error:', error);
+          logger.error('Live transcription error:', error);
         }
       );
       
       setRecordingState('recording');
       setRecordingTime(0);
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      logger.error('Failed to start recording:', error);
     }
   };
 
@@ -152,7 +153,7 @@ export function RecordingControls({
         setRecordingState('ready');
       }
     } catch (error) {
-      console.error('Failed to stop recording:', error);
+      logger.error('Failed to stop recording:', error);
       setRecordingState('ready');
     }
   };

@@ -1,4 +1,5 @@
 import { supabase, Profile } from './supabaseClient';
+import logger from '../utils/logger';
 
 export interface SignUpData {
   email: string;
@@ -14,7 +15,7 @@ export interface SignInData {
 export class AuthService {
   static async signUp({ email, password, username }: SignUpData) {
     try {
-      console.log('Starting signup process for:', email);
+  logger.info('Starting signup process for:', email);
       
       // Sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -28,11 +29,11 @@ export class AuthService {
       });
 
       if (authError) {
-        console.error('Supabase auth signup error:', authError);
+        logger.error('Supabase auth signup error:', authError);
         throw authError;
       }
 
-      console.log('Auth signup successful:', authData.user?.id);
+      logger.info('Auth signup successful:', authData.user?.id);
 
       if (authData.user) {
         // Create a basic profile object to return immediately
@@ -65,7 +66,7 @@ export class AuthService {
                 onConflict: 'id'
               });
           } catch (error) {
-            console.warn('Profile creation failed (non-blocking):', error);
+            logger.warn('Profile creation failed (non-blocking):', error);
           }
         }, 0);
 
@@ -74,14 +75,14 @@ export class AuthService {
 
       return { data: authData, error: null };
     } catch (error: any) {
-      console.error('SignUp error:', error);
+      logger.error('SignUp error:', error);
       return { data: null, error };
     }
   }
 
   static async signIn({ email, password }: SignInData) {
     try {
-      console.log('Starting signin process for:', email);
+  logger.info('Starting signin process for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -89,11 +90,11 @@ export class AuthService {
       });
 
       if (error) {
-        console.error('Supabase auth signin error:', error);
+        logger.error('Supabase auth signin error:', error);
         throw error;
       }
 
-      console.log('Auth signin successful:', data.user?.id);
+      logger.info('Auth signin successful:', data.user?.id);
 
       if (data.user) {
         // Create basic profile from auth data
@@ -128,7 +129,7 @@ export class AuthService {
                 onConflict: 'id'
               });
           } catch (error) {
-            console.warn('Profile update failed (non-blocking):', error);
+            logger.warn('Profile update failed (non-blocking):', error);
           }
         }, 0);
 
@@ -137,7 +138,7 @@ export class AuthService {
 
       return { data, error: null };
     } catch (error: any) {
-      console.error('SignIn error:', error);
+      logger.error('SignIn error:', error);
       return { data: null, error };
     }
   }
@@ -180,22 +181,22 @@ export class AuthService {
 
   static async updateProfile(userId: string, updates: Partial<Profile>) {
     try {
-      console.log('Updating profile for user:', userId, 'with updates:', updates);
+  logger.info('Updating profile for user:', userId, 'with updates:', updates);
       
       // If no updates provided, just fetch existing profile
       if (Object.keys(updates).length === 0) {
-        console.log('No updates provided, fetching existing profile...');
+  logger.info('No updates provided, fetching existing profile...');
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
         
-        console.log('Profile fetch result:', { data: !!data, error: !!error });
+  logger.debug('Profile fetch result:', { data: !!data, error: !!error });
         
         // If profile doesn't exist, create it
         if (error && (error.code === 'PGRST116' || error.message.includes('No rows'))) {
-          console.log('Profile not found, creating new one...');
+          logger.info('Profile not found, creating new one...');
           const { data: session } = await supabase.auth.getSession();
           if (session?.session?.user) {
             const newProfile = {
@@ -211,14 +212,14 @@ export class AuthService {
               last_login: new Date().toISOString()
             };
             
-            console.log('Creating new profile:', newProfile);
+            logger.debug('Creating new profile:', newProfile);
             const { data: createdProfile, error: createError } = await supabase
               .from('profiles')
               .upsert(newProfile, { onConflict: 'id' })
               .select()
               .single();
               
-            console.log('Profile creation result:', { data: !!createdProfile, error: !!createError });
+            logger.debug('Profile creation result:', { data: !!createdProfile, error: !!createError });
             return { data: createdProfile, error: createError };
           }
         }
@@ -227,7 +228,7 @@ export class AuthService {
       }
 
       // Perform update
-      console.log('Performing profile update...');
+  logger.info('Performing profile update...');
       const { data, error } = await supabase
         .from('profiles')
         .upsert({
@@ -238,10 +239,10 @@ export class AuthService {
         .select()
         .single();
 
-      console.log('Profile update result:', { data: !!data, error: !!error });
+  logger.debug('Profile update result:', { data: !!data, error: !!error });
       return { data, error };
     } catch (error: any) {
-      console.error('Profile update error:', error);
+      logger.error('Profile update error:', error);
       return { data: null, error };
     }
   }
@@ -259,7 +260,7 @@ export class AuthService {
       }
       return deviceId;
     } catch (error) {
-      console.warn('Failed to access localStorage for device ID:', error);
+      logger.warn('Failed to access localStorage for device ID:', error);
       return `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
   }
@@ -275,7 +276,7 @@ export class AuthService {
       const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
       return session;
     } catch (error) {
-      console.error('Failed to get current session:', error);
+      logger.error('Failed to get current session:', error);
       return null;
     }
   }

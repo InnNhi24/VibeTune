@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase, Profile } from '../services/supabaseClient';
 import { AudioAnalysisService } from '../services/apiAnalyzeAudio';
+import { logger } from '../utils/logger';
 
 interface PlacementTestQuestion {
   id: number;
@@ -148,7 +149,7 @@ export function usePlacementTest(user: Profile | null) {
       }, 1000);
 
     } catch (error) {
-      console.error('Error starting placement test:', error);
+      logger.error('Error starting placement test:', error);
       setState(prev => ({
         ...prev,
         error: 'Failed to start placement test',
@@ -207,7 +208,7 @@ export function usePlacementTest(user: Profile | null) {
       }));
 
     } catch (error) {
-      console.error('Error analyzing audio response:', error);
+      logger.error('Error analyzing audio response:', error);
       // Give partial credit for attempt
       setState(prev => ({
         ...prev,
@@ -295,7 +296,7 @@ export function usePlacementTest(user: Profile | null) {
       }));
 
     } catch (error) {
-      console.error('Error completing placement test:', error);
+      logger.error('Error completing placement test:', error);
       setState(prev => ({
         ...prev,
         error: 'Failed to save test results',
@@ -334,7 +335,7 @@ export function usePlacementTest(user: Profile | null) {
       }));
 
     } catch (error) {
-      console.error('Error recording test skip:', error);
+      logger.error('Error recording test skip:', error);
     }
   }, [user]);
 

@@ -1,3 +1,5 @@
+import logger from './logger';
+
 interface ConflictResolutionStrategy {
   name: string;
   description: string;
@@ -123,7 +125,7 @@ export class SyncConflictResolver {
         
         resolved.push(resolution);
         
-        console.log(`Resolved conflict ${conflict.id} using ${strategy}:`, {
+        logger.info(`Resolved conflict ${conflict.id} using ${strategy}:`, {
           local: conflict.localData,
           server: conflict.serverData,
           resolution
@@ -131,7 +133,7 @@ export class SyncConflictResolver {
         
       } catch (error) {
         errors.push(`Failed to resolve conflict ${conflict.id}: ${error}`);
-        console.error('Conflict resolution error:', error);
+        logger.error('Conflict resolution error:', error);
       }
     });
 
@@ -172,6 +174,7 @@ export class SyncConflictResolver {
         
       } catch (error) {
         errors.push(`Auto-resolution failed for conflict ${conflict.id}: ${error}`);
+        logger.error('Auto-resolution error for conflict:', conflict.id, error);
       }
     });
 
@@ -257,7 +260,7 @@ export class SyncConflictResolver {
       
       return true;
     } catch (error) {
-      console.error('Manual conflict resolution failed:', error);
+      logger.error('Manual conflict resolution failed:', error);
       return false;
     }
   }

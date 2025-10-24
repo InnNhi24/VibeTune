@@ -9,6 +9,7 @@ import { SimpleAuthService } from "../../services/authServiceSimple";
 import { Profile } from "../../services/supabaseClient";
 import { motion } from "framer-motion";
 import { validateEmail, validatePassword } from "../../utils/helpers";
+import { logger } from "../../utils/logger";
 
 interface AuthProps {
   onAuthComplete: (user: Profile) => void;
@@ -40,7 +41,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
     setIsLoading(true);
 
     try {
-      console.log('Auth: Starting authentication...', { isLogin, email: formData.email });
+  logger.debug('Auth: Starting authentication...', { isLogin, email: formData.email });
       
       if (!validateEmail(formData.email)) {
         throw new Error('Please enter a valid email address');
@@ -78,12 +79,13 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           username: formData.username.trim()
         });
       }
+      const resData: any = (result as any)?.data;
 
-      console.log('Auth: Auth result:', { success: !!result.data, error: !!result.error });
+      logger.debug('Auth: Auth result:', { success: !!resData, error: !!result.error });
 
       if (result.error) {
-        console.error('Auth: Auth error:', result.error);
-        
+        logger.error('Auth: Auth error:', result.error);
+
         let errorMessage = result.error.message || 'An error occurred during authentication';
         
         if (errorMessage.includes('Invalid login credentials')) {
@@ -99,21 +101,21 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
         throw new Error(errorMessage);
       }
 
-      if (result.data?.profile) {
-        console.log('Auth: Authentication successful with profile');
+      if (resData?.profile) {
+        logger.info('Auth: Authentication successful with profile');
         setSuccess(isLogin ? 'Welcome back!' : 'Account created successfully!');
-        
+
         setTimeout(() => {
-          onAuthComplete(result.data.profile);
+          onAuthComplete(resData.profile);
         }, 500);
-        
-      } else if (result.data?.needsConfirmation) {
-        console.log('Auth: User needs email confirmation');
-        const message = result.data.message || 
+
+      } else if (resData?.needsConfirmation) {
+        logger.info('Auth: User needs email confirmation');
+        const message = resData.message ||
           'Please check your email and click the confirmation link, then try signing in.';
-        
+
         setSuccess(message);
-        
+
         if (!isLogin) {
           setTimeout(() => {
             setIsLogin(true);
@@ -121,12 +123,12 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
           }, 3000);
         }
       } else {
-        console.warn('Auth: Unexpected result structure:', result);
+        logger.warn('Auth: Unexpected result structure:', result);
         throw new Error('Authentication completed but no user data received');
       }
 
     } catch (err: any) {
-      console.error('Auth: Authentication error:', err);
+  logger.error('Auth: Authentication error:', err);
       setError(err.message || 'An unexpected error occurred during authentication');
     } finally {
       setIsLoading(false);
@@ -134,7 +136,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
   };
 
   const handleForgotPassword = async () => {
-    console.log('Auth: Initiating password reset for email:', formData.email);
+    logger.debug('Auth: Initiating password reset for email:', formData.email);
     if (!formData.email) {
       setError('Please enter your email address first');
       return;
@@ -153,10 +155,10 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
       if (error) {
         throw error;
       }
-      setSuccess('Password reset email sent! Check your inbox.');
-      console.log('Auth: Password reset email sent successfully.');
+  setSuccess('Password reset email sent! Check your inbox.');
+  logger.info('Auth: Password reset email sent successfully.');
     } catch (err: any) {
-      console.error('Auth: Failed to send password reset email:', err);
+  logger.error('Auth: Failed to send password reset email:', err);
       setError(err.message || 'Failed to send password reset email');
     } finally {
       setIsLoading(false);
@@ -164,20 +166,20 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
   };
 
   const handleSocialSignIn = async (provider: 'google' | 'github') => {
-    console.log(`Auth: Attempting social sign-in with ${provider}`);
+    logger.debug(`Auth: Attempting social sign-in with ${provider}`);
     setIsLoading(true);
     setError("");
     setSuccess("");
     try {
       const { error } = await SimpleAuthService.signInWithOAuth(provider);
       if (error) {
-        console.error(`Auth: Social sign-in with ${provider} failed:`, error);
+        logger.error(`Auth: Social sign-in with ${provider} failed:`, error);
         throw error;
       }
-      console.log(`Auth: Social sign-in with ${provider} initiated. Redirecting...`);
+      logger.info(`Auth: Social sign-in with ${provider} initiated. Redirecting...`);
       // Supabase OAuth usually handles redirection, so no further action here
     } catch (err: any) {
-      console.error(`Auth: Error during social sign-in with ${provider}:`, err);
+      logger.error(`Auth: Error during social sign-in with ${provider}:`, err);
       setError(err.message || `Failed to sign in with ${provider}`);
     } finally {
       setIsLoading(false);
@@ -363,12 +365,12 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                 <Button
                   variant="link"
                   onClick={() => {
-                    console.log('Auth: Toggling between signin/signup');
-                    setIsLogin(!isLogin);
-                    setError('');
-                    setSuccess('');
-                    setFormData({ email: formData.email, password: '', username: '', confirmPassword: '' });
-                  }}
+                      logger.debug('Auth: Toggling between signin/signup');
+                      setIsLogin(!isLogin);
+                      setError('');
+                      setSuccess('');
+                      setFormData({ email: formData.email, password: '', username: '', confirmPassword: '' });
+                    }}
                   disabled={isLoading}
                   className="p-0 h-auto font-semibold"
                 >

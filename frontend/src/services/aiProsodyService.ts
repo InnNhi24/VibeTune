@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logger } from '../utils/logger';
 
 // Types for AI analysis
 export interface ProsodyAnalysis {
@@ -78,14 +79,14 @@ class AIProsodyService {
   private loadConfiguration() {
     try {
       // VibeTune has built-in AI - always ready!
-      console.log('🤖 VibeTune AI: Initializing built-in AI prosody analysis');
+      logger.debug('🤖 VibeTune AI: Initializing built-in AI prosody analysis');
       this.apiKey = 'BUILT_IN_AI';
       this.baseUrl = 'https://api.openai.com/v1';
       this.isConfigured = true;
       this.connectionStatus = 'connected';
-      console.log('✅ VibeTune AI: Ready for advanced prosody analysis');
+      logger.info('✅ VibeTune AI: Ready for advanced prosody analysis');
     } catch (error) {
-      console.error('VibeTune AI initialization failed:', error);
+      logger.error('VibeTune AI initialization failed:', error);
       this.isConfigured = false;
       this.connectionStatus = 'disconnected';
     }
@@ -93,7 +94,7 @@ class AIProsodyService {
 
   configure(apiKey: string, baseUrl: string): boolean {
     // VibeTune has built-in AI - no configuration needed
-    console.log('🤖 VibeTune AI: Already configured with built-in AI');
+    logger.debug('🤖 VibeTune AI: Already configured with built-in AI');
     return true;
   }
 
@@ -115,7 +116,7 @@ class AIProsodyService {
     
     try {
       // VibeTune AI is always ready - just verify configuration
-      console.log('🤖 VibeTune AI: Testing built-in AI connection');
+  logger.debug('🤖 VibeTune AI: Testing built-in AI connection');
       
       // Simple validation that we can create mock analysis
       const mockAnalysis = this.generateMockAnalysis('Hello world', {
@@ -128,7 +129,7 @@ class AIProsodyService {
       
       if (mockAnalysis.overall_score > 0) {
         this.connectionStatus = 'connected';
-        console.log('✅ VibeTune AI: Connection test successful');
+        logger.info('✅ VibeTune AI: Connection test successful');
         return { success: true };
       }
       
@@ -152,7 +153,7 @@ class AIProsodyService {
       throw new Error('AI service not configured');
     }
 
-    console.log('🤖 VibeTune AI: Analyzing speech with backend AI service');
+  logger.debug('🤖 VibeTune AI: Analyzing speech with backend AI service');
     
     try {
       // Convert audio blob to URL for backend processing
@@ -182,15 +183,15 @@ class AIProsodyService {
       // Convert backend response to ProsodyAnalysis format
       const analysis = this.convertBackendResponseToAnalysis(data, text, context);
       
-      console.log('✅ VibeTune AI: Backend prosody analysis complete');
+      logger.info('✅ VibeTune AI: Backend prosody analysis complete');
       return analysis;
       
     } catch (error) {
-      console.warn('Backend audio analysis failed, using built-in analysis:', error);
+      logger.warn('Backend audio analysis failed, using built-in analysis:', error);
       
       // Fallback to built-in analysis
       const analysis = await this.generateAdvancedAnalysis(text, context);
-      console.log('✅ VibeTune AI: Built-in prosody analysis complete');
+      logger.info('✅ VibeTune AI: Built-in prosody analysis complete');
       return analysis;
     }
   }
@@ -205,7 +206,7 @@ class AIProsodyService {
       throw new Error('AI service not configured');
     }
 
-    console.log('🤖 VibeTune AI: Generating contextual response with backend AI');
+  logger.debug('🤖 VibeTune AI: Generating contextual response with backend AI');
     
     try {
       // Call backend API for AI response
@@ -231,15 +232,15 @@ class AIProsodyService {
       // Convert backend response to AIResponse format
       const aiResponse = this.convertBackendResponseToAIResponse(data, context);
       
-      console.log('✅ VibeTune AI: Backend response generated');
+      logger.info('✅ VibeTune AI: Backend response generated');
       return aiResponse;
       
     } catch (error) {
-      console.warn('Backend AI response failed, using built-in response:', error);
+      logger.warn('Backend AI response failed, using built-in response:', error);
       
       // Fallback to built-in response
       const response = await this.generateAdvancedResponse(userInput, context, prosodyAnalysis);
-      console.log('✅ VibeTune AI: Built-in response generated');
+      logger.info('✅ VibeTune AI: Built-in response generated');
       return response;
     }
   }

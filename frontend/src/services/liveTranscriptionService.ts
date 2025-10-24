@@ -2,6 +2,7 @@
  * Live Transcription Service
  * Records audio in small chunks and sends them to backend for real-time transcription
  */
+import logger from '../utils/logger';
 
 export type TranscriptionCallback = (text: string, isFinal: boolean) => void;
 export type ErrorCallback = (error: string) => void;
@@ -55,7 +56,7 @@ export class LiveTranscriptionService {
       }, this.chunkInterval);
 
     } catch (error) {
-      console.error('Failed to start live transcription:', error);
+      logger.error('Failed to start live transcription:', error);
       if (this.onError) {
         this.onError(error instanceof Error ? error.message : 'Failed to start recording');
       }
@@ -128,7 +129,7 @@ export class LiveTranscriptionService {
       }
 
     } catch (error) {
-      console.error('Transcription error:', error);
+      logger.error('Transcription error:', error);
       if (this.onError) {
         this.onError(error instanceof Error ? error.message : 'Transcription failed');
       }

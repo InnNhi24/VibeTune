@@ -4,6 +4,7 @@ import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import { Mic, UserPlus, LogIn, TrendingUp, MessageCircle, Star } from "lucide-react";
 import { motion } from "framer-motion";
+import { logger } from "../../utils/logger";
 
 interface OnboardingProps {
   onSignUp: () => void;
@@ -70,7 +71,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
                 whileTap={{ scale: 0.98 }}
               >
                 <Button 
-                  onClick={() => { console.log('Onboarding: Sign Up clicked'); onSignUp(); }} 
+                  onClick={() => { logger.debug('Onboarding: Sign Up clicked'); onSignUp(); }} 
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                   size="lg"
                 >
@@ -84,7 +85,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
                 whileTap={{ scale: 0.98 }}
               >
                 <Button 
-                  onClick={() => { console.log('Onboarding: Sign In clicked'); onSignIn(); }} 
+                  onClick={() => { logger.debug('Onboarding: Sign In clicked'); onSignIn(); }} 
                   variant="outline" 
                   className="w-full"
                   size="lg"

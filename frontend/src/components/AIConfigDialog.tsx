@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Settings, Key, Zap, AlertCircle, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { aiProsodyService } from "../services/aiProsodyService";
+import { logger } from '../utils/logger';
 
 interface AIConfigDialogProps {
   open?: boolean;
@@ -26,14 +27,15 @@ export function AIConfigDialog({ open, onOpenChange, trigger }: AIConfigDialogPr
 
   useEffect(() => {
     // Load existing configuration
-    const loadConfig = () => {
+        const loadConfig = () => {
       try {
         const configured = aiProsodyService.isReady();
         setIsConfigured(configured);
         
         if (configured) {
           // Check if auto-configured via environment variables
-          const envApiKey = import.meta.env?.VITE_OPENAI_API_KEY || process.env?.OPENAI_API_KEY;
+          const metaEnv: any = (typeof import.meta !== 'undefined') ? (import.meta as any).env : {};
+          const envApiKey = metaEnv?.VITE_OPENAI_API_KEY;
           if (envApiKey) {
             setApiKey('***AUTO-CONFIGURED***');
             setBaseUrl('https://api.openai.com/v1');
@@ -43,14 +45,21 @@ export function AIConfigDialog({ open, onOpenChange, trigger }: AIConfigDialogPr
         }
         
         // Load from localStorage if not auto-configured
-        const stored = localStorage.getItem('vibetune_ai_config');
-        if (stored) {
-          const config = JSON.parse(stored);
-          setApiKey(config.apiKey || '');
-          setBaseUrl(config.baseUrl || '');
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+          const stored = localStorage.getItem('vibetune_ai_config');
+          if (stored) {
+            try {
++              const config = JSON.parse(stored);
+              setApiKey(config.apiKey || '');
+              setBaseUrl(config.baseUrl || '');
+            } catch (e) {
+              // ignore parse errors and clear invalid item
+              localStorage.removeItem('vibetune_ai_config');
+            }
+          }
         }
       } catch (error) {
-        console.error('Failed to load AI config:', error);
+        logger.error('Failed to load AI config:', error);
       }
     };
 

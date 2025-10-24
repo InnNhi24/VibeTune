@@ -1,10 +1,11 @@
 import { supabase } from './supabaseClient';
 import { OfflineService } from './offlineService';
+import { logger } from '../utils/logger';
 
 export interface AnalyticsEvent {
   event_type: string;
   metadata: Record<string, any>;
-  profile_id?: string;
+  profile_id?: string | null;
   created_at?: string;
 }
 
@@ -22,27 +23,27 @@ export class AnalyticsService {
         setTimeout(() => {
           setInterval(() => {
             this.flush().catch(error => {
-              console.warn('Analytics flush failed:', error);
+                logger.warn('Analytics flush failed:', error);
             });
           }, this.flushInterval);
 
           // Flush when page is about to unload
           window.addEventListener('beforeunload', () => {
             this.flush().catch(error => {
-              console.warn('Analytics beforeunload flush failed:', error);
+                logger.warn('Analytics beforeunload flush failed:', error);
             });
           });
 
           // Flush when coming back online
           window.addEventListener('online', () => {
             this.flush().catch(error => {
-              console.warn('Analytics online flush failed:', error);
+                logger.warn('Analytics online flush failed:', error);
             });
           });
         }, 1000); // Delay initialization to not block app startup
       }
     } catch (error) {
-      console.warn('Analytics initialization failed:', error);
+      logger.warn('Analytics initialization failed:', error);
     }
   }
 
@@ -96,7 +97,7 @@ export class AnalyticsService {
         const { data } = await supabase.auth.getSession();
         session = data.session;
       } catch (error) {
-        console.log('Analytics: No authenticated session, proceeding with anonymous events');
+        logger.info('Analytics: No authenticated session, proceeding with anonymous events');
       }
       
       // Prepare events for insertion
@@ -106,12 +107,12 @@ export class AnalyticsService {
       }));
 
             // DISABLED: Database analytics (use localStorage only)
-      console.log('Database analytics disabled - using localStorage fallback');
+  logger.info('Database analytics disabled - using localStorage fallback');
       
       // Always store offline instead of trying database
       eventsToInsert.forEach(event => this.storeOfflineEvent(event));
       
-      console.log(`Stored ${eventsToInsert.length} events offline (database disabled)`);
+  logger.info(`Stored ${eventsToInsert.length} events offline (database disabled)`);
 
       // Clear queue
       this.eventQueue = [];
@@ -120,7 +121,7 @@ export class AnalyticsService {
       await this.syncOfflineEvents();
 
     } catch (error) {
-      console.error('Analytics flush failed:', error);
+      logger.error('Analytics flush failed:', error);
       // Store events offline for retry
       this.eventQueue.forEach(event => this.storeOfflineEvent(event));
       this.eventQueue = [];
@@ -148,7 +149,7 @@ export class AnalyticsService {
       
       storage.setItem(key, JSON.stringify(events));
     } catch (error) {
-      console.error('Failed to store analytics event offline:', error);
+      logger.error('Failed to store analytics event offline:', error);
     }
   }
 
@@ -171,7 +172,7 @@ export class AnalyticsService {
         const { data } = await supabase.auth.getSession();
         session = data.session;
       } catch (error) {
-        console.log('Analytics sync: No authenticated session');
+        logger.info('Analytics sync: No authenticated session');
       }
       
       // Prepare events for insertion
@@ -186,15 +187,15 @@ export class AnalyticsService {
         const batch = eventsToInsert.slice(i, i + batchSize);
         
         // DISABLED: Database sync (keep events in localStorage)
-        console.log(`Keeping ${batch.length} events in localStorage (database sync disabled)`);
+  logger.info(`Keeping ${batch.length} events in localStorage (database sync disabled)`);
       }
 
       // Clear offline events on successful sync
       storage.removeItem(key);
-      console.log(`Successfully synced ${eventsToInsert.length} offline analytics events`);
+  logger.info(`Successfully synced ${eventsToInsert.length} offline analytics events`);
 
     } catch (error) {
-      console.error('Failed to sync offline analytics events:', error);
+      logger.error('Failed to sync offline analytics events:', error);
     }
   }
 
@@ -268,7 +269,7 @@ export class AnalyticsService {
 
       return { data: summary, error: null };
     } catch (error) {
-      console.error('Failed to get user analytics:', error);
+      logger.error('Failed to get user analytics:', error);
       return { data: null, error };
     }
   }

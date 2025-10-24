@@ -7,6 +7,7 @@ import { Separator } from "./ui/separator";
 import { Mic, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { SimpleAuthService } from "../services/authServiceSimple";
 import { useAppStore } from "../store/appStore";
+import { logger } from "../utils/logger";
 
 interface AuthScreenProps {
   onAuthComplete: () => void;
@@ -52,7 +53,7 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
         }
       }
     } catch (err: any) {
-      console.error("Auth error:", err);
+      logger.error("Auth error:", err);
       setError(err.message || "An unexpected error occurred.");
     }
   };
@@ -63,7 +64,7 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
       await SimpleAuthService.signInWithOAuth(provider);
       // Supabase handles redirect, onAuthComplete will be called after redirect
     } catch (err: any) {
-      console.error("OAuth error:", err);
+      logger.error("OAuth error:", err);
       setError(err.message || "An unexpected error occurred during OAuth.");
     }
   };

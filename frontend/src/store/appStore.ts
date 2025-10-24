@@ -271,15 +271,14 @@ export const useAppStore = create<AppStore>()(
                 const { SimpleAuthService } = await import('../services/authServiceSimple');
                 const session = await SimpleAuthService.getCurrentSession();
                 
-                if (session?.access_token) {
-                  const { projectId } = await import('../utils/supabase/info');
-                  
+                const token = (session as any)?.data?.session?.access_token || (session as any)?.access_token || null;
+                if (token) {
                   // Add timeout to prevent hanging
                   const fetchPromise = fetch(`/api/analytics`, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
-                      'Authorization': `Bearer ${session.access_token}`,
+                      'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify(event)
                   });
@@ -288,18 +287,18 @@ export const useAppStore = create<AppStore>()(
                     setTimeout(() => reject(new Error('Analytics timeout')), 3000)
                   );
                   
-                  await Promise.race([fetchPromise, timeoutPromise]);
+                    await Promise.race([fetchPromise, timeoutPromise]);
                 }
               } catch (error) {
-                console.warn('Analytics tracking failed:', error);
+                  (await import('../utils/logger')).logger.warn('Analytics tracking failed:', error);
                 // Continue without blocking
               }
             } else {
               // Queue for later sync
-              console.log('Offline: queued analytics event', eventType);
+                (await import('../utils/logger')).logger.info('Offline: queued analytics event', eventType);
             }
           } catch (error) {
-            console.warn('Failed to track event:', error);
+              (await import('../utils/logger')).logger.warn('Failed to track event:', error);
           }
         },
         
@@ -312,7 +311,7 @@ export const useAppStore = create<AppStore>()(
             try {
               await get().syncData();
             } catch (error) {
-              console.warn('Failed to sync data on app init:', error);
+              (await import('../utils/logger')).logger.warn('Failed to sync data on app init:', error);
             }
           }
         },
@@ -329,11 +328,10 @@ export const useAppStore = create<AppStore>()(
             const { SimpleAuthService } = await import('../services/authServiceSimple');
             const session = await SimpleAuthService.getCurrentSession();
             
-            if (!session?.access_token) {
+            const token2 = (session as any)?.data?.session?.access_token || (session as any)?.access_token || null;
+            if (!token2) {
               throw new Error('No valid session for sync');
             }
-            
-            const { projectId } = await import('../utils/supabase/info');
             
             // Get history from server with timeout
             const fetchPromise = fetch(`/api/get-history`, {
@@ -383,20 +381,20 @@ export const useAppStore = create<AppStore>()(
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`,
+                        'Authorization': `Bearer ${token2}`,
                       },
                       body: JSON.stringify(message)
                     });
                     
                     get().removeFromRetryQueue(message.id);
                   } catch (error) {
-                    console.warn('Failed to sync retry message:', message.id, error);
+                    (await import('../utils/logger')).logger.warn('Failed to sync retry message:', message.id, error);
                   }
                 }
               }
             }
           } catch (error) {
-            console.error('Sync failed:', error);
+            (await import('../utils/logger')).logger.error('Sync failed:', error);
           } finally {
             set((state) => ({
               sync: { ...state.sync, syncing: false }

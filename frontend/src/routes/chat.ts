@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import openai from '../clients/openai';
 import deepgram from '../clients/deepgram';
 import { supabaseServiceRole } from '../clients/supabase';
+import { logger } from '../utils/logger';
 
 const chatRoute = async (req: Request, res: Response) => {
   const { conversationId, profileId, text, audioUrl, deviceId, retryOfMessageId, version } = req.body;
@@ -27,7 +28,7 @@ const chatRoute = async (req: Request, res: Response) => {
       });
 
       if (error) {
-        console.error('Deepgram STT error:', error);
+        logger.error('Deepgram STT error:', error);
         return res.status(502).json({ error: 'Deepgram STT failed', details: error.message });
       }
       userText = result.results?.channels[0]?.alternatives[0]?.transcript || "";
@@ -53,7 +54,7 @@ const chatRoute = async (req: Request, res: Response) => {
       try {
         aiResponse = JSON.parse(message.content);
       } catch (e) {
-        console.warn("Failed to parse OpenAI content as JSON.", e);
+        logger.warn("Failed to parse OpenAI content as JSON.", e);
       }
     } else if (message?.tool_calls && message.tool_calls.length > 0) {
       const toolCall = message.tool_calls[0];
@@ -61,7 +62,7 @@ const chatRoute = async (req: Request, res: Response) => {
         try {
           aiResponse = JSON.parse(toolCall.function.arguments);
         } catch (e) {
-          console.warn("Failed to parse OpenAI tool_calls arguments as JSON.", e);
+          logger.warn("Failed to parse OpenAI tool_calls arguments as JSON.", e);
         }
       }
     }
@@ -82,7 +83,7 @@ const chatRoute = async (req: Request, res: Response) => {
       });
 
     if (userMessageError) {
-      console.error('Supabase user message insert error:', userMessageError);
+      logger.error('Supabase user message insert error:', userMessageError);
       return res.status(500).json({ error: 'Database error', details: userMessageError.message });
     }
 
@@ -104,7 +105,7 @@ const chatRoute = async (req: Request, res: Response) => {
       });
 
     if (aiMessageError) {
-      console.error('Supabase AI message insert error:', aiMessageError);
+      logger.error('Supabase AI message insert error:', aiMessageError);
       return res.status(500).json({ error: 'Database error', details: aiMessageError.message });
     }
 
@@ -117,7 +118,7 @@ const chatRoute = async (req: Request, res: Response) => {
     });
 
   } catch (error: any) {
-    console.error('Chat endpoint error:', error);
+    logger.error('Chat endpoint error:', error);
     res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 };

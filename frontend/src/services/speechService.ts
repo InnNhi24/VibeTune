@@ -5,7 +5,8 @@
  * with prosody analysis capabilities for English learning
  */
 
-import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { supabaseUrl, publicAnonKey } from '../utils/supabase/info';
+import logger from '../utils/logger';
 
 interface TranscriptionResult {
   text: string;
@@ -84,7 +85,7 @@ export class SpeechService {
       return { data: result.data };
 
     } catch (error) {
-      console.error('Speech transcription error:', error);
+      logger.error('Speech transcription error:', error);
       return { 
         data: { text: '', confidence: 0, words: [] }, 
         error: error instanceof Error ? error.message : 'Transcription failed'
@@ -129,7 +130,7 @@ export class SpeechService {
       return { data: audioBlob };
 
     } catch (error) {
-      console.error('Speech synthesis error:', error);
+      logger.error('Speech synthesis error:', error);
       return { 
         data: null, 
         error: error instanceof Error ? error.message : 'Speech synthesis failed'
@@ -170,7 +171,7 @@ export class SpeechService {
       return { data: result.data };
 
     } catch (error) {
-      console.error('Prosody analysis error:', error);
+      logger.error('Prosody analysis error:', error);
       return { 
         data: null, 
         error: error instanceof Error ? error.message : 'Prosody analysis failed'
@@ -228,7 +229,7 @@ export class SpeechService {
       return result;
 
     } catch (error) {
-      console.error('Speech service health check failed:', error);
+      logger.error('Speech service health check failed:', error);
       return {
         available: false,
         services: {

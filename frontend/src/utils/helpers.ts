@@ -88,12 +88,14 @@ export const getStorageItem = <T,>(key: string, fallback: T): T => {
   }
 };
 
+import { logger } from './logger';
+
 export const setStorageItem = (key: string, value: any): boolean => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch (error) {
-    console.error('Failed to save to localStorage:', error);
+    logger.error('Failed to save to localStorage:', error);
     return false;
   }
 };
@@ -201,7 +203,7 @@ export const trackEvent = (eventName: string, properties?: Record<string, any>) 
     try {
       // Guard against environment issues
       if (typeof window === 'undefined') {
-        console.log('Analytics: No window object, skipping event:', eventName);
+    logger.info('Analytics: No window object, skipping event:', eventName);
         return;
       }
 
@@ -212,12 +214,12 @@ export const trackEvent = (eventName: string, properties?: Record<string, any>) 
         deviceInfo: getDeviceInfo()
       });
     } catch (importError) {
-      console.warn('Analytics import failed, using direct fallback:', importError);
+  logger.warn('Analytics import failed, using direct fallback:', importError);
       
       // Direct localStorage fallback (no imports)
       try {
         if (typeof localStorage === 'undefined') {
-          console.log('Analytics: No localStorage available');
+          logger.info('Analytics: No localStorage available');
           return;
         }
 
@@ -236,11 +238,11 @@ export const trackEvent = (eventName: string, properties?: Record<string, any>) 
           events.splice(0, events.length - 100);
         }
         
-        localStorage.setItem('vibetune_analytics_simple', JSON.stringify(events));
-        console.log('Analytics: Event stored via direct fallback:', eventName);
+  localStorage.setItem('vibetune_analytics_simple', JSON.stringify(events));
+  logger.info('Analytics: Event stored via direct fallback:', eventName);
       } catch (fallbackError) {
         // If even this fails, just log it and move on (never throw)
-        console.log('Analytics: All methods failed, skipping event:', eventName);
+  logger.info('Analytics: All methods failed, skipping event:', eventName);
       }
     }
   }, 0);
@@ -255,7 +257,7 @@ export const createErrorMessage = (error: any): string => {
 };
 
 export const logError = (error: any, context?: string) => {
-  console.error(`Error${context ? ` in ${context}` : ''}:`, error);
+  logger.error(`Error${context ? ` in ${context}` : ''}:`, error);
   
   // Store error for debugging
   const errors = getStorageItem('app_errors', []);

@@ -1,4 +1,5 @@
 import React from 'react';
+import logger from '../utils/logger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -24,7 +25,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log the error for debugging
-    console.error('VibeTune Error Boundary caught an error:', error, errorInfo);
+    logger.error('VibeTune Error Boundary caught an error:', error, errorInfo);
     
     this.setState({
       error,
@@ -42,7 +43,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           });
         });
       } catch (trackError) {
-        console.warn('Failed to track error boundary event:', trackError);
+        logger.warn('Failed to track error boundary event:', trackError);
       }
     }, 0);
   }
@@ -122,7 +123,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                     localStorage.clear();
                     sessionStorage.clear();
                   } catch (error) {
-                    console.warn('Failed to clear storage:', error);
+                    logger.warn('Failed to clear storage:', error);
                   }
                   window.location.reload();
                 }}
@@ -163,7 +164,7 @@ export function withErrorBoundary<P extends object>(
 // Hook for error reporting in functional components
 export function useErrorHandler() {
   return (error: Error, errorInfo?: string) => {
-    console.error('VibeTune Error:', error);
+    logger.error('VibeTune Error:', error);
     
     // Track error for analytics (non-blocking)
     setTimeout(() => {
@@ -176,7 +177,7 @@ export function useErrorHandler() {
           });
         });
       } catch (trackError) {
-        console.warn('Failed to track error event:', trackError);
+        logger.warn('Failed to track error event:', trackError);
       }
     }, 0);
     
@@ -199,7 +200,7 @@ export function useErrorHandler() {
       
       localStorage.setItem('vibetune_errors', JSON.stringify(errors));
     } catch (storageError) {
-      console.warn('Failed to store error in localStorage:', storageError);
+      logger.warn('Failed to store error in localStorage:', storageError);
     }
   };
 }

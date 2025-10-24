@@ -1,4 +1,5 @@
 import { supabase, Profile } from './supabaseClient';
+import { logger } from '../utils/logger';
 
 export interface SignUpData {
   email: string;
@@ -15,7 +16,7 @@ export interface SignInData {
 export class SimpleAuthService {
   static async signUp({ email, password, username }: SignUpData) {
     try {
-      console.log('🔄 Starting signup for:', email);
+  logger.info('🔄 Starting signup for:', email);
       
       // Use Supabase auth signup
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -30,11 +31,11 @@ export class SimpleAuthService {
       });
 
       if (authError) {
-        console.error('❌ Signup error:', authError);
+        logger.error('❌ Signup error:', authError);
         throw authError;
       }
 
-      console.log('✅ Signup successful:', { 
+      logger.info('✅ Signup successful:', { 
         hasUser: !!authData.user, 
         hasSession: !!authData.session,
         needsConfirmation: !authData.session 
@@ -72,7 +73,7 @@ export class SimpleAuthService {
           .upsert(profile, { onConflict: 'id' });
 
         if (profileError) {
-          console.warn('⚠️ Profile creation failed:', profileError);
+          logger.warn('⚠️ Profile creation failed:', profileError);
           // Continue anyway - profile can be created later
         }
 
@@ -81,14 +82,14 @@ export class SimpleAuthService {
 
       return { data: authData, error: null };
     } catch (error: any) {
-      console.error('❌ Signup failed:', error);
+  logger.error('❌ Signup failed:', error);
       return { data: null, error };
     }
   }
 
   static async signIn({ email, password }: SignInData) {
     try {
-      console.log('🔄 Starting signin for:', email);
+  logger.info('🔄 Starting signin for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -96,11 +97,11 @@ export class SimpleAuthService {
       });
 
       if (error) {
-        console.error('❌ Signin error:', error);
+        logger.error('❌ Signin error:', error);
         throw error;
       }
 
-      console.log('✅ Signin successful:', { 
+      logger.info('✅ Signin successful:', { 
         hasUser: !!data.user, 
         hasSession: !!data.session 
       });
@@ -133,12 +134,12 @@ export class SimpleAuthService {
             .insert(newProfile);
 
           if (createError) {
-            console.warn('⚠️ Profile creation failed:', createError);
+            logger.warn('⚠️ Profile creation failed:', createError);
           }
 
           profileData = newProfile;
         } else if (profileError) {
-          console.error('❌ Profile fetch error:', profileError);
+            logger.error('❌ Profile fetch error:', profileError);
           // Create a basic profile from auth data
           profileData = {
             id: data.user.id,
@@ -151,7 +152,7 @@ export class SimpleAuthService {
             last_login: new Date().toISOString(),
             device_id: this.getDeviceId()
           };
-        } else {
+          } else {
           // Update last login
           const { error: updateError } = await supabase
             .from('profiles')
@@ -159,7 +160,7 @@ export class SimpleAuthService {
             .eq('id', data.user.id);
 
           if (updateError) {
-            console.warn('⚠️ Last login update failed:', updateError);
+            logger.warn('⚠️ Last login update failed:', updateError);
           }
         }
 
@@ -168,30 +169,30 @@ export class SimpleAuthService {
 
       return { data, error: null };
     } catch (error: any) {
-      console.error('❌ Signin failed:', error);
+  logger.error('❌ Signin failed:', error);
       return { data: null, error };
     }
   }
 
   static async signOut() {
     try {
-      console.log('🔄 Signing out...');
+  logger.info('🔄 Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error('❌ Signout error:', error);
+        logger.error('❌ Signout error:', error);
       } else {
-        console.log('✅ Signout successful');
+        logger.info('✅ Signout successful');
       }
       return { error };
     } catch (error) {
-      console.error('❌ Signout failed:', error);
+        logger.error('❌ Signout failed:', error);
       return { error };
     }
   }
 
   static async signInWithOAuth(provider: 'google' | 'github') {
     try {
-      console.log(`🔄 Starting OAuth with ${provider}...`);
+  logger.info(`🔄 Starting OAuth with ${provider}...`);
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -200,40 +201,40 @@ export class SimpleAuthService {
       });
 
       if (error) {
-        console.error(`❌ OAuth ${provider} error:`, error);
+        logger.error(`❌ OAuth ${provider} error:`, error);
         throw error;
       }
 
       return { data, error };
     } catch (error) {
-      console.error(`❌ OAuth ${provider} failed:`, error);
+        logger.error(`❌ OAuth ${provider} failed:`, error);
       return { data: null, error };
     }
   }
 
   static async resetPassword(email: string) {
     try {
-      console.log('🔄 Sending password reset for:', email);
+  logger.info('🔄 Sending password reset for:', email);
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`
       });
 
       if (error) {
-        console.error('❌ Password reset error:', error);
+        logger.error('❌ Password reset error:', error);
         throw error;
       }
 
-      console.log('✅ Password reset email sent');
+  logger.info('✅ Password reset email sent');
       return { data, error };
     } catch (error) {
-      console.error('❌ Password reset failed:', error);
+        logger.error('❌ Password reset failed:', error);
       return { data: null, error };
     }
   }
 
   static async updateProfile(userId: string, updates: Partial<Profile>, existingProfile?: Profile) {
     try {
-      console.log('🔄 Updating profile:', { userId, updates });
+  logger.info('🔄 Updating profile:', { userId, updates });
       
       // Check if we have a valid session
       const { data: sessionData } = await supabase.auth.getSession();
@@ -267,11 +268,11 @@ export class SimpleAuthService {
           .single();
 
         if (updateError) {
-          console.error('❌ Profile update error:', updateError);
+          logger.error('❌ Profile update error:', updateError);
           return { data: null, error: updateError };
         }
         
-        console.log('✅ Profile updated successfully');
+  logger.info('✅ Profile updated successfully');
         return { data: updatedProfile, error: null };
       } 
       
@@ -288,35 +289,35 @@ export class SimpleAuthService {
           last_login: new Date().toISOString(),
         };
 
-        console.log('✅ Demo profile updated');
+  logger.info('✅ Demo profile updated');
         return { data: profile, error: null };
       }
 
-      console.warn('⚠️ No session or existing profile for update');
+  logger.warn('⚠️ No session or existing profile for update');
       return { data: null, error: new Error('No valid session or profile') };
     } catch (error: any) {
-      console.error('❌ Profile update failed:', error);
+  logger.error('❌ Profile update failed:', error);
       return { data: null, error };
     }
   }
 
   static async getCurrentSession() {
     try {
-      console.log('🔄 Checking current session...');
+  logger.info('🔄 Checking current session...');
       
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error('❌ Session check error:', error);
+        logger.error('❌ Session check error:', error);
         return { data: null, error };
       }
 
       if (!session?.user) {
-        console.log('❌ No active session');
+        logger.info('❌ No active session');
         return { data: null, error: null };
       }
 
-      console.log('✅ Active session found');
+  logger.info('✅ Active session found');
       
       // Fetch profile
       const { data: profileData, error: profileError } = await supabase
@@ -326,7 +327,7 @@ export class SimpleAuthService {
         .single();
 
       if (profileError && profileError.code !== 'PGRST116') {
-        console.error('❌ Profile fetch error:', profileError);
+        logger.error('❌ Profile fetch error:', profileError);
       }
 
       // Create profile object
@@ -344,7 +345,7 @@ export class SimpleAuthService {
 
       return { data: { session, user: session.user, profile }, error: null };
     } catch (error: any) {
-      console.error('❌ Session check failed:', error);
+        logger.error('❌ Session check failed:', error);
       return { data: null, error };
     }
   }
@@ -363,19 +364,19 @@ export class SimpleAuthService {
 // Test function for authentication system
 export async function testAuth(): Promise<boolean> {
   try {
-    console.log('🔍 Testing authentication system...');
+  logger.info('🔍 Testing authentication system...');
     
     const { data, error } = await supabase.auth.getSession();
     
     if (error) {
-      console.error('❌ Auth test failed:', error);
+      logger.error('❌ Auth test failed:', error);
       return false;
     }
     
-    console.log('✅ Auth system test passed');
+  logger.info('✅ Auth system test passed');
     return true;
   } catch (error) {
-    console.error('❌ Auth test error:', error);
+    logger.error('❌ Auth test error:', error);
     return false;
   }
 }

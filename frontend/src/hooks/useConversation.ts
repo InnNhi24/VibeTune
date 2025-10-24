@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, Conversation, Message, Profile } from '../services/supabaseClient';
 import { AudioAnalysisService } from '../services/apiAnalyzeAudio';
 import { useOfflineSync } from './useOfflineSync';
+import { logger } from '../utils/logger';
 
 interface UseConversationProps {
   user: Profile | null;
@@ -68,7 +69,7 @@ export function useConversation({ user, topic = 'General Conversation', isPlacem
       );
 
     } catch (error) {
-      console.error('Error initializing conversation:', error);
+      logger.error('Error initializing conversation:', error);
       setState(prev => ({
         ...prev,
         error: 'Failed to start conversation',
@@ -111,7 +112,7 @@ export function useConversation({ user, topic = 'General Conversation', isPlacem
       }));
 
     } catch (error) {
-      console.error('Error loading conversation:', error);
+      logger.error('Error loading conversation:', error);
       setState(prev => ({
         ...prev,
         error: 'Failed to load conversation',
@@ -212,7 +213,7 @@ export function useConversation({ user, topic = 'General Conversation', isPlacem
       generateAIResponse(content);
 
     } catch (error) {
-      console.error('Error adding user message:', error);
+      logger.error('Error adding user message:', error);
       
       // Save offline if database fails
       await saveMessageOffline({
@@ -258,7 +259,7 @@ export function useConversation({ user, topic = 'General Conversation', isPlacem
       }));
 
     } catch (error) {
-      console.error('Error adding AI message:', error);
+      logger.error('Error adding AI message:', error);
       await saveMessageOffline({
         ...messageData,
         id: `offline_ai_${Date.now()}`,
@@ -304,7 +305,7 @@ export function useConversation({ user, topic = 'General Conversation', isPlacem
       setState(prev => ({ ...prev, isLoading: false }));
 
     } catch (error) {
-      console.error('Error generating AI response:', error);
+      logger.error('Error generating AI response:', error);
       
       // Fallback to a generic response if API fails
       await addAIMessage("I'm having trouble connecting right now. Please try again.");
@@ -328,7 +329,7 @@ export function useConversation({ user, topic = 'General Conversation', isPlacem
       // Mark original message as retried (optional - could keep for learning)
       
     } catch (error) {
-      console.error('Error retrying message:', error);
+      logger.error('Error retrying message:', error);
       setState(prev => ({
         ...prev,
         error: 'Failed to retry message'

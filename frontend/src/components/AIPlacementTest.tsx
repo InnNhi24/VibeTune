@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { SimpleAuthService } from "../services/authServiceSimple";
 import { Input } from "./ui/input";
+import { logger } from "../utils/logger";
 
 interface AIPlacementTestProps {
   user: Profile;
@@ -199,7 +200,7 @@ Ready to begin?`,
       }, 1000);
 
     } catch (err: any) {
-      console.error('Error processing response:', err);
+      logger.error('Error processing response:', err);
       setError('Failed to process your response. Please try again.');
     } finally {
       setIsLoading(false);
@@ -248,8 +249,8 @@ Ready to begin?`,
         score: Math.round(score),
         feedback: data.replyText || "Thank you for sharing that! Your response shows good understanding."
       };
-    } catch (error) {
-      console.warn('Backend AI analysis failed, using fallback:', error);
+  } catch (error) {
+  logger.warn('Backend AI analysis failed, using fallback:', error);
       
       // Fallback analysis
       const wordCount = response.split(' ').length;
@@ -323,7 +324,7 @@ Ready to begin?`,
       }, user);
       
     } catch (err: any) {
-      console.error('Error completing test:', err);
+      logger.error('Error completing test:', err);
       setError('Failed to complete the test. Please try again.');
     } finally {
       setIsLoading(false);

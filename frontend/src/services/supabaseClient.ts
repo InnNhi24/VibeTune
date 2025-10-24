@@ -39,25 +39,10 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, publicAnonKey,
 });
 
 // Server-side client factory (for use with service role key)
-export const createServerClient = () => {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  
-  if (!serviceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for server operations');
-  }
-  
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    },
-    global: {
-      headers: {
-        'X-Client-Info': 'vibetune-server'
-      }
-    }
-  });
-};
+// NOTE: server-only Supabase clients (using the service role key) should live
+// in backend code (for example: `backend/src/clients/supabase.ts`) or in
+// serverless functions. Keeping a service-role client in frontend code risks
+// leaking secrets into the browser bundle.
 
 // Database types
 export interface Profile {

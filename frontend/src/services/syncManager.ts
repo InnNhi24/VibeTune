@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient';
 import { OfflineService } from './offlineService';
 import { AudioAnalysisService } from './apiAnalyzeAudio';
+import logger from '../utils/logger';
 
 // Extend window interface for cleanup function
 declare global {
@@ -62,7 +63,7 @@ export class SyncManager {
     } catch (error) {
       this.syncInProgress = false;
       this.notifyListeners('error');
-      console.error('Sync failed:', error?.message || error);
+      logger.error('Sync failed:', error?.message || error);
       return {
         success: false,
         syncedMessages: 0,
@@ -100,6 +101,7 @@ export class SyncManager {
       if (!authResult.isAuthenticated) {
         this.syncInProgress = false;
         this.notifyListeners('synced'); // Don't mark as error for missing auth
+        logger.info('Skipping server updates download:', authResult.reason);
         return {
           success: true,
           syncedMessages: 0,
@@ -117,7 +119,7 @@ export class SyncManager {
           await this.syncConversation(conversation);
           result.syncedConversations++;
         } catch (error) {
-          console.error('Failed to sync conversation:', error);
+          logger.error('Failed to sync conversation:', error);
           result.errors.push(`Failed to sync conversation ${conversation.id}: ${error}`);
         }
       }
@@ -128,7 +130,7 @@ export class SyncManager {
           await this.syncMessage(message);
           result.syncedMessages++;
         } catch (error) {
-          console.error('Failed to sync message:', error);
+          logger.error('Failed to sync message:', error);
           result.errors.push(`Failed to sync message ${message.id}: ${error}`);
         }
       }
@@ -146,7 +148,7 @@ export class SyncManager {
       OfflineService.clearSyncedItems();
 
     } catch (error) {
-      console.error('Sync failed:', error);
+      logger.error('Sync failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       result.errors.push(`Sync failed: ${errorMessage}`);
       
@@ -196,7 +198,7 @@ export class SyncManager {
       // Mark as synced
       OfflineService.markAsSynced('conversation', conversation.id);
     } catch (error) {
-      console.error('Failed to sync conversation:', error);
+      logger.error('Failed to sync conversation:', error);
       throw error;
     }
   }
@@ -225,7 +227,7 @@ export class SyncManager {
             });
             prosodyFeedback = analysis;
           } catch (error) {
-            console.warn('Failed to analyze audio during sync:', error);
+            logger.warn('Failed to analyze audio during sync:', error);
           }
         }
 
@@ -251,7 +253,7 @@ export class SyncManager {
       // Mark as synced
       OfflineService.markAsSynced('message', message.id);
     } catch (error) {
-      console.error('Failed to sync message:', error);
+      logger.error('Failed to sync message:', error);
       throw error;
     }
   }
@@ -300,13 +302,13 @@ export class SyncManager {
       // Use our robust auth check
       const authResult = await this.checkAuthentication();
       if (!authResult.isAuthenticated) {
-        console.log('Skipping server updates download:', authResult.reason);
+        logger.info('Skipping server updates download:', authResult.reason);
         return;
       }
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        console.log('No session available for server updates');
+        logger.info('No session available for server updates');
         return;
       }
 
@@ -344,7 +346,7 @@ export class SyncManager {
         }
       }
     } catch (error) {
-      console.error('Failed to download server updates:', error);
+      logger.error('Failed to download server updates:', error);
       throw error;
     }
   }
@@ -353,21 +355,21 @@ export class SyncManager {
   static enableAutoSync() {
     return new Promise<void>((resolve, reject) => {
       if (this.autoSyncEnabled || typeof window === 'undefined') {
-        console.log('✅ Auto-sync already enabled');
+        logger.info('✅ Auto-sync already enabled');
         resolve();
         return;
       }
 
       try {
-        this.autoSyncEnabled = true;
-        console.log('🔄 Auto-sync enabled');
+  this.autoSyncEnabled = true;
+  logger.info('🔄 Auto-sync enabled');
 
         // Simple online handler with error protection
         const handleOnline = () => {
-          console.log('📡 Online - will sync soon');
+          logger.info('📡 Online - will sync soon');
           setTimeout(() => {
             this.sync().catch(error => {
-              console.warn('⚠️ Auto-sync failed:', error?.message || error);
+              logger.warn('⚠️ Auto-sync failed:', error?.message || error);
             });
           }, 3000); // Longer delay to avoid timeout issues
         };
@@ -386,15 +388,15 @@ export class SyncManager {
               
               const authResult = await Promise.race([authPromise, authTimeout]);
               if (authResult.isAuthenticated) {
-                console.log('Starting periodic sync');
+                logger.info('Starting periodic sync');
                 this.sync().catch(error => {
-                  console.warn('⚠️ Periodic sync failed:', error?.message || error);
+                  logger.warn('⚠️ Periodic sync failed:', error?.message || error);
                 });
               } else {
-                console.log('Periodic sync skipped:', authResult.reason);
+                logger.info('Periodic sync skipped:', authResult.reason);
               }
             } catch (authError) {
-              console.warn('⚠️ Auth check failed for periodic sync:', authError?.message || authError);
+              logger.warn('⚠️ Auth check failed for periodic sync:', authError?.message || authError);
             }
           }
         }, 5 * 60 * 1000); // Every 5 minutes
@@ -402,7 +404,7 @@ export class SyncManager {
         // Store references for potential cleanup
         if (!window.__vibeTuneSyncCleanup) {
           window.__vibeTuneSyncCleanup = () => {
-            console.log('Cleaning up auto-sync');
+            logger.info('Cleaning up auto-sync');
             window.removeEventListener('online', handleOnline);
             clearInterval(syncInterval);
             this.autoSyncEnabled = false;
@@ -413,7 +415,7 @@ export class SyncManager {
         // Resolve immediately - setup is complete
         resolve();
       } catch (error) {
-        console.warn('⚠️ Auto-sync setup failed:', error);
+        logger.warn('⚠️ Auto-sync setup failed:', error);
         reject(error);
       }
     });
@@ -449,7 +451,7 @@ export class SyncManager {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.log('Auth check failed:', error.message);
+        logger.warn('Auth check failed:', error.message);
         this.isAuthenticated = false;
         this.lastAuthCheck = now;
         return { isAuthenticated: false, reason: `Authentication error: ${error.message}` };
@@ -463,7 +465,7 @@ export class SyncManager {
 
       // Verify the session is still valid by checking expiry
       if (session.expires_at && new Date(session.expires_at * 1000) <= new Date()) {
-        console.log('Session expired');
+        logger.info('Session expired');
         this.isAuthenticated = false;
         this.lastAuthCheck = now;
         return { isAuthenticated: false, reason: 'Session expired' };
@@ -471,11 +473,11 @@ export class SyncManager {
 
       // Additional check: try to refresh if close to expiry
       if (session.expires_at && new Date(session.expires_at * 1000).getTime() - now < 5 * 60 * 1000) {
-        console.log('Session close to expiry, attempting refresh...');
+  logger.info('Session close to expiry, attempting refresh...');
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
         if (refreshError) {
-          console.log('Session refresh failed:', refreshError.message);
+          logger.warn('Session refresh failed:', refreshError.message);
           this.isAuthenticated = false;
           this.lastAuthCheck = now;
           return { isAuthenticated: false, reason: `Session refresh failed: ${refreshError.message}` };
@@ -493,7 +495,7 @@ export class SyncManager {
       return { isAuthenticated: true };
 
     } catch (error) {
-      console.log('Auth check exception:', error);
+      logger.error('Auth check exception:', error);
       this.isAuthenticated = false;
       this.lastAuthCheck = now;
       return { isAuthenticated: false, reason: `Auth check failed: ${error}` };

@@ -31,6 +31,7 @@ import {
 import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { SimpleAuthService } from "../services/authServiceSimple";
+import { logger } from '../utils/logger';
 
 interface SettingsProps {
   user: Profile;
@@ -84,7 +85,7 @@ export function Settings({ user, onUserUpdate, onBack, onStartPlacementTest }: S
         setIsEditingUsername(false);
       }
     } catch (err: any) {
-      console.error('Username update error:', err);
+      logger.error('Username update error:', err);
       setError(err.message || 'Failed to update username');
       setEditedUsername(user.username); // Reset to original
     } finally {
@@ -95,7 +96,7 @@ export function Settings({ user, onUserUpdate, onBack, onStartPlacementTest }: S
   const handleSettingChange = (key: string, value: boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     // In a real app, you'd save this to the backend
-    console.log(`Setting ${key} changed to:`, value);
+  logger.info(`Setting ${key} changed to:`, value);
   };
 
   const formatDate = (dateString: string) => {
@@ -325,7 +326,7 @@ export function Settings({ user, onUserUpdate, onBack, onStartPlacementTest }: S
             <div className="space-y-1">
               <Label className="text-sm font-medium">Last Login</Label>
               <p className="text-sm text-muted-foreground">
-                {formatDate(user.last_login)}
+                {formatDate(user.last_login || '')}
               </p>
             </div>
           </CardContent>
