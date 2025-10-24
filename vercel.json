@@ -1,13 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "builds": [
-    { "src": "api/**/*.[jt]s", "use": "@vercel/node" },
-    { "src": "frontend/build/**", "use": "@vercel/static" }
-  ],
+  "buildCommand": "npm --prefix frontend ci && npm --prefix frontend run build && npm --prefix backend ci && npm --prefix backend run build",
+  "outputDirectory": "frontend/build",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api/index.js" },
-    { "source": "/(.*)", "destination": "/frontend/build/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
 

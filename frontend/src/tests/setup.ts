@@ -77,24 +77,42 @@ Object.defineProperty(navigator, 'onLine', {
 }));
 
 // Typed MediaRecorder shim
-class MR implements MediaRecorder {
+// MediaRecorder mock (implements EventTarget so addEventListener/dispatchEvent exist)
+class MR extends EventTarget implements MediaRecorder {
   readonly mimeType: string = 'audio/webm';
   ignoreMutedMedia = false;
   audioBitsPerSecond = 0;
   videoBitsPerSecond = 0;
   state: RecordingState = 'inactive';
   stream!: MediaStream;
+
   ondataavailable: ((this: MediaRecorder, ev: BlobEvent) => any) | null = null;
   onerror: ((this: MediaRecorder, ev: Event) => any) | null = null;
   onpause: ((this: MediaRecorder, ev: Event) => any) | null = null;
   onresume: ((this: MediaRecorder, ev: Event) => any) | null = null;
   onstart: ((this: MediaRecorder, ev: Event) => any) | null = null;
   onstop: ((this: MediaRecorder, ev: Event) => any) | null = null;
-  start() { this.state = 'recording'; }
-  stop()  { this.state = 'inactive'; this.onstop?.(new Event('stop')); }
-  pause() { this.state = 'paused'; }
-  resume(){ this.state = 'recording'; }
-  requestData() { if (this.ondataavailable) { this.ondataavailable.call(this as any, (new Blob()) as any); } }
+
+  start() {
+    this.state = 'recording';
+    const ev = new Event('start');
+    this.onstart?.(ev);
+    this.dispatchEvent(ev);
+  }
+  stop() {
+    this.state = 'inactive';
+    const ev = new Event('stop');
+    this.onstop?.(ev);
+    this.dispatchEvent(ev);
+  }
+  pause() { const ev = new Event('pause'); this.state = 'paused'; this.onpause?.(ev); this.dispatchEvent(ev); }
+  resume(){ const ev = new Event('resume'); this.state = 'recording'; this.onresume?.(ev); this.dispatchEvent(ev); }
+  requestData() {
+    const blobEv = new BlobEvent('dataavailable', { data: new Blob() });
+    this.ondataavailable?.(blobEv);
+    this.dispatchEvent(blobEv);
+  }
+
   static isTypeSupported(_: string) { return true; }
 }
 (global as any).MediaRecorder = MR as unknown as typeof MediaRecorder;
