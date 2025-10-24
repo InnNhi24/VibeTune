@@ -101,10 +101,6 @@ Thumbs.db
 .vercel
 
 # Test files
-*.test.js
-*.test.ts
-*.test.tsx
-__tests__/
 test-results/
 playwright-report/
 

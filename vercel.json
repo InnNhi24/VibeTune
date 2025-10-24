@@ -1,33 +1,45 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "buildCommand": "npm ci && npm run build",
+  "outputDirectory": "frontend/build",
   "builds": [
     {
-      "src": "backend/dist/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["backend/dist/**"]
-      }
+      "src": "api/index.js",
+      "use": "@vercel/node"
     },
     {
       "src": "frontend/build/**",
       "use": "@vercel/static"
     }
   ],
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/backend/dist/index.js" },
-    { "source": "/:path*", "destination": "/frontend/build/:path*" }
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/frontend/build/assets/$1"
+    },
+    {
+      "src": "/(.*\\..+)",
+      "dest": "/frontend/build/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/build/index.html"
+    }
   ],
   "headers": [
     {
-      "source": "/:path*",
+      "source": "/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "X-Requested-With, Content-Type, Authorization" }
       ]
     }
-  ],
-  "buildCommand": "npm ci && npm run build",
-  "outputDirectory": "frontend/build"
+  ]
 }
+
