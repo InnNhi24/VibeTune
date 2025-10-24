@@ -1,18 +1,16 @@
 const serverless = require('serverless-http');
 
-// Import the backend app
 let app;
 try {
-  app = require('../backend/dist/index.js').default || require('../backend/dist/index.js');
-} catch (error) {
-  console.error('Failed to load backend app:', error);
-  // Create a minimal fallback app
-  const express = require('express');
-  app = express();
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Backend not loaded' });
-  });
+  const mod = require('../backend/dist/server');
+  app = mod.default || mod.app || mod;
+} catch (e) {
+  module.exports = (req, res) => {
+    res.statusCode = 500;
+    res.end('Backend not built. Ensure backend/dist/server.js exists.');
+  };
+  return;
 }
 
-module.exports = serverless(app);
+module.exports = (req, res) => serverless(app)(req, res);
 
