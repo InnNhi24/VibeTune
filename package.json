@@ -11,6 +11,7 @@
   },
   "engines": { "node": ">=20 <21" },
   "dependencies": {
-    "serverless-http": "^3.2.0"
+    "serverless-http": "^3.2.0",
+    "openai": "^4.9.0"
   }
 }
