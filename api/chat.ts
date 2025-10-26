@@ -67,15 +67,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rl = await rateLimit(ip, 'chat', 60, 60);
     if (!rl.ok) return res.status(429).json({ error: 'Too many requests' });
 
-    const body = (req.body || {}) as { text?: string; level?: string; lastMistakes?: string[]; profileId?: string };
-    const text = (body.text || '').trim();
-    const level = body.level || 'A2';
-    const lastMistakes = Array.isArray(body.lastMistakes) ? body.lastMistakes : [];
+  const body = (req.body || {}) as { text?: string; level?: string; lastMistakes?: string[]; profileId?: string };
+  const text = (body.text || '').trim();
+  // Normalize level input: accept beginner | intermediate | advanced (case-insensitive)
+  const rawLevel = String(body.level || 'beginner').toLowerCase();
+  const allowedLevels = ['beginner', 'intermediate', 'advanced'];
+  const level = allowedLevels.includes(rawLevel) ? rawLevel : 'beginner';
+  const lastMistakes = Array.isArray(body.lastMistakes) ? body.lastMistakes : [];
 
     if (!text) return res.status(400).json({ error: 'text is required' });
 
     // ==== Call OpenAI REST API with a hard 9s timeout to avoid Vercel function invocation timeout ====
-    const system = `You are VibeTune. Return JSON: {replyText, feedback, tags}. CEFR=${level}. Keep feedback <=30 words.`;
+    const system = `
+You are **VibeTune**, an AI pronunciation & prosody coach.
+
+Always return a valid JSON:
+{
+  "replyText": "...",
+  "feedback": "...",
+  "tags": ["prosody" | "grammar" | "vocabulary" | "intonation" | "fluency"]
+}
+
+The user's selected level is: ${level}.
+
+---
+
+🌱 Beginner Level
+Focus: simple stress, clear rhythm, everyday words, short sentences.
+Feedback: gentle correction and encouragement ("Good try!", "Focus on stress in *today*").
+
+🎯 Intermediate Level
+Focus: sentence stress variety, natural flow, conversational phrases.
+Feedback: emphasize rhythm and intonation improvements ("Try rising tone at the end").
+
+🏆 Advanced Level
+Focus: subtle nuances, accent refinement, connected speech.
+Feedback: concise coaching for native-like sound ("Link words naturally", "Reduce final T").
+
+---
+
+Rules:
+- Tailor replyText and feedback to the user level.
+- Keep feedback under 30 words.
+- Use positive, friendly tone.
+- Never repeat the full user text unless correcting pronunciation.
+- Keep messages conversational and concise.
+`;
 
     // Abort after 9s to fit within Hobby 10s limit (use AbortController for broad support)
     const ac = new AbortController();
