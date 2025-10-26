@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import OpenAI from 'openai';
 
 // Fail-fast in production if key missing
 if (process.env.NODE_ENV === 'production' && !process.env.OPENAI_API_KEY) {
@@ -75,30 +74,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!text) return res.status(400).json({ error: 'text is required' });
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
+    // ==== Call OpenAI REST API with a hard 9s timeout to avoid Vercel function invocation timeout ====
     const system = `You are VibeTune. Return JSON: {replyText, feedback, tags}. CEFR=${level}. Keep feedback <=30 words.`;
 
-    const task = openai.chat.completions.create({
+    // Abort after 9s to fit within Hobby 10s limit
+    const controller = (AbortSignal as any).timeout?.(9000) ?? undefined;
+
+    const payload = {
       model: 'gpt-4o-mini',
       temperature: 0.4,
-      response_format: { type: 'json_object' },
+      // keep response parsable & small
+      max_tokens: 200,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: `User: "${text}". Recent mistakes: ${JSON.stringify(lastMistakes)}` }
       ]
+    };
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: controller as AbortSignal | undefined,
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
     });
 
-    const completion: any = await Promise.race([
-      task,
-      new Promise((_, rej) => setTimeout(() => rej(new Error('OpenAI timeout')), 25000))
-    ]);
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      return res.status(502).json({ error: 'openai_failed', detail });
+    }
 
+    const j: any = await resp.json();
     let data: any = {};
     try {
-      data = JSON.parse(completion?.choices?.[0]?.message?.content || '{}');
+      data = JSON.parse(j?.choices?.[0]?.message?.content || '{}');
     } catch {
-      data = { replyText: completion?.choices?.[0]?.message?.content || '', feedback: '' };
+      data = { replyText: j?.choices?.[0]?.message?.content || '', feedback: '' };
     }
 
     const replyText = data.replyText || '';
@@ -110,14 +123,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ ok: true, replyText, feedback, guidance, tags });
   } catch (e: any) {
-    console.error(JSON.stringify({ lvl: 'error', ts: new Date().toISOString(), endpoint: '/api/chat', err: e?.message }));
-    return res.status(500).json({ error: 'chat failed', detail: e?.message });
+    const isAbort = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+    const code = isAbort ? 504 : 500;
+    const msg = isAbort ? 'upstream_timeout' : 'chat_failed';
+    console.error(JSON.stringify({ lvl: 'error', ts: new Date().toISOString(), endpoint: '/api/chat', err: e?.message || String(e), abort: isAbort }));
+    return res.status(code).json({ error: msg, detail: e?.message || String(e) });
   }
 }
-import serverless from 'serverless-http';
-import app from '../backend/src/index';
-
-// Vercel only accepts 'nodejs' | 'edge' | 'experimental-edge'
-export const config = { runtime: 'nodejs' };
-export default serverless(app);
 
