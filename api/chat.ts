@@ -73,6 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     lastMistakes?: string[];
     profileId?: string;
     conversationId?: string;
+    topic?: string;
     stage?: string; // topic | practice | wrapup
     firstPracticeTurn?: boolean;
     audioUrl?: string;
@@ -91,45 +92,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const incomingConversationId = body.conversationId || null;
   const stage = String(body.stage || 'practice').toLowerCase();
   const firstPracticeTurn = Boolean(body.firstPracticeTurn);
+  const topicFromBody = (body.topic || '').trim() || null;
 
     if (!text) return res.status(400).json({ error: 'text is required' });
 
-    // ==== Call OpenAI REST API with a hard 9s timeout to avoid Vercel function invocation timeout ====
-    const system = `
-You are **VibeTune**, an AI pronunciation & prosody coach.
+    // ==== Build system prompt based on stage (improve tone for practice) ====
+    const topicForPrompt = topicFromBody || (stage === 'topic' ? text : '');
+    let system = '';
+    if (stage === 'practice') {
+      system = `You are **VibeTune**, a friendly AI pronunciation & prosody coach focused on helping learners speak naturally.
+
+Context:
+Topic: "${topicForPrompt}"
+Level: ${level}
+
+Goal: Have a short, natural, warm conversation about the topic. Keep responses conversational (2-4 short sentences), then give a tiny, actionable prosody tip and one small example if helpful.
+
+Tone: Casual, encouraging, like a supportive friend. Lead with praise when the user tries, then gently correct. Avoid long grammar lectures — fold corrections into the conversation.
+
+When giving corrections, include: a one-line encouraging phrase, the corrected suggestion in quotes, and a 1-3 word prosody hint (e.g., "stress DAY", "rise at end").
+
+Always continue the dialogue by asking a short follow-up question relevant to the topic.
+If this is the user's first practice turn, include a brief tip about how to finish the practice (e.g., press Done or say 'done').
+
+Return strictly valid JSON in the assistant content with keys: replyText, feedback, tags, guidance, tryAgain, suggestedUtterance.
+`;
+      if (firstPracticeTurn) {
+        system += "(Tip: user can finish the practice by pressing Done or saying 'done'.)";
+      }
+    } else {
+      system = `You are **VibeTune**, an AI pronunciation & prosody coach.
 
 Always return a valid JSON:
-{
-  "replyText": "...",
-  "feedback": "...",
-  "tags": ["prosody" | "grammar" | "vocabulary" | "intonation" | "fluency"]
-}
+{ "replyText": "...", "feedback": "...", "tags": ["prosody" | "grammar" | "vocabulary" | "intonation" | "fluency"] }
 
 The user's selected level is: ${level}.
 
----
-
-🌱 Beginner Level
-Focus: simple stress, clear rhythm, everyday words, short sentences.
-Feedback: gentle correction and encouragement ("Good try!", "Focus on stress in *today*").
-
-🎯 Intermediate Level
-Focus: sentence stress variety, natural flow, conversational phrases.
-Feedback: emphasize rhythm and intonation improvements ("Try rising tone at the end").
-
-🏆 Advanced Level
-Focus: subtle nuances, accent refinement, connected speech.
-Feedback: concise coaching for native-like sound ("Link words naturally", "Reduce final T").
-
----
-
-Rules:
-- Tailor replyText and feedback to the user level.
-- Keep feedback under 30 words.
-- Use positive, friendly tone.
-- Never repeat the full user text unless correcting pronunciation.
-- Keep messages conversational and concise.
-`;
+Rules: Tailor replyText and feedback to the user level. Keep feedback under 30 words. Use positive, friendly tone. Never repeat the full user text unless correcting pronunciation. Keep messages conversational and concise.`;
+    }
 
     // Abort after 9s to fit within Hobby 10s limit (use AbortController for broad support)
     const ac = new AbortController();
@@ -183,7 +183,12 @@ Rules:
     const replyText = data.replyText || '';
     const feedback = data.feedback || '';
     const tags = Array.isArray(data.tags) ? data.tags : [];
-  const guidance = data.guidance ?? feedback;
+    const guidance = data.guidance ?? feedback;
+
+    // Determine topic to return: prefer explicit from AI, then request body, then user text (for topic stage)
+    const topic = (data.topic && String(data.topic).trim()) || topicFromBody || (stage === 'topic' ? text : null);
+    // Decide next stage
+    const nextStage = stage === 'topic' ? 'practice' : stage === 'practice' ? 'wrapup' : 'done';
 
     console.log(JSON.stringify({ lvl: 'info', ts: new Date().toISOString(), endpoint: '/api/chat', ip, node_env: process.env.NODE_ENV, text_len: text.length, duration_ms: Date.now() - startTime }));
 
@@ -224,10 +229,23 @@ Rules:
     try {
       // Create conversation row when stage is 'topic' and no incomingConversationId
       if (!conversationId && stage === 'topic' && SUPABASE_URL && SUPABASE_KEY) {
-        const convRows = [{ profile_id: profileId, topic: null, is_placement_test: false, started_at: new Date().toISOString() }];
+        const convRows = [{ profile_id: profileId, topic: topic || null, is_placement_test: false, started_at: new Date().toISOString() }];
         const inserted = await supabaseInsert('conversations', convRows);
         if (Array.isArray(inserted) && inserted[0] && inserted[0].id) {
           conversationId = inserted[0].id;
+        }
+      }
+
+      // If we created/received a conversation but topic wasn't set on creation, update it
+      if (conversationId && topic && SUPABASE_URL && SUPABASE_KEY) {
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}`, {
+            method: 'PATCH',
+            headers: supabaseHeaders as any,
+            body: JSON.stringify({ topic })
+          });
+        } catch (e) {
+          console.warn('Failed to update conversation topic', e);
         }
       }
 
@@ -282,7 +300,7 @@ Rules:
       console.warn('Supabase persistence failed:', e);
     }
 
-    return res.status(200).json({ ok: true, replyText, feedback, guidance, tags, conversationId });
+  return res.status(200).json({ ok: true, replyText, feedback, guidance, tags, conversationId, topic, stage, nextStage });
   } catch (e: any) {
     const isAbort = e?.name === 'TimeoutError' || e?.name === 'AbortError';
     const code = isAbort ? 504 : 500;
