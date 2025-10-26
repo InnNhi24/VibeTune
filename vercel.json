@@ -3,27 +3,12 @@
   "version": 2,
   "buildCommand": "npm --prefix frontend ci && npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
-  "functions": {
-    "api/**/*.ts": { "runtime": "nodejs20.x", "maxDuration": 10 },
-    "api/**/*.js": { "runtime": "nodejs20.x", "maxDuration": 10 }
-  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "buildCommand": "npm --prefix frontend ci && npm --prefix frontend run build && npm --prefix backend ci && npm --prefix backend run build",
-  "outputDirectory": "frontend/dist",
+  ],
   "functions": {
-    "api/chat.ts": { "runtime": "nodejs20.x", "maxDuration": 10 },
-    "api/**/*.ts": { "runtime": "nodejs20.x" }
-  },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+    "api/chat.ts": { "maxDuration": 10 }
+  }
 }
 
