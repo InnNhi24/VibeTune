@@ -117,6 +117,9 @@ If this is the user's first practice turn, include a brief tip about how to fini
 
 Return strictly valid JSON in the assistant content with keys: replyText, feedback, tags, guidance, tryAgain, suggestedUtterance.
 `;
+  // Explicit guard: do not respond while the user is still recording.
+  // Frontend should only call this endpoint after the user has finished speaking.
+  system += "\nDo not respond during recording. Only respond when the user has finished speaking or pressed Stop.\n";
       if (firstPracticeTurn) {
         system += "(Tip: user can finish the practice by pressing Done or saying 'done'.)";
       }

@@ -4,7 +4,7 @@ import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { Mic, MicOff, RotateCcw, Send, Loader2, Play, Pause, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { aiProsodyService, ConversationContext } from "../services/aiProsodyService";
+import { ConversationContext } from "../services/aiProsodyService";
 import { liveTranscriptionService } from "../services/liveTranscriptionService";
 import { logger } from '../utils/logger';
 
@@ -28,33 +28,26 @@ export function RecordingControls({
   const [recordedMessage, setRecordedMessage] = useState("");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [incrementalFeedback, setIncrementalFeedback] = useState<{suggestions: string[]; encouragement: string} | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [aiReady, setAiReady] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const feedbackTimerRef = useRef<NodeJS.Timeout>();
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
-  // Check AI service status
+  // Check AI service status (use prop as a hint whether AI features should be shown)
   useEffect(() => {
-    setAiReady(aiProsodyService.isReady());
-  }, []);
+    setAiReady(showAIFeedback);
+  }, [showAIFeedback]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (recordingState === 'recording') {
       interval = setInterval(() => {
         setRecordingTime(prev => prev + 1);
-        
-        // Get incremental feedback every 3 seconds while recording
-        if (aiReady && conversationContext && recordingTime > 0 && recordingTime % 3 === 0) {
-          getIncrementalFeedback();
-        }
       }, 1000);
     } else {
       setRecordingTime(0);
-      setIncrementalFeedback(null);
     }
     
     return () => {
@@ -68,25 +61,9 @@ export function RecordingControls({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getIncrementalFeedback = async () => {
-    if (!aiReady || !conversationContext) return;
-    
-    try {
-      const feedback = await aiProsodyService.getIncrementalFeedback(
-        "Recording in progress...",
-        conversationContext
-      );
-      setIncrementalFeedback(feedback);
-      
-      // Clear feedback after 3 seconds
-      if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
-      feedbackTimerRef.current = setTimeout(() => {
-        setIncrementalFeedback(null);
-      }, 3000);
-    } catch (error) {
-      logger.error('Failed to get incremental feedback:', error);
-    }
-  };
+  // NOTE: incremental AI feedback during recording was removed to avoid
+  // frequent/interrupting AI calls. AI analysis should only be requested
+  // once the user has finished speaking (on Stop & Send).
 
   const handleStartRecording = async () => {
     if (disabled) return;
@@ -182,7 +159,6 @@ export function RecordingControls({
     setAudioBlob(null);
     setRecordingState('idle');
     setAnalysisProgress(0);
-    setIncrementalFeedback(null);
     
     if (audioRef.current) {
       audioRef.current.pause();
@@ -291,24 +267,7 @@ export function RecordingControls({
               </div>
             )}
 
-            {/* Incremental Feedback */}
-            {incrementalFeedback && recordingState === 'recording' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-accent/10 border border-accent/20 rounded-lg p-3 text-center"
-              >
-                <p className="text-sm font-medium text-accent mb-1">
-                  {incrementalFeedback.encouragement}
-                </p>
-                {incrementalFeedback.suggestions.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    💡 {incrementalFeedback.suggestions[0]}
-                  </p>
-                )}
-              </motion.div>
-            )}
+            {/* Incremental feedback removed to avoid AI calls while recording. */}
           </motion.div>
         )}
       </AnimatePresence>

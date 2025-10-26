@@ -15,6 +15,7 @@ import { Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext, ProsodyAnalysis, AIResponse } from "../services/aiProsodyService";
 import { useAppStore, useMessages, Message as StoreMessage } from "../store/appStore";
+import { useUser } from '../store/appStore';
 import { logger } from "../utils/logger";
 
 interface Message {
@@ -170,10 +171,43 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
       const extractedTopic = extractTopicFromMessage(messageText.trim());
       setCurrentTopic(extractedTopic);
       setWaitingForTopic(false);
-      
+
       // Notify parent component about topic change for conversation title
       if (onTopicChange) {
         onTopicChange(extractedTopic);
+      }
+
+      // Create a conversation immediately on topic confirmation so subsequent
+      // messages can be attached to a conversationId. Call server /api/chat
+      // with stage='topic' and use the returned conversationId to update app state.
+      try {
+        const store = useAppStore.getState();
+        const profile = store.user;
+        const payload = {
+          text: messageText.trim(),
+          stage: 'topic',
+          profileId: profile?.id || null,
+          level: safeLevel,
+          topic: extractedTopic
+        } as any;
+
+        const resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.conversationId) {
+            // Set active conversation and refresh history so sidebar updates
+            store.setActiveConversation(data.conversationId);
+            // Trigger a sync to refresh conversations list
+            try { await store.syncData(); } catch (e) { /* best-effort */ }
+          }
+        }
+      } catch (err) {
+        logger.warn('Failed to create conversation on topic confirmation', err);
       }
     }
     
