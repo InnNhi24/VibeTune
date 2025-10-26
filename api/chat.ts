@@ -77,13 +77,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ==== Call OpenAI REST API with a hard 9s timeout to avoid Vercel function invocation timeout ====
     const system = `You are VibeTune. Return JSON: {replyText, feedback, tags}. CEFR=${level}. Keep feedback <=30 words.`;
 
-    // Abort after 9s to fit within Hobby 10s limit
-    const controller = (AbortSignal as any).timeout?.(9000) ?? undefined;
+    // Abort after 9s to fit within Hobby 10s limit (use AbortController for broad support)
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 9000);
 
     const payload = {
       model: 'gpt-4o-mini',
       temperature: 0.4,
-      // keep response parsable & small
       max_tokens: 200,
       messages: [
         { role: 'system', content: system },
@@ -91,22 +91,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]
     };
 
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      signal: controller as AbortSignal | undefined,
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+    let j: any = {};
+    try {
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        signal: ac.signal,
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-    if (!resp.ok) {
-      const detail = await resp.text().catch(() => '');
-      return res.status(502).json({ error: 'openai_failed', detail });
+      clearTimeout(timer);
+
+      if (!resp.ok) {
+        const detail = await resp.text().catch(() => '');
+        return res.status(502).json({ error: 'openai_failed', detail });
+      }
+
+      j = await resp.json();
+    } catch (err: any) {
+      clearTimeout(timer);
+      // Normalize AbortError
+      if (err?.name === 'AbortError' || err?.message === 'The user aborted a request.') {
+        throw new Error('upstream_timeout');
+      }
+      throw err;
     }
-
-    const j: any = await resp.json();
     let data: any = {};
     try {
       data = JSON.parse(j?.choices?.[0]?.message?.content || '{}');
