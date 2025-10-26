@@ -66,7 +66,7 @@ app.post('/api/events-ingest', rateLimits.general, eventsIngestRoute);
 app.post('/api/feedback', rateLimits.general, feedbackRoute);
 app.post('/api/live-transcribe', rateLimits.audio, liveTranscribeRoute);
 
-const frontendPath = path.join(__dirname, '../../frontend/build');
+const frontendPath = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendPath));
 app.use((req, res, next) => {
   if (!req.path.startsWith('/api')) {

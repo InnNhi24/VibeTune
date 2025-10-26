@@ -82,7 +82,7 @@ app.post('/api/placement-score', security_1.rateLimits.general, placementScore_1
 app.post('/api/events-ingest', security_1.rateLimits.general, eventsIngest_1.default);
 app.post('/api/feedback', security_1.rateLimits.general, feedback_1.default);
 app.post('/api/live-transcribe', security_1.rateLimits.audio, liveTranscribe_1.default);
-const frontendPath = path_1.default.join(__dirname, '../../frontend/build');
+const frontendPath = path_1.default.join(__dirname, '../../frontend/dist');
 app.use(express_1.default.static(frontendPath));
 app.use((req, res, next) => {
     if (!req.path.startsWith('/api')) {

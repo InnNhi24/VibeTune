@@ -134,7 +134,7 @@ jobs:
         name: build-files
         path: |
           backend/dist/
-          frontend/build/
+          frontend/dist/
 
   # Security Scan
   security-scan:
