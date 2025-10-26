@@ -67,13 +67,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rl = await rateLimit(ip, 'chat', 60, 60);
     if (!rl.ok) return res.status(429).json({ error: 'Too many requests' });
 
-  const body = (req.body || {}) as { text?: string; level?: string; lastMistakes?: string[]; profileId?: string };
+  const body = (req.body || {}) as {
+    text?: string;
+    level?: string;
+    lastMistakes?: string[];
+    profileId?: string;
+    conversationId?: string;
+    stage?: string; // topic | practice | wrapup
+    firstPracticeTurn?: boolean;
+    audioUrl?: string;
+    deviceId?: string;
+    retryOfMessageId?: string;
+    version?: number;
+  };
+
   const text = (body.text || '').trim();
   // Normalize level input: accept beginner | intermediate | advanced (case-insensitive)
   const rawLevel = String(body.level || 'beginner').toLowerCase();
   const allowedLevels = ['beginner', 'intermediate', 'advanced'];
   const level = allowedLevels.includes(rawLevel) ? rawLevel : 'beginner';
   const lastMistakes = Array.isArray(body.lastMistakes) ? body.lastMistakes : [];
+  const profileId = body.profileId || null;
+  const incomingConversationId = body.conversationId || null;
+  const stage = String(body.stage || 'practice').toLowerCase();
+  const firstPracticeTurn = Boolean(body.firstPracticeTurn);
 
     if (!text) return res.status(400).json({ error: 'text is required' });
 
@@ -166,11 +183,106 @@ Rules:
     const replyText = data.replyText || '';
     const feedback = data.feedback || '';
     const tags = Array.isArray(data.tags) ? data.tags : [];
-    const guidance = data.guidance ?? feedback;
+  const guidance = data.guidance ?? feedback;
 
     console.log(JSON.stringify({ lvl: 'info', ts: new Date().toISOString(), endpoint: '/api/chat', ip, node_env: process.env.NODE_ENV, text_len: text.length, duration_ms: Date.now() - startTime }));
 
-    return res.status(200).json({ ok: true, replyText, feedback, guidance, tags });
+    // ===== Optionally persist conversation + messages to Supabase via REST (service role key) =====
+    const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+    const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    let conversationId: string | null = incomingConversationId;
+
+    const supabaseHeaders = SUPABASE_KEY
+      ? {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          apikey: SUPABASE_KEY,
+          Prefer: 'return=representation'
+        }
+      : null;
+
+    async function supabaseInsert(table: string, rows: any[]) {
+      if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+      try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+          method: 'POST',
+          headers: supabaseHeaders as any,
+          body: JSON.stringify(rows)
+        });
+        if (!r.ok) {
+          const txt = await r.text().catch(() => '');
+          console.warn('Supabase insert failed', table, r.status, txt);
+          return null;
+        }
+        return await r.json();
+      } catch (err) {
+        console.warn('Supabase insert error', err);
+        return null;
+      }
+    }
+
+    try {
+      // Create conversation row when stage is 'topic' and no incomingConversationId
+      if (!conversationId && stage === 'topic' && SUPABASE_URL && SUPABASE_KEY) {
+        const convRows = [{ profile_id: profileId, topic: null, is_placement_test: false, started_at: new Date().toISOString() }];
+        const inserted = await supabaseInsert('conversations', convRows);
+        if (Array.isArray(inserted) && inserted[0] && inserted[0].id) {
+          conversationId = inserted[0].id;
+        }
+      }
+
+      // Insert user message
+      if (SUPABASE_URL && SUPABASE_KEY) {
+        const userMsg = {
+          conversation_id: conversationId,
+          sender: 'user',
+          type: body.audioUrl ? 'audio' : 'text',
+          content: text,
+          audio_url: body.audioUrl || null,
+          retry_of_message_id: body.retryOfMessageId || null,
+          version: body.version || 1,
+          device_id: body.deviceId || null,
+          profile_id: profileId || null,
+          created_at: new Date().toISOString()
+        };
+        await supabaseInsert('messages', [userMsg]);
+      }
+
+      // Insert AI message
+      if (SUPABASE_URL && SUPABASE_KEY) {
+        const aiMsg = {
+          conversation_id: conversationId,
+          sender: 'ai',
+          type: 'text',
+          content: replyText,
+          prosody_feedback: data.turn_feedback?.prosody || null,
+          vocab_suggestions: data.turn_feedback?.vocab || null,
+          guidance: guidance || null,
+          scores: data.scores || null,
+          device_id: body.deviceId || null,
+          profile_id: profileId || null,
+          created_at: new Date().toISOString()
+        };
+        await supabaseInsert('messages', [aiMsg]);
+      }
+
+      // If wrapup stage, mark conversation ended
+      if (conversationId && stage === 'wrapup' && SUPABASE_URL && SUPABASE_KEY) {
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}`, {
+            method: 'PATCH',
+            headers: supabaseHeaders as any,
+            body: JSON.stringify({ ended_at: new Date().toISOString() })
+          });
+        } catch (e) {
+          console.warn('Failed to mark conversation ended', e);
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase persistence failed:', e);
+    }
+
+    return res.status(200).json({ ok: true, replyText, feedback, guidance, tags, conversationId });
   } catch (e: any) {
     const isAbort = e?.name === 'TimeoutError' || e?.name === 'AbortError';
     const code = isAbort ? 504 : 500;
