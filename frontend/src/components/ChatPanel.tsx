@@ -54,6 +54,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
 
 
 
+
   // Check AI service status
   useEffect(() => {
     const checkAI = () => {
@@ -146,6 +147,20 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
     }
   };
 
+  // Map a human-readable topic label to a normalized topic code used by the DB
+  const mapTopicLabelToCode = (label: string): string => {
+    const l = label.toLowerCase();
+    if (l.includes('travel')) return 'travel';
+    if (l.includes('work') || l.includes('career') || l.includes('job')) return 'work';
+    if (l.includes('food') || l.includes('cook')) return 'food';
+    if (l.includes('music') || l.includes('art')) return 'entertainment';
+    if (l.includes('hobby') || l.includes('interest')) return 'hobby';
+    if (l.includes('daily')) return 'daily_small_talk';
+    if (l.includes('greet') || l.includes('hello')) return 'greeting';
+    // default fallback code
+    return 'general';
+  };
+
   const buildConversationContext = (): ConversationContext => {
     return {
       user_level: safeLevel,
@@ -168,13 +183,15 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
     
     // If this is the first user message, extract topic and update conversation title
     if (waitingForTopic) {
-      const extractedTopic = extractTopicFromMessage(messageText.trim());
-      setCurrentTopic(extractedTopic);
+      const extractedLabel = extractTopicFromMessage(messageText.trim());
+      const topicCode = mapTopicLabelToCode(extractedLabel);
+
+      // Display the human-friendly label in the UI, but send topicCode to server/db
+      setCurrentTopic(extractedLabel);
       setWaitingForTopic(false);
 
-      // Notify parent component about topic change for conversation title
       if (onTopicChange) {
-        onTopicChange(extractedTopic);
+        onTopicChange(extractedLabel);
       }
 
       // Create a conversation immediately on topic confirmation so subsequent
@@ -188,7 +205,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
           stage: 'topic',
           profileId: profile?.id || null,
           level: safeLevel,
-          topic: extractedTopic
+          // IMPORTANT: pass normalized topic code, not free-form message text
+          topic: topicCode
         } as any;
 
         const resp = await fetch('/api/chat', {
@@ -400,6 +418,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
 
 
 
+
   const toggleInputMode = () => {
     setIsTextareaMode(!isTextareaMode);
   };
@@ -465,6 +484,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
           ))}
 
 
+          
           
           {/* Loading indicator */}
           {isLoading && (
