@@ -4,6 +4,7 @@ import { Auth } from "./components/pages/Auth";
 import { MainAppScreen } from "./components/MainAppScreen";
 import { AIPlacementTest } from "./components/AIPlacementTest";
 import { LevelSelection } from "./components/LevelSelection";
+import PersonalInfo from "./pages/PersonalInfo";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SimpleAuthService } from "./services/authServiceSimple";
 import { Profile } from "./services/supabaseClient";
@@ -17,6 +18,7 @@ type AppState =
   | "onboarding"
   | "signup"
   | "signin"
+  | "personal-info"
   | "level-selection"
   | "placement-test"
   | "main-app";
@@ -28,6 +30,9 @@ function AppContent() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const { user } = state;
+
+  const needsPersonalInfo = (p?: Partial<Profile> & { full_name?: string | null; dob?: string | null }) =>
+    !p || !p.username || !p.full_name || !p.dob;
 
   useEffect(() => {
     if (isInitialized) return;
@@ -42,8 +47,16 @@ function AppContent() {
         const sessionResult = await SimpleAuthService.getCurrentSession();
 
         if (sessionResult?.data?.user && sessionResult?.data?.profile) {
-          dispatch(appActions.setUser(sessionResult.data.profile));
-          setCurrentState(sessionResult.data.profile.level ? "main-app" : "level-selection");
+          const profile = sessionResult.data.profile;
+          dispatch(appActions.setUser(profile));
+
+          if (needsPersonalInfo(profile)) {
+            setCurrentState("personal-info");
+          } else if (!profile.level) {
+            setCurrentState("level-selection");
+          } else {
+            setCurrentState("main-app");
+          }
         } else {
           setCurrentState("onboarding");
         }
@@ -71,7 +84,13 @@ function AppContent() {
   const handleAuthComplete = useCallback(
     async (userData: Profile) => {
       dispatch(appActions.setUser(userData));
-      setCurrentState(userData.level ? "main-app" : "level-selection");
+      if (needsPersonalInfo(userData)) {
+        setCurrentState("personal-info");
+      } else if (!userData.level) {
+        setCurrentState("level-selection");
+      } else {
+        setCurrentState("main-app");
+      }
 
       // background best-effort tasks
       setTimeout(async () => {
