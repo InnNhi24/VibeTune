@@ -161,7 +161,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
             <Mic className="w-8 h-8 text-accent" />
             <h1 className="text-2xl font-bold text-foreground">VibeTune</h1>
           </div>
-          <p className="text-sm text-muted-foreground">We’ll personalize your practice plan based on your details.</p>
+          <p className="text-sm text-muted-foreground">Quick setup — tell us a few details so we can personalize your plan.</p>
         </div>
 
         <Card>
