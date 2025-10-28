@@ -128,58 +128,58 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-xl">
-        <div className="flex flex-col items-center mb-6">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
+        <div className="flex flex-col items-center mb-8">
           <div className="flex items-center text-xl font-bold text-gray-800 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-1 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-1 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             </svg>
             VibeTune
           </div>
-          <p className="text-sm text-gray-500 mb-6">Tell us about yourself to start your journey!</p>
-          <div className="flex items-center w-full">
+          <p className="text-sm text-gray-500 mb-6">Tell us about you to start your journey!</p>
+          <div className="flex items-center w-full mb-6">
           <button className="text-gray-500 hover:text-gray-700 mr-4" onClick={() => onBack?.()}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
-            <h2 className="text-xl font-bold text-gray-800">Tell us about you</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Tell us about you</h2>
           </div>
         </div>
 
         {err && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-4 rounded-r-lg" role="alert"><p>{err}</p></div>}
 
         <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-600 mb-1">Full name</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Full name</div>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
         </label>
 
         <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-600 mb-1">Username</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Username</div>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
         </label>
 
         <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-600 mb-1">Date of birth</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Date of birth</div>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
         </label>
 
         <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-600 mb-1">Country (optional)</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Country (optional)</div>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
         </label>
 
         <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-600 mb-1">Native language (optional)</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.native_language} onChange={(e) => setForm({ ...form, native_language: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Native language (optional)</div>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.native_language} onChange={(e) => setForm({ ...form, native_language: e.target.value })} />
         </label>
 
         <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-600 mb-1">Learning goal (optional)</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.learning_goal} onChange={(e) => setForm({ ...form, learning_goal: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Learning goal (optional)</div>
+          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.learning_goal} onChange={(e) => setForm({ ...form, learning_goal: e.target.value })} />
         </label>
 
-        <div className="mt-8">
-          <button className="w-full px-6 py-3 text-white font-semibold bg-purple-600 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50" onClick={save} disabled={saving}>
+        <div className="mt-6">
+          <button className="w-full px-6 py-3 text-white font-semibold bg-purple-600 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 disabled:opacity-50" onClick={save} disabled={saving}>
             {saving ? "Saving..." : "Save and continue"}
           </button>
         </div>
