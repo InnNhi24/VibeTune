@@ -34,6 +34,9 @@ export function RecordingControls({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const usingServiceRef = useRef<boolean>(false);
+  const [transcribeError, setTranscribeError] = useState<string | null>(null);
 
   // Check AI service status (use prop as a hint whether AI features should be shown)
   useEffect(() => {
@@ -88,18 +91,94 @@ export function RecordingControls({
       };
       
       mediaRecorder.start();
-      
-      await liveTranscriptionService.start(
-        (transcript, isFinal) => {
-          setRecordedMessage(transcript);
-          if (!isFinal && transcript) {
-            setAnalysisProgress(Math.min(transcript.length * 2, 90));
-          }
-        },
-        (error) => {
-          logger.error('Live transcription error:', error);
+      // Prefer browser Web Speech API for interim live transcripts when available
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          setTranscribeError(null);
+          const recognition = new SpeechRecognition();
+          recognitionRef.current = recognition;
+          recognition.interimResults = true;
+          recognition.continuous = true;
+
+          recognition.onresult = (event: any) => {
+            let interim = '';
+            let final = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              const res = event.results[i];
+              if (res.isFinal) final += res[0].transcript + ' ';
+              else interim += res[0].transcript;
+            }
+            // prefer showing final+interim combined
+            const combined = (final + interim).trim();
+            if (combined) setRecordedMessage(combined);
+            if (!event.isFinal && combined) {
+              setAnalysisProgress(Math.min(combined.length * 2, 90));
+            }
+          };
+
+          recognition.onerror = (ev: any) => {
+            logger.error('SpeechRecognition error', ev);
+            setTranscribeError(ev?.error || 'Speech recognition error');
+            // On recoverable errors, fall back to server ASR
+            try {
+              // start server-based fallback
+              usingServiceRef.current = true;
+              liveTranscriptionService.start(
+                (transcript, isFinal) => {
+                  setRecordedMessage(transcript);
+                  if (!isFinal && transcript) {
+                    setAnalysisProgress(Math.min(transcript.length * 2, 90));
+                  }
+                },
+                (error) => {
+                  logger.error('Live transcription error (fallback):', error);
+                  setTranscribeError(error);
+                }
+              );
+            } catch (e) {
+              logger.error('Failed to start fallback liveTranscriptionService', e);
+            }
+          };
+
+          recognition.onend = () => {
+            // recognition ended (user stopped or browser stopped) — leave recordedMessage as-is
+          };
+
+          recognition.start();
+        } catch (e) {
+          logger.error('Failed to initialize SpeechRecognition, falling back to server ASR', e);
+          // fallback to server ASR
+          usingServiceRef.current = true;
+          await liveTranscriptionService.start(
+            (transcript, isFinal) => {
+              setRecordedMessage(transcript);
+              if (!isFinal && transcript) {
+                setAnalysisProgress(Math.min(transcript.length * 2, 90));
+              }
+            },
+            (error) => {
+              logger.error('Live transcription error:', error);
+              setTranscribeError(error);
+            }
+          );
         }
-      );
+      } else {
+        // No SpeechRecognition support — use server ASR
+        usingServiceRef.current = true;
+        await liveTranscriptionService.start(
+          (transcript, isFinal) => {
+            setRecordedMessage(transcript);
+            if (!isFinal && transcript) {
+              setAnalysisProgress(Math.min(transcript.length * 2, 90));
+            }
+          },
+          (error) => {
+            logger.error('Live transcription error:', error);
+            setTranscribeError(error);
+          }
+        );
+      }
       
       setRecordingState('recording');
       setRecordingTime(0);
@@ -117,8 +196,19 @@ export function RecordingControls({
     setAnalysisProgress(50);
     
     try {
-      const finalTranscript = await liveTranscriptionService.stop();
-      setRecordedMessage(finalTranscript);
+      // Stop SpeechRecognition if active
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch(e) { /* noop */ }
+        recognitionRef.current = null;
+      }
+
+      // Stop server-based service only if we started it
+      let finalTranscript = recordedMessage;
+      if (usingServiceRef.current) {
+        finalTranscript = await liveTranscriptionService.stop();
+        usingServiceRef.current = false;
+      }
+      setRecordedMessage(finalTranscript || recordedMessage);
       setAnalysisProgress(100);
       
       if (aiReady && showAIFeedback && finalTranscript) {
@@ -361,6 +451,11 @@ export function RecordingControls({
           {getStatusMessage()}
         </p>
       </div>
+      {transcribeError && (
+        <div className="text-center mt-2">
+          <p className="text-xs text-destructive">Transcription: {transcribeError}</p>
+        </div>
+      )}
     </div>
   );
 }

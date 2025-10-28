@@ -9,13 +9,14 @@ export type ErrorCallback = (error: string) => void;
 
 export class LiveTranscriptionService {
   private mediaRecorder: MediaRecorder | null = null;
-  private audioChunks: Blob[] = [];
   private isRecording = false;
   private chunkInterval: number = 2000; // Send chunks every 2 seconds
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private onTranscription: TranscriptionCallback | null = null;
   private onError: ErrorCallback | null = null;
   private currentTranscript: string = '';
+  // Track pending transcribe promises so stop() can wait for them
+  private pendingTranscribes: Set<Promise<void>> = new Set();
 
   /**
    * Start live transcription
@@ -32,28 +33,54 @@ export class LiveTranscriptionService {
       // Get microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Create MediaRecorder
-      this.mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
-      });
+      // Create MediaRecorder with mimeType fallbacks and use timeslice-based chunks
+      const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        '' // let browser choose
+      ];
 
-      this.audioChunks = [];
+      let mr: MediaRecorder | null = null;
+      let lastErr: any = null;
+      for (const c of candidates) {
+        try {
+          mr = c ? new MediaRecorder(stream, { mimeType: c }) : new MediaRecorder(stream);
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+
+      if (!mr) throw lastErr || new Error('MediaRecorder not supported');
+
+      this.mediaRecorder = mr;
       this.isRecording = true;
 
-      // Handle data available event
+      // Handle data available by sending each chunk immediately
       this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
+        if (event.data && event.data.size > 0) {
+          // send chunk immediately for transcription and track the promise
+          const p = this.transcribeChunk(event.data)
+            .catch((e) => {
+              logger.error('transcribeChunk error (ondataavailable)', e);
+              if (this.onError) this.onError(e instanceof Error ? e.message : String(e));
+            })
+            .then(() => {
+              // remove from pending set when done
+              this.pendingTranscribes.delete(p);
+            });
+
+          this.pendingTranscribes.add(p);
         }
       };
 
-      // Start recording
-      this.mediaRecorder.start();
+      this.mediaRecorder.onerror = (e: any) => {
+        logger.error('MediaRecorder error', e);
+        if (this.onError) this.onError(e?.error || e?.message || 'MediaRecorder error');
+      };
 
-      // Set up interval to process chunks
-      this.intervalId = setInterval(() => {
-        this.processChunk();
-      }, this.chunkInterval);
+      // start with a timeslice so ondataavailable fires periodically
+      this.mediaRecorder.start(this.chunkInterval);
 
     } catch (error) {
       logger.error('Failed to start live transcription:', error);
@@ -63,34 +90,7 @@ export class LiveTranscriptionService {
     }
   }
 
-  /**
-   * Process and send current audio chunk for transcription
-   */
-  private async processChunk(): Promise<void> {
-    if (!this.mediaRecorder || this.audioChunks.length === 0) {
-      return;
-    }
-
-    // Stop and restart to get a chunk
-    if (this.mediaRecorder.state === 'recording') {
-      this.mediaRecorder.stop();
-
-      // Wait a bit for the data to be available
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Create blob from chunks
-      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-      this.audioChunks = [];
-
-      // Send for transcription
-      this.transcribeChunk(audioBlob);
-
-      // Restart recording if still in recording mode
-      if (this.isRecording) {
-        this.mediaRecorder.start();
-      }
-    }
-  }
+  // (processChunk was removed; timeslice ondataavailable sends chunks directly)
 
   /**
    * Send audio chunk to backend for transcription
@@ -160,9 +160,6 @@ export class LiveTranscriptionService {
       this.intervalId = null;
     }
 
-    // Process remaining chunks
-    await this.processChunk();
-
     // Stop media recorder
     if (this.mediaRecorder) {
       if (this.mediaRecorder.state !== 'inactive') {
@@ -172,6 +169,16 @@ export class LiveTranscriptionService {
       // Stop all tracks
       this.mediaRecorder.stream.getTracks().forEach(track => track.stop());
       this.mediaRecorder = null;
+    }
+
+    // Wait for any in-flight transcribeChunk requests to finish
+    if (this.pendingTranscribes.size > 0) {
+      try {
+        await Promise.all(Array.from(this.pendingTranscribes));
+      } catch (e) {
+        // individual errors were already handled per-promise; swallow here
+      }
+      this.pendingTranscribes.clear();
     }
 
     const finalTranscript = this.currentTranscript;
