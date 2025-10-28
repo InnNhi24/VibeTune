@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { supabase, Profile } from "../services/supabaseClient";
 import AuthLayout from "../components/AuthLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { Button } from "../components/ui/button";
 
 type FormState = {
   full_name: string;
@@ -150,89 +154,67 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
         </div>
       }
     >
-      {err && <div className="text-red-400 mb-4" role="alert"><p>{err}</p></div>}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tell us about you</CardTitle>
+          <CardDescription>We’ll personalize your practice plan based on your details.</CardDescription>
+        </CardHeader>
 
-      <label className="block mb-4">
-        <div className="text-sm text-neutral-300 mb-1">Full name</div>
-        <input
-          id="full_name"
-          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
-          value={form.full_name}
-          onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-        />
-      </label>
+        <CardContent>
+          {err && (
+            <div className="bg-red-50 border-l-4 border-red-400 text-red-700 p-3 mb-4 rounded-r-lg" role="alert">
+              <p>{err}</p>
+            </div>
+          )}
 
-      <label className="block mb-4">
-        <div className="text-sm text-neutral-300 mb-1">Username</div>
-        <input
-          id="username"
-          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
-          value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
-        />
-      </label>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); save(); }}>
+            <div>
+              <Label htmlFor="full_name">Full name</Label>
+              <Input id="full_name" value={form.full_name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, full_name: e.target.value })} />
+            </div>
 
-      <label className="block mb-4">
-        <div className="text-sm text-neutral-300 mb-1">Date of birth</div>
-        <input
-          id="dob"
-          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
-          type="date"
-          max={new Date().toISOString().slice(0, 10)}
-          value={form.dob}
-          onChange={(e) => setForm({ ...form, dob: e.target.value })}
-        />
-      </label>
+            <div>
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" value={form.username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, username: e.target.value })} />
+            </div>
 
-      <label className="block mb-4">
-        <div className="text-sm text-neutral-300 mb-1">Country (optional)</div>
-        <input
-          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
-          value={form.country}
-          onChange={(e) => setForm({ ...form, country: e.target.value })}
-        />
-      </label>
+            <div>
+              <Label htmlFor="dob">Date of birth</Label>
+              <Input id="dob" type="date" max={new Date().toISOString().slice(0, 10)} value={form.dob} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, dob: e.target.value })} />
+            </div>
 
-      <label className="block mb-4">
-        <div className="text-sm text-neutral-300 mb-1">Native language (optional)</div>
-        <input
-          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
-          value={form.native_language}
-          onChange={(e) => setForm({ ...form, native_language: e.target.value })}
-        />
-      </label>
+            <div>
+              <Label htmlFor="country">Country (optional)</Label>
+              <Input id="country" value={form.country} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, country: e.target.value })} />
+            </div>
 
-      <label className="block mb-4">
-        <div className="text-sm text-neutral-300 mb-1">Learning goal (optional)</div>
-        <input
-          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
-          value={form.learning_goal}
-          onChange={(e) => setForm({ ...form, learning_goal: e.target.value })}
-        />
-      </label>
+            <div>
+              <Label htmlFor="native_language">Native language (optional)</Label>
+              <Input id="native_language" value={form.native_language} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, native_language: e.target.value })} />
+            </div>
 
-      <label className="block mb-6">
-        <div className="text-sm text-neutral-300 mb-1">Timezone</div>
-        <input
-          className="w-full bg-neutral-900/60 border border-neutral-700 rounded-xl px-3 py-2 text-neutral-400 cursor-not-allowed"
-          value={form.timezone}
-          readOnly
-        />
-      </label>
+            <div>
+              <Label htmlFor="learning_goal">Learning goal (optional)</Label>
+              <Input id="learning_goal" value={form.learning_goal} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, learning_goal: e.target.value })} />
+            </div>
 
-      <div className="flex items-center justify-between">
-        <button className="btn" onClick={() => onDone(undefined)} disabled={saving}>
-          <span className="text-neutral-300 hover:text-white">Skip</span>
-        </button>
+            <div>
+              <Label htmlFor="timezone">Timezone</Label>
+              <Input id="timezone" value={form.timezone} readOnly />
+            </div>
 
-        <button
-          onClick={save}
-          disabled={saving}
-          className="bg-white text-black rounded-xl px-4 py-2 hover:bg-neutral-200 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save and continue"}
-        </button>
-      </div>
+            <div className="flex items-center justify-between pt-2">
+              <Button variant="ghost" type="button" onClick={() => onDone(undefined)} disabled={saving}>
+                Skip
+              </Button>
+
+              <Button type="submit" disabled={saving}>
+                {saving ? "Saving..." : "Save and continue"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </AuthLayout>
   );
 }
