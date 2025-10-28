@@ -267,7 +267,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                   Back
                 </Button>
 
-                <Button type="submit" disabled={saving}>
+                <Button type="submit" className="bg-accent hover:bg-accent/90 text-accent-foreground" disabled={saving}>
                   {saving ? "Saving..." : "Save and continue"}
                 </Button>
               </div>
