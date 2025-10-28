@@ -268,6 +268,23 @@ function AppContent() {
         />
       );
 
+    case "personal-info":
+      return (
+        <PersonalInfo
+          onDone={(updatedProfile) => {
+            // update store if we received profile back
+            if (updatedProfile) dispatch(appActions.setUser(updatedProfile));
+
+            if (updatedProfile?.level) {
+              setCurrentState("main-app");
+            } else {
+              setCurrentState("level-selection");
+            }
+          }}
+          onBack={() => setCurrentState("onboarding")}
+        />
+      );
+
     case "placement-test":
       if (!user) {
         setCurrentState("signin");

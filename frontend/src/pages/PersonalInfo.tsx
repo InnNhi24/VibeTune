@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { supabase } from "../services/supabaseClient";
+import { supabase, Profile } from "../services/supabaseClient";
 
 type Props = {
-  onDone: (hasLevel: boolean) => void;
+  onDone: (updatedProfile?: Profile | null) => void;
+  onBack?: () => void;
 };
 
-export default function PersonalInfo({ onDone }: Props) {
+export default function PersonalInfo({ onDone, onBack }: Props) {
   const [form, setForm] = useState({
     full_name: "",
     username: "",
@@ -27,7 +28,11 @@ export default function PersonalInfo({ onDone }: Props) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const { data, error } = await supabase.from("profiles").select("full_name, username, dob, country, native_language, learning_goal, timezone").eq("id", user.id).single();
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, username, dob, country, native_language, learning_goal, timezone")
+          .eq("id", user.id)
+          .maybeSingle();
         if (error) return;
         if (!mounted) return;
         setForm((f) => ({ ...f, ...(data || {}) }));
@@ -60,6 +65,24 @@ export default function PersonalInfo({ onDone }: Props) {
         return;
       }
 
+      // Check username uniqueness (avoid conflicting unique index errors)
+      if (form.username.trim()) {
+        const { data: existing, error: lookupErr } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("username", form.username.trim())
+          .maybeSingle();
+
+        if (lookupErr) {
+          // non-fatal: continue and let update surface any schema issues
+          console.warn("Username lookup failed:", lookupErr);
+        } else if (existing && existing.id && existing.id !== user.id) {
+          setErr("Username is already taken. Please choose a different one.");
+          setSaving(false);
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -74,18 +97,28 @@ export default function PersonalInfo({ onDone }: Props) {
         .eq("id", user.id);
 
       if (error) {
-        setErr(error.message);
+        // handle missing-column error specifically (Postgres SQLSTATE 42703)
+        if ((error as any)?.code === "42703" || String((error as any)?.message || "").toLowerCase().includes("column")) {
+          setErr("Database missing columns for Personal Info. Run the migration to add full_name/dob/timezone/etc.");
+        } else {
+          setErr(error.message || String(error));
+        }
         setSaving(false);
         return;
       }
 
-      // re-fetch level to decide where to navigate
-      const { data: p, error: selErr } = await supabase.from("profiles").select("level").eq("id", user.id).single();
-      if (selErr) {
-        // if we can't read level, assume no level and send to level selection
-        onDone(false);
+      // re-fetch full profile to decide where to navigate and return updated row
+      const { data: updatedProfile, error: selErr } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (selErr || !updatedProfile) {
+        // if we can't read updated profile, return undefined so caller falls back to level-selection
+        onDone(undefined);
       } else {
-        onDone(!!p?.level);
+        onDone(updatedProfile as Profile);
       }
     } catch (e: any) {
       setErr(e?.message || String(e));
@@ -97,7 +130,13 @@ export default function PersonalInfo({ onDone }: Props) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-card p-6 rounded-lg shadow">
-        <h2 className="text-lg font-semibold mb-4">Tell us about you</h2>
+        <div className="flex items-center justify-between mb-3">
+          <button className="text-sm text-muted-foreground underline" onClick={() => onBack?.()}>
+            Back
+          </button>
+          <h2 className="text-lg font-semibold">Tell us about you</h2>
+          <div style={{ width: 48 }} />
+        </div>
 
         {err && <div className="text-destructive mb-3">{err}</div>}
 
@@ -132,7 +171,7 @@ export default function PersonalInfo({ onDone }: Props) {
         </label>
 
         <div className="flex items-center justify-between">
-          <button className="btn btn-secondary" onClick={() => onDone(false)} disabled={saving}>
+          <button className="btn btn-secondary" onClick={() => onDone(undefined)} disabled={saving}>
             Skip
           </button>
           <button className="btn btn-primary" onClick={save} disabled={saving}>

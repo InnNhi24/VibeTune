@@ -48,14 +48,22 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, publicAnonKey,
 export interface Profile {
   id: string;
   email: string;
-  username: string;
+  username: string | null;
   level: 'Beginner' | 'Intermediate' | 'Advanced' | null;
-  placement_test_completed?: boolean;
-  placement_test_score?: number;
-  created_at: string;
+  placement_test_completed?: boolean | null;
+  placement_test_score?: number | null;
+  created_at?: string;
   last_login?: string;
-  device_id?: string;
-  avatar_url?: string;
+  device_id?: string | null;
+  avatar_url?: string | null;
+
+  // Personal info fields (added for PersonalInfo step)
+  full_name?: string | null;
+  dob?: string | null;
+  timezone?: string | null;
+  country?: string | null;
+  native_language?: string | null;
+  learning_goal?: string | null;
 }
 
 export interface Conversation {
