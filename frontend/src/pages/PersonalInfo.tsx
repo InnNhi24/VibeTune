@@ -10,7 +10,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
-import { Mic, Mail, User } from "lucide-react";
+import { Mic, Mail, User, MapPin, Globe, Book } from "lucide-react";
 
 type FormState = {
   full_name: string;
@@ -259,17 +259,26 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
 
               <div className="space-y-2">
                 <Label htmlFor="country">Country (optional)</Label>
-                <Input id="country" value={form.country} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, country: e.target.value })} />
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input id="country" placeholder="Your country" className="pl-10" value={form.country} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, country: e.target.value })} />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="native_language">Native language (optional)</Label>
-                <Input id="native_language" value={form.native_language} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, native_language: e.target.value })} />
+                <div className="relative">
+                  <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input id="native_language" placeholder="e.g. English" className="pl-10" value={form.native_language} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, native_language: e.target.value })} />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="learning_goal">Learning goal (optional)</Label>
-                <Input id="learning_goal" value={form.learning_goal} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, learning_goal: e.target.value })} />
+                <div className="relative">
+                  <Book className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input id="learning_goal" placeholder="e.g. improve clarity and rhythm" className="pl-10" value={form.learning_goal} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, learning_goal: e.target.value })} />
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-2">
