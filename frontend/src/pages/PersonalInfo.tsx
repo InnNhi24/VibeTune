@@ -263,7 +263,13 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <Button variant="link" type="button" onClick={() => onBack ? onBack() : onDone(undefined)} disabled={saving}>
+                <Button
+                  variant="link"
+                  type="button"
+                  onClick={() => (onBack ? onBack() : onDone(undefined))}
+                  disabled={saving}
+                  className="text-accent"
+                >
                   Back
                 </Button>
 
