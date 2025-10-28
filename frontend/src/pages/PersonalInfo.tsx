@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { supabase, Profile } from "../services/supabaseClient";
+import AuthLayout from "../components/AuthLayout";
+
+type FormState = {
+  full_name: string;
+  username: string;
+  dob: string;
+  country: string;
+  native_language: string;
+  learning_goal: string;
+  timezone: string;
+};
+import AuthLayout from "../components/AuthLayout";
 
 type Props = {
   onDone: (updatedProfile?: Profile | null) => void;
@@ -7,7 +19,7 @@ type Props = {
 };
 
 export default function PersonalInfo({ onDone, onBack }: Props) {
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     full_name: "",
     username: "",
     dob: "",
@@ -128,62 +140,99 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg">
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center text-xl font-bold text-gray-800 mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-1 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            </svg>
-            VibeTune
-          </div>
-          <p className="text-sm text-gray-500 mb-6">Tell us about you to start your journey!</p>
-          <div className="flex items-center w-full mb-6">
-          <button className="text-gray-500 hover:text-gray-700 mr-4" onClick={() => onBack?.()}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            </button>
-            <h2 className="text-xl font-semibold text-gray-800">Tell us about you</h2>
-          </div>
+    <AuthLayout
+      title="Tell us about you"
+      subtitle="We’ll personalize your practice plan based on your details."
+      onBack={onBack}
+      rightSlot={
+        <div>
+          <img src="/assets/auth-illustration.svg" alt="Illustration" className="w-full h-auto rounded-lg" />
         </div>
+      }
+    >
+      {err && <div className="text-red-400 mb-4" role="alert"><p>{err}</p></div>}
 
-        {err && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-4 rounded-r-lg" role="alert"><p>{err}</p></div>}
+      <label className="block mb-4">
+        <div className="text-sm text-neutral-300 mb-1">Full name</div>
+        <input
+          id="full_name"
+          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
+          value={form.full_name}
+          onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+        />
+      </label>
 
-        <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-1">Full name</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
-        </label>
+      <label className="block mb-4">
+        <div className="text-sm text-neutral-300 mb-1">Username</div>
+        <input
+          id="username"
+          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
+          value={form.username}
+          onChange={(e) => setForm({ ...form, username: e.target.value })}
+        />
+      </label>
 
-        <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-1">Username</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-        </label>
+      <label className="block mb-4">
+        <div className="text-sm text-neutral-300 mb-1">Date of birth</div>
+        <input
+          id="dob"
+          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
+          type="date"
+          max={new Date().toISOString().slice(0, 10)}
+          value={form.dob}
+          onChange={(e) => setForm({ ...form, dob: e.target.value })}
+        />
+      </label>
 
-        <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-1">Date of birth</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
-        </label>
+      <label className="block mb-4">
+        <div className="text-sm text-neutral-300 mb-1">Country (optional)</div>
+        <input
+          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
+          value={form.country}
+          onChange={(e) => setForm({ ...form, country: e.target.value })}
+        />
+      </label>
 
-        <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-1">Country (optional)</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
-        </label>
+      <label className="block mb-4">
+        <div className="text-sm text-neutral-300 mb-1">Native language (optional)</div>
+        <input
+          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
+          value={form.native_language}
+          onChange={(e) => setForm({ ...form, native_language: e.target.value })}
+        />
+      </label>
 
-        <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-1">Native language (optional)</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.native_language} onChange={(e) => setForm({ ...form, native_language: e.target.value })} />
-        </label>
+      <label className="block mb-4">
+        <div className="text-sm text-neutral-300 mb-1">Learning goal (optional)</div>
+        <input
+          className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2 focus:ring-2 focus:ring-white/20"
+          value={form.learning_goal}
+          onChange={(e) => setForm({ ...form, learning_goal: e.target.value })}
+        />
+      </label>
 
-        <label className="block mb-4">
-          <div className="text-sm font-medium text-gray-700 mb-1">Learning goal (optional)</div>
-          <input className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-purple-600 focus:border-purple-600" value={form.learning_goal} onChange={(e) => setForm({ ...form, learning_goal: e.target.value })} />
-        </label>
+      <label className="block mb-6">
+        <div className="text-sm text-neutral-300 mb-1">Timezone</div>
+        <input
+          className="w-full bg-neutral-900/60 border border-neutral-700 rounded-xl px-3 py-2 text-neutral-400 cursor-not-allowed"
+          value={form.timezone}
+          readOnly
+        />
+      </label>
 
-        <div className="mt-6">
-          <button className="w-full px-6 py-3 text-white font-semibold bg-purple-600 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 disabled:opacity-50" onClick={save} disabled={saving}>
-            {saving ? "Saving..." : "Save and continue"}
-          </button>
-        </div>
+      <div className="flex items-center justify-between">
+        <button className="btn" onClick={() => onDone(undefined)} disabled={saving}>
+          <span className="text-neutral-300 hover:text-white">Skip</span>
+        </button>
+
+        <button
+          onClick={save}
+          disabled={saving}
+          className="bg-white text-black rounded-xl px-4 py-2 hover:bg-neutral-200 disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save and continue"}
+        </button>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
