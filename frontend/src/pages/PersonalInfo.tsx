@@ -10,7 +10,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
-import { Mic } from "lucide-react";
+import { Mic, Mail, User } from "lucide-react";
 
 type FormState = {
   full_name: string;
@@ -220,20 +220,30 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
             >
               <div className="space-y-2">
                 <Label htmlFor="full_name">Full name</Label>
-                <Input
-                  id="full_name"
-                  value={form.full_name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, full_name: e.target.value })}
-                />
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="full_name"
+                    placeholder="Your full name"
+                    value={form.full_name}
+                    className="pl-10"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, full_name: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  value={form.username}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, username: e.target.value })}
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="username"
+                    placeholder="your@domain.com"
+                    value={form.username}
+                    className="pl-10"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, username: e.target.value })}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
