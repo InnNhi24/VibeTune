@@ -128,53 +128,50 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-card p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-3">
-          <button className="text-sm text-muted-foreground underline" onClick={() => onBack?.()}>
-            Back
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
+      <div className="w-full max-w-xl bg-white p-8 rounded-2xl shadow-lg mt-10">
+        <div className="flex items-center mb-8">
+          <button className="text-gray-500 hover:text-gray-700" onClick={() => onBack?.()}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
           </button>
-          <h2 className="text-lg font-semibold">Tell us about you</h2>
-          <div style={{ width: 48 }} />
+          <h2 className="text-3xl font-bold text-gray-800 ml-4">Tell us about you</h2>
+          
         </div>
 
-        {err && <div className="text-destructive mb-3">{err}</div>}
+        {err && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-4" role="alert"><p>{err}</p></div>}
 
         <label className="block mb-2">
-          <div className="text-sm text-muted-foreground mb-1">Full name</div>
-          <input className="input" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Full name</div>
+          <input className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
         </label>
 
         <label className="block mb-2">
-          <div className="text-sm text-muted-foreground mb-1">Username</div>
-          <input className="input" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Username</div>
+          <input className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
         </label>
 
         <label className="block mb-2">
-          <div className="text-sm text-muted-foreground mb-1">Date of birth</div>
-          <input className="input" type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Date of birth</div>
+          <input className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
         </label>
 
         <label className="block mb-2">
-          <div className="text-sm text-muted-foreground mb-1">Country (optional)</div>
-          <input className="input" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Country (optional)</div>
+          <input className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
         </label>
 
         <label className="block mb-2">
-          <div className="text-sm text-muted-foreground mb-1">Native language (optional)</div>
-          <input className="input" value={form.native_language} onChange={(e) => setForm({ ...form, native_language: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Native language (optional)</div>
+          <input className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.native_language} onChange={(e) => setForm({ ...form, native_language: e.target.value })} />
         </label>
 
         <label className="block mb-4">
-          <div className="text-sm text-muted-foreground mb-1">Learning goal (optional)</div>
-          <input className="input" value={form.learning_goal} onChange={(e) => setForm({ ...form, learning_goal: e.target.value })} />
+          <div className="text-sm font-medium text-gray-700 mb-1">Learning goal (optional)</div>
+          <input className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500" value={form.learning_goal} onChange={(e) => setForm({ ...form, learning_goal: e.target.value })} />
         </label>
 
-        <div className="flex items-center justify-between">
-          <button className="btn btn-secondary" onClick={() => onDone(undefined)} disabled={saving}>
-            Skip
-          </button>
-          <button className="btn btn-primary" onClick={save} disabled={saving}>
+        <div className="mt-8">
+          <button className="w-full px-6 py-3 text-white font-semibold bg-purple-600 rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50" onClick={save} disabled={saving}>
             {saving ? "Saving..." : "Save and continue"}
           </button>
         </div>
