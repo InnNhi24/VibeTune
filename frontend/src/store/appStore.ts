@@ -334,9 +334,12 @@ export const useAppStore = create<AppStore>()(
             }
             
             // Get history from server with timeout
+            // NOTE: earlier code used `session.access_token` directly which can be undefined
+            // because `SimpleAuthService.getCurrentSession()` returns a wrapper object.
+            // We computed `token2` above and must use it here.
             const fetchPromise = fetch(`/api/get-history`, {
               headers: {
-                'Authorization': `Bearer ${session.access_token}`,
+                'Authorization': `Bearer ${token2}`,
               }
             });
             

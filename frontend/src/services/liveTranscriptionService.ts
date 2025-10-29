@@ -116,7 +116,12 @@ export class LiveTranscriptionService {
       });
 
       if (!response.ok) {
-        throw new Error(`Transcription failed: ${response.status}`);
+        // read response body (may contain Deepgram/server error details) to help debugging
+        let detail = '';
+        try {
+          detail = await response.text();
+        } catch {}
+        throw new Error(`Transcription failed: ${response.status}${detail ? ' - ' + detail : ''}`);
       }
 
       const data = await response.json();

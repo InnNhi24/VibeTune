@@ -116,7 +116,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
 
   // Extract topic from user message
   const extractTopicFromMessage = (message: string): string => {
+    const trimmed = message.trim();
+    // Ignore very short messages or simple greetings as topics
+    if (trimmed.length < 6) return null as any;
     const lowerMessage = message.toLowerCase();
+    // common greetings should not be treated as topic
+    const greetings = ['hi', 'hey', 'hello', 'hii', 'hiii', 'hiya'];
+    if (greetings.includes(lowerMessage.trim())) return null as any;
     
     // Simple topic extraction based on keywords
     if (lowerMessage.includes('travel') || lowerMessage.includes('trip') || lowerMessage.includes('vacation') || lowerMessage.includes('country') || lowerMessage.includes('visit')) {
@@ -184,48 +190,51 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
     // If this is the first user message, extract topic and update conversation title
     if (waitingForTopic) {
       const extractedLabel = extractTopicFromMessage(messageText.trim());
-      const topicCode = mapTopicLabelToCode(extractedLabel);
+      // Only proceed if we were able to extract a meaningful topic label
+      if (extractedLabel) {
+        const topicCode = mapTopicLabelToCode(extractedLabel);
 
-      // Display the human-friendly label in the UI, but send topicCode to server/db
-      setCurrentTopic(extractedLabel);
-      setWaitingForTopic(false);
+        // Display the human-friendly label in the UI, but send topicCode to server/db
+        setCurrentTopic(extractedLabel);
+        setWaitingForTopic(false);
 
-      if (onTopicChange) {
-        onTopicChange(extractedLabel);
-      }
-
-      // Create a conversation immediately on topic confirmation so subsequent
-      // messages can be attached to a conversationId. Call server /api/chat
-      // with stage='topic' and use the returned conversationId to update app state.
-      try {
-        const store = useAppStore.getState();
-        const profile = store.user;
-        const payload = {
-          text: messageText.trim(),
-          stage: 'topic',
-          profileId: profile?.id || null,
-          level: safeLevel,
-          // IMPORTANT: pass normalized topic code, not free-form message text
-          topic: topicCode
-        } as any;
-
-        const resp = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.conversationId) {
-            // Set active conversation and refresh history so sidebar updates
-            store.setActiveConversation(data.conversationId);
-            // Trigger a sync to refresh conversations list
-            try { await store.syncData(); } catch (e) { /* best-effort */ }
-          }
+        if (onTopicChange) {
+          onTopicChange(extractedLabel);
         }
-      } catch (err) {
-        logger.warn('Failed to create conversation on topic confirmation', err);
+
+        // Create a conversation immediately on topic confirmation so subsequent
+        // messages can be attached to a conversationId. Call server /api/chat
+        // with stage='topic' and use the returned conversationId to update app state.
+        try {
+          const store = useAppStore.getState();
+          const profile = store.user;
+          const payload = {
+            text: messageText.trim(),
+            stage: 'topic',
+            profileId: profile?.id || null,
+            level: safeLevel,
+            // IMPORTANT: pass normalized topic code, not free-form message text
+            topic: topicCode
+          } as any;
+
+          const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.conversationId) {
+              // Set active conversation and refresh history so sidebar updates
+              store.setActiveConversation(data.conversationId);
+              // Trigger a sync to refresh conversations list
+              try { await store.syncData(); } catch (e) { /* best-effort */ }
+            }
+          }
+        } catch (err) {
+          logger.warn('Failed to create conversation on topic confirmation', err);
+        }
       }
     }
     
