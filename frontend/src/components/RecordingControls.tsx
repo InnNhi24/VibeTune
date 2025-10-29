@@ -205,9 +205,37 @@ export function RecordingControls({
       // Stop server-based service only if we started it
       let finalTranscript = recordedMessage;
       if (usingServiceRef.current) {
-        finalTranscript = await liveTranscriptionService.stop();
-        usingServiceRef.current = false;
+        try {
+          finalTranscript = await liveTranscriptionService.stop();
+        } finally {
+          usingServiceRef.current = false;
+        }
       }
+
+      // Wait briefly for mediaRecorder.onstop to set audioBlob (onstop is async)
+      const waitForBlob = async (timeout = 2000) => {
+        const start = Date.now();
+        while (!audioBlob && Date.now() - start < timeout) {
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        return audioBlob;
+      };
+
+      const blob = await waitForBlob(3000);
+      // If we have a final audio blob, try the OpenAI final transcription endpoint
+      if (blob) {
+        try {
+          const final = await liveTranscriptionService.transcribeFinal(blob);
+          if (final && final.trim()) {
+            finalTranscript = final;
+          }
+        } catch (e: any) {
+          logger.warn('Final transcription failed:', e?.message || e);
+          setTranscribeError(e?.message || String(e));
+        }
+      }
+
       setRecordedMessage(finalTranscript || recordedMessage);
       setAnalysisProgress(100);
       
