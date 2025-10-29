@@ -103,9 +103,17 @@ export class LiveTranscriptionService {
   private async transcribeChunk(audioBlob: Blob): Promise<void> {
     try {
       // Send raw blob to backend (prefer raw binary over base64)
-      // Determine a clean content-type header (strip any ;codecs=...)
+      // Use the detected mime type (including codecs) so the server/Deepgram
+      // knows the correct container and codec. Stripping codecs can make
+      // the audio appear corrupt/unsupported to the ASR service.
       const detectedMime = this.mediaMimeType || audioBlob.type || 'audio/webm';
-      const contentTypeHeader = String(detectedMime).split(';')[0];
+      const contentTypeHeader = String(detectedMime);
+
+      // Helpful debug: log the outgoing chunk size and content-type
+      try {
+        // eslint-disable-next-line no-console
+        console.debug('transcribeChunk: size=', audioBlob.size, 'content-type=', contentTypeHeader);
+      } catch (e) {}
 
       const response = await fetch('/api/live-transcribe', {
         method: 'POST',
