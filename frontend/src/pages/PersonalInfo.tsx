@@ -40,6 +40,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFileName, setAvatarFileName] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -94,58 +95,46 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
         return;
       }
 
-      // Check username uniqueness
-      if (form.username.trim()) {
-        const { data: existing, error: lookupErr } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("username", form.username.trim())
-          .maybeSingle();
+      // Use upsert so that first-time saves create a profile row if missing.
+      const payload = {
+        id: user.id,
+        full_name: form.full_name.trim(),
+        username: form.username.trim(),
+        dob: form.dob,
+        country: form.country || null,
+        native_language: form.native_language || null,
+        learning_goal: form.learning_goal || null,
+        timezone: form.timezone || null,
+      };
 
-        if (lookupErr) {
-          console.warn("Username lookup failed:", lookupErr);
-        } else if (existing && (existing as any).id && (existing as any).id !== user.id) {
-          setErr("Username is already taken. Please choose a different one.");
-          setSaving(false);
-          return;
-        }
-      }
+      // Clear previous username error
+      setUsernameError(null);
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          full_name: form.full_name.trim(),
-          username: form.username.trim(),
-          dob: form.dob,
-          country: form.country || null,
-          native_language: form.native_language || null,
-          learning_goal: form.learning_goal || null,
-          timezone: form.timezone || null,
-        })
-        .eq("id", user.id);
+      const { data: upserted, error } = await supabase
+        .from('profiles')
+        .upsert(payload, { onConflict: 'id', returning: 'representation' })
+        .select()
+        .maybeSingle();
 
       if (error) {
         // handle missing-column error (Postgres 42703)
-        if ((error as any)?.code === "42703" || /column .* does not exist/i.test(error.message || "")) {
+        if ((error as any)?.code === '42703' || /column .* does not exist/i.test(error.message || '')) {
           setErr(
-            "The project database is missing expected profile columns. Run the DB migration in supabase/sql/2025-10-29_profiles_personal_info.sql and try again."
+            'The project database is missing expected profile columns. Run the DB migration in supabase/sql/2025-10-29_profiles_personal_info.sql and try again.'
           );
+        } else if ((error as any)?.code === '23505' || /unique/i.test(error.message || '')) {
+          // unique_violation on username
+          setUsernameError('Username is already taken. Please choose a different one.');
         } else {
-          setErr(error.message || "Failed to update profile");
+          setErr(error.message || 'Failed to update profile');
         }
         setSaving(false);
         return;
       }
 
-      // refetch profile
-      const { data: newProfile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-
+      // upsert returned representation when using returning: 'representation'
       setSaving(false);
-      onDone(newProfile as Profile);
+      onDone((upserted as Profile) || undefined);
     } catch (e: any) {
       console.error("PersonalInfo save error", e);
       setErr(e?.message || String(e));
