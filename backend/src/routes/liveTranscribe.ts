@@ -1,5 +1,12 @@
 import { Request, Response } from 'express';
 
+// Narrow type for OpenAI transcription JSON to satisfy TypeScript
+type OpenAITranscriptionJSON = {
+  text?: string;
+  transcript?: string;
+  [k: string]: unknown;
+};
+
 // Migrate live transcribe to OpenAI (accept raw binary body from frontend blobs)
 const liveTranscribeRoute = async (req: Request, res: Response) => {
   try {
@@ -43,10 +50,11 @@ const liveTranscribeRoute = async (req: Request, res: Response) => {
       return res.status(502).json({ error: 'OpenAI transcription failed', detail });
     }
 
-    const json = await resp.json();
-    const text = json?.text || json?.transcript || '';
+  const json = await resp.json();
+  const result = json as OpenAITranscriptionJSON;
+  const text = result.text ?? result.transcript ?? '';
 
-    return res.status(200).json({ transcript: text, is_final: true });
+  return res.status(200).json({ transcript: text, is_final: true });
   } catch (error: any) {
     console.error('Live transcribe error:', error?.message || error);
     return res.status(500).json({ error: 'Transcription failed', details: error?.message || String(error) });
