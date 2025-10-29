@@ -11,6 +11,7 @@ export class LiveTranscriptionService {
   private mediaRecorder: MediaRecorder | null = null;
   private isRecording = false;
   private chunkInterval: number = 2000; // Send chunks every 2 seconds
+  private mediaMimeType: string | null = null;
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private onTranscription: TranscriptionCallback | null = null;
   private onError: ErrorCallback | null = null;
@@ -45,6 +46,8 @@ export class LiveTranscriptionService {
       for (const c of candidates) {
         try {
           mr = c ? new MediaRecorder(stream, { mimeType: c }) : new MediaRecorder(stream);
+          // record which mimeType succeeded (strip any codecs when sending header later)
+          this.mediaMimeType = c || null;
           break;
         } catch (e) {
           lastErr = e;
@@ -79,8 +82,10 @@ export class LiveTranscriptionService {
         if (this.onError) this.onError(e?.error || e?.message || 'MediaRecorder error');
       };
 
-      // start with a timeslice so ondataavailable fires periodically
-      this.mediaRecorder.start(this.chunkInterval);
+  // prefer smaller chunks to avoid large uploads; 1s chunks are reasonable
+  this.chunkInterval = 1000;
+  // start with a timeslice so ondataavailable fires periodically
+  this.mediaRecorder.start(this.chunkInterval);
 
     } catch (error) {
       logger.error('Failed to start live transcription:', error);
@@ -97,19 +102,17 @@ export class LiveTranscriptionService {
    */
   private async transcribeChunk(audioBlob: Blob): Promise<void> {
     try {
-      // Convert blob to base64
-      const base64Audio = await this.blobToBase64(audioBlob);
+      // Send raw blob to backend (prefer raw binary over base64)
+      // Determine a clean content-type header (strip any ;codecs=...)
+      const detectedMime = this.mediaMimeType || audioBlob.type || 'audio/webm';
+      const contentTypeHeader = String(detectedMime).split(';')[0];
 
-      // Send to backend
       const response = await fetch('/api/live-transcribe', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': contentTypeHeader,
         },
-        body: JSON.stringify({
-          audioData: base64Audio.split(',')[1], // Remove data:audio/webm;base64, prefix
-          format: 'webm'
-        })
+        body: audioBlob,
       });
 
       if (!response.ok) {
@@ -139,14 +142,7 @@ export class LiveTranscriptionService {
   /**
    * Convert Blob to base64
    */
-  private blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
+  // blobToBase64 removed: service now sends raw blobs to the server for efficiency
 
   /**
    * Stop live transcription

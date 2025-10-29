@@ -83,6 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let audioBuffer: Buffer | null = null;
     let audioUrl: string | undefined = undefined;
+  let detectedContentType: string | undefined = undefined;
 
     if (ctype.includes('application/json')) {
       // parse JSON body manually
@@ -91,6 +92,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // accept either audioBase64 or audioData (older client used audioData)
         const audioBase64 = parsed.audioBase64 || parsed.audioData || parsed.audio;
         audioUrl = parsed.audioUrl || parsed.url;
+        // detect format hint from client (e.g. 'webm' or 'wav') or explicit mime
+        if (parsed.format) {
+          const fmt = String(parsed.format).toLowerCase();
+          if (fmt === 'webm') detectedContentType = 'audio/webm';
+          else if (fmt === 'wav' || fmt === 'wave') detectedContentType = 'audio/wav';
+          else if (fmt === 'ogg') detectedContentType = 'audio/ogg';
+        }
+        if (parsed.contentType) {
+          detectedContentType = String(parsed.contentType);
+        }
         if (audioBase64) {
           const base = String(audioBase64).split('base64,').pop() || audioBase64;
           audioBuffer = Buffer.from(base, 'base64');
@@ -121,7 +132,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let resp: Response;
     if (audioBuffer) {
       // send raw audio bytes to Deepgram
-      const contentType = req.headers['content-type'] || 'audio/webm';
+      // prefer detectedContentType (from parsed format) for JSON uploads
+      const contentType = detectedContentType || req.headers['content-type'] || 'audio/webm';
       resp = await fetch(endpoint, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': String(contentType) },
