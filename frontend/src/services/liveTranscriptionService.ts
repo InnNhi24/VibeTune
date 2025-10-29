@@ -4,6 +4,11 @@
  */
 import logger from '../utils/logger';
 
+// When set to 'openai-final' we disable live chunking and rely on final-file
+// transcription via `/api/transcribe`. This prevents the legacy Deepgram
+// chunk-path from being used and avoids payload mismatches.
+const PROVIDER = (import.meta.env.VITE_STT_PROVIDER as string) ?? 'openai-final';
+
 export type TranscriptionCallback = (text: string, isFinal: boolean) => void;
 export type ErrorCallback = (error: string) => void;
 
@@ -29,7 +34,12 @@ export class LiveTranscriptionService {
     this.onTranscription = onTranscription;
     this.onError = onError || null;
     this.currentTranscript = '';
-
+    if (PROVIDER === 'openai-final') {
+      // No-op: we don't start chunked uploads when using final-file OpenAI provider.
+      logger.info('LiveTranscriptionService: provider=openai-final — start() no-op (chunking disabled)');
+      this.isRecording = true;
+      return;
+    }
     try {
       // Get microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -101,6 +111,10 @@ export class LiveTranscriptionService {
    * Send audio chunk to backend for transcription
    */
   private async transcribeChunk(audioBlob: Blob): Promise<void> {
+    if (PROVIDER === 'openai-final') {
+      // Chunking disabled for openai-final provider — skip sending
+      return;
+    }
     try {
       // Send raw blob to backend (prefer raw binary over base64)
       // Use the detected mime type (including codecs) so the server/Deepgram
@@ -161,6 +175,17 @@ export class LiveTranscriptionService {
    * Stop live transcription
    */
   async stop(): Promise<string> {
+    // If chunking disabled, simply mark stopped and return current transcript
+    if (PROVIDER === 'openai-final') {
+      this.isRecording = false;
+      // Clear any interval if set
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      }
+      return this.currentTranscript;
+    }
+
     this.isRecording = false;
 
     // Clear interval
@@ -194,6 +219,33 @@ export class LiveTranscriptionService {
     this.currentTranscript = '';
 
     return finalTranscript;
+  }
+
+  /**
+   * Send a final recording blob to the server for an accurate transcription
+   */
+  async transcribeFinal(audioBlob: Blob): Promise<string> {
+    try {
+      const contentType = audioBlob.type || 'audio/webm';
+      const resp = await fetch('/api/transcribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': contentType
+        },
+        body: audioBlob
+      });
+
+      if (!resp.ok) {
+        const detail = await resp.text();
+        throw new Error(`Final transcription failed: ${resp.status} - ${detail}`);
+      }
+
+      const json = await resp.json();
+      return String(json.text || json.transcript || '');
+    } catch (e: any) {
+      logger.error('transcribeFinal error', e);
+      throw e;
+    }
   }
 
   /**
