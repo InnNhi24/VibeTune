@@ -30,6 +30,10 @@ export function RecordingControls({
   const [isPlaying, setIsPlaying] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [aiReady, setAiReady] = useState(false);
+  const [srFailures, setSrFailures] = useState(0);
+  const srFailuresRef = useRef(0);
+  const [listeningHint, setListeningHint] = useState<string | null>(null);
+  const disableBrowserSRRef = useRef(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
@@ -101,6 +105,14 @@ export function RecordingControls({
           recognition.interimResults = true;
           recognition.continuous = true;
 
+          recognition.onstart = () => {
+            // reset failure counters when recognition starts
+            srFailuresRef.current = 0;
+            setSrFailures(0);
+            setTranscribeError(null);
+            setListeningHint('🎙️ Listening... Please speak clearly.');
+          };
+
           recognition.onresult = (event: any) => {
             let interim = '';
             let final = '';
@@ -115,29 +127,65 @@ export function RecordingControls({
             if (!event.isFinal && combined) {
               setAnalysisProgress(Math.min(combined.length * 2, 90));
             }
+
+            // successful result -> reset failures/hint
+            srFailuresRef.current = 0;
+            setSrFailures(0);
+            setListeningHint(null);
           };
 
           recognition.onerror = (ev: any) => {
-            logger.error('SpeechRecognition error', ev);
-            setTranscribeError(ev?.error || 'Speech recognition error');
-            // On recoverable errors, fall back to server ASR
-            try {
-              // start server-based fallback
-              usingServiceRef.current = true;
-              liveTranscriptionService.start(
-                (transcript, isFinal) => {
-                  setRecordedMessage(transcript);
-                  if (!isFinal && transcript) {
-                    setAnalysisProgress(Math.min(transcript.length * 2, 90));
+            logger.warn('SpeechRecognition error', ev);
+            const err = ev?.error;
+
+            if (err === 'no-speech') {
+              // Increment and track failures (use ref to avoid stale closure)
+              srFailuresRef.current += 1;
+              setSrFailures(srFailuresRef.current);
+
+              if (srFailuresRef.current < 3) {
+                setListeningHint('🎙️ I didn\'t catch that — please speak again.');
+                // gentle auto-retry once after short pause
+                setTimeout(() => {
+                  try { recognitionRef.current?.start(); } catch (e) { /* noop */ }
+                }, 1000);
+              } else {
+                // Too many failures: stop SR and fallback to final-file transcription
+                setListeningHint('Mic not cooperating — switching to server transcription.');
+                setTranscribeError('Using server transcription due to repeated recognition failures.');
+                try { recognitionRef.current?.stop(); } catch (e) { /* noop */ }
+                recognitionRef.current = null;
+                disableBrowserSRRef.current = true;
+                // ensure we don't start server chunking fallback; final-file will be used on Stop
+                usingServiceRef.current = false;
+              }
+
+              return;
+            }
+
+            // Other errors: surface message and optionally start fallback if configured
+            setTranscribeError(ev?.message || err || 'Speech recognition error');
+            logger.error('SpeechRecognition error (non no-speech):', ev);
+
+            // If configured to use server ASR chunks, start fallback service
+            if (!disableBrowserSRRef.current) {
+              try {
+                usingServiceRef.current = true;
+                liveTranscriptionService.start(
+                  (transcript, isFinal) => {
+                    setRecordedMessage(transcript);
+                    if (!isFinal && transcript) {
+                      setAnalysisProgress(Math.min(transcript.length * 2, 90));
+                    }
+                  },
+                  (error) => {
+                    logger.error('Live transcription error (fallback):', error);
+                    setTranscribeError(error);
                   }
-                },
-                (error) => {
-                  logger.error('Live transcription error (fallback):', error);
-                  setTranscribeError(error);
-                }
-              );
-            } catch (e) {
-              logger.error('Failed to start fallback liveTranscriptionService', e);
+                );
+              } catch (e) {
+                logger.error('Failed to start fallback liveTranscriptionService', e);
+              }
             }
           };
 
@@ -479,6 +527,11 @@ export function RecordingControls({
           {getStatusMessage()}
         </p>
       </div>
+      {listeningHint && (
+        <div className="text-center mt-2">
+          <p className="text-xs text-muted-foreground">{listeningHint}</p>
+        </div>
+      )}
       {transcribeError && (
         <div className="text-center mt-2">
           <p className="text-xs text-destructive">Transcription: {transcribeError}</p>
