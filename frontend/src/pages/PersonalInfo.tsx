@@ -95,9 +95,21 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
         return;
       }
 
+        // Block if the authenticated user doesn't have an email address.
+        // The `profiles.email` column is NOT NULL in the DB; sending null will cause a 23502 error.
+        if (!user.email) {
+          setErr(
+            "Your account does not have an email address. Please sign in with an email provider or add an email to your account before saving your profile."
+          );
+          setSaving(false);
+          return;
+        }
+
       // Use upsert so that first-time saves create a profile row if missing.
       const payload = {
         id: user.id,
+        // ensure email is present when inserting a new profile row (profiles.email is NOT NULL)
+        email: (user.email as string) || null,
         full_name: form.full_name.trim(),
         username: form.username.trim(),
         dob: form.dob,
@@ -122,6 +134,9 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
           setErr(
             'The project database is missing expected profile columns. Run the DB migration in supabase/sql/2025-10-29_profiles_personal_info.sql and try again.'
           );
+        } else if ((error as any)?.code === '23502' || /null value in column .* violates not-null constraint/i.test(error.message || '')) {
+          // not-null violation (e.g. email column required)
+          setErr('A required profile field is missing (for example: email). Please ensure your account has an email address and try again.');
         } else if ((error as any)?.code === '23505' || /unique/i.test(error.message || '')) {
           // unique_violation on username
           setUsernameError('Username is already taken. Please choose a different one.');
