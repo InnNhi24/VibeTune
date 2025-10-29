@@ -105,11 +105,29 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
           return;
         }
 
+      // Try to read existing profile email from DB (use it if present). This
+      // handles cases where the auth user object has no email but the profiles
+      // table already contains a verified email (e.g., created during signup).
+      let existingProfileEmail: string | null = null;
+      try {
+        const { data: existing, error: fetchErr } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (!fetchErr && existing && (existing as any).email) {
+          existingProfileEmail = (existing as any).email as string;
+        }
+      } catch (e) {
+        // ignore - we'll fall back to user.email below
+      }
+
       // Use upsert so that first-time saves create a profile row if missing.
       const payload = {
         id: user.id,
-        // ensure email is present when inserting a new profile row (profiles.email is NOT NULL)
-        email: (user.email as string) || null,
+        // prefer the email already stored in profiles, otherwise use the auth user email
+        email: existingProfileEmail || (user.email as string) || null,
         full_name: form.full_name.trim(),
         username: form.username.trim(),
         dob: form.dob,
