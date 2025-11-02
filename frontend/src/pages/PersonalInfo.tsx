@@ -8,13 +8,16 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Input } from "../components/ui/input";
+import { Popover, PopoverTrigger, PopoverContent } from "../components/ui/popover";
 import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "../components/ui/select";
+  Command,
+  CommandInput,
+  CommandList,
+  CommandItem,
+  CommandEmpty,
+  CommandGroup,
+} from "../components/ui/command";
+import { SelectTrigger, SelectValue } from "../components/ui/select";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Mic, Mail, User, MapPin, Globe, Book } from "lucide-react";
@@ -291,35 +294,34 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                 <div className="relative">
                   <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <div className="pl-10">
-                    <Select value={form.country || ""} onValueChange={(val: string) => setForm({ ...form, country: val })}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select your country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {/* A concise list of commonly selected countries; add more if desired */}
-                        <SelectItem value="United States">United States</SelectItem>
-                        <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                        <SelectItem value="Canada">Canada</SelectItem>
-                        <SelectItem value="Australia">Australia</SelectItem>
-                        <SelectItem value="India">India</SelectItem>
-                        <SelectItem value="Philippines">Philippines</SelectItem>
-                        <SelectItem value="Singapore">Singapore</SelectItem>
-                        <SelectItem value="United Arab Emirates">United Arab Emirates</SelectItem>
-                        <SelectItem value="Germany">Germany</SelectItem>
-                        <SelectItem value="France">France</SelectItem>
-                        <SelectItem value="Spain">Spain</SelectItem>
-                        <SelectItem value="Italy">Italy</SelectItem>
-                        <SelectItem value="Netherlands">Netherlands</SelectItem>
-                        <SelectItem value="Brazil">Brazil</SelectItem>
-                        <SelectItem value="Mexico">Mexico</SelectItem>
-                        <SelectItem value="Japan">Japan</SelectItem>
-                        <SelectItem value="South Korea">South Korea</SelectItem>
-                        <SelectItem value="China">China</SelectItem>
-                        <SelectItem value="Thailand">Thailand</SelectItem>
-                        <SelectItem value="Vietnam">Vietnam</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {/* Combobox: popover + command (searchable list) */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button type="button" className="w-full">
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder={form.country || "Select your country"} />
+                          </SelectTrigger>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full">
+                        <Command>
+                          <CommandInput placeholder="Search or type to filter countries..." />
+                          <CommandList>
+                            <CommandEmpty>No country found.</CommandEmpty>
+                            <CommandGroup>
+                              {[
+                                'United States','United Kingdom','Canada','Australia','India','Philippines','Singapore','United Arab Emirates','Germany','France','Spain','Italy','Netherlands','Brazil','Mexico','Japan','South Korea','China','Thailand','Vietnam'
+                              ].map((c) => (
+                                <CommandItem key={c} onSelect={() => setForm({ ...form, country: c })}>
+                                  {c}
+                                </CommandItem>
+                              ))}
+                              <CommandItem onSelect={() => setForm({ ...form, country: 'Other' })}>Other</CommandItem>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               </div>
