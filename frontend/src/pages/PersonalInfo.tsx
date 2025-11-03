@@ -17,7 +17,6 @@ import {
   CommandEmpty,
   CommandGroup,
 } from "../components/ui/command";
-import { SelectTrigger, SelectValue } from "../components/ui/select";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Mic, Mail, User, MapPin, Globe, Book } from "lucide-react";
@@ -297,10 +296,11 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                     {/* Combobox: popover + command (searchable list) */}
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button type="button" className="w-full">
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder={form.country || "Select your country"} />
-                          </SelectTrigger>
+                        <button
+                          type="button"
+                          className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base bg-input-background transition-[color,box-shadow] outline-none text-left"
+                        >
+                          <span className={`${form.country ? 'text-foreground' : 'text-muted-foreground'} text-sm`}>{form.country || 'Select your country'}</span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-full">
