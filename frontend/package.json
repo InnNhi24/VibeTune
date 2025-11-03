@@ -39,7 +39,7 @@
             "framer-motion": "^11.0.0",
             "input-otp": "^1.4.2",
             "lucide-react": "^0.487.0",
-            "world-countries": "^1.9.0",
+            "world-countries": "^1.8.1",
             "next-themes": "^0.4.6",
             "react": "^18.3.1",
             "react-day-picker": "^8.10.1",
