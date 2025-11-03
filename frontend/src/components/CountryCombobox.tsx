@@ -102,7 +102,10 @@ export default function CountryCombobox({
       </PopoverTrigger>
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 overflow-hidden">
+      <PopoverContent
+        className="country-popover w-[--radix-popover-trigger-width] p-0"
+        style={{ overflow: "hidden", maxHeight: "60vh" }}
+      >
         <Command shouldFilter={false}>
           <div className="p-2">
             <Input
@@ -131,8 +134,8 @@ export default function CountryCombobox({
           <CommandEmpty>No country found.</CommandEmpty>
 
           {/* ScrollArea ensures the popover doesn't grow beyond max height */}
-          <ScrollArea className="max-h-64">
-            <CommandList>
+          <ScrollArea style={{ maxHeight: "16rem" }} className="max-h-64">
+            <CommandList className="!overflow-visible !max-h-none">
               {Object.entries(grouped).map(([letter, list]) => (
                 <div key={letter}>
                   <div ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)} className="px-2 py-1 text-xs font-medium text-muted-foreground">
