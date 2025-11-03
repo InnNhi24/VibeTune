@@ -15,6 +15,7 @@ import {
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { COUNTRY_LIST, type Country } from "../lib/countries";
+import { ScrollArea } from "../components/ui/scroll-area";
 
 type Props = {
   value?: string;
@@ -64,16 +65,13 @@ export default function CountryCombobox({
     return sorted;
   }, [filtered]);
 
-  const listRef = React.useRef<HTMLDivElement | null>(null);
   const headingRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
 
   const scrollToLetter = (letter: string) => {
     const el = headingRefs.current[letter];
-    const list = listRef.current;
-    if (el && list) {
-      // scroll the container so that the heading is visible at top
-      const offset = el.offsetTop;
-      list.scrollTo({ top: offset - 4, behavior: "smooth" });
+    if (el) {
+      // scroll the heading into view inside the ScrollArea viewport
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -104,7 +102,7 @@ export default function CountryCombobox({
       </PopoverTrigger>
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 overflow-hidden">
         <Command shouldFilter={false}>
           <div className="p-2">
             <Input
@@ -132,31 +130,34 @@ export default function CountryCombobox({
 
           <CommandEmpty>No country found.</CommandEmpty>
 
-          <CommandList className="max-h-64 overflow-y-auto" ref={(el: any) => (listRef.current = el)}>
-            {Object.entries(grouped).map(([letter, list]) => (
-              <div key={letter}>
-                <div ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)} className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                  {letter}
+          {/* ScrollArea ensures the popover doesn't grow beyond max height */}
+          <ScrollArea className="max-h-64">
+            <CommandList>
+              {Object.entries(grouped).map(([letter, list]) => (
+                <div key={letter}>
+                  <div ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)} className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                    {letter}
+                  </div>
+                  <CommandGroup>
+                    {list.map((c) => (
+                      <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
+                        <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
+                        {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
+                        <span className="truncate">{c.name}</span>
+                        <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
                 </div>
-                <CommandGroup>
-                  {list.map((c) => (
-                    <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
-                      <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
-                      {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
-                      <span className="truncate">{c.name}</span>
-                      <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </div>
-            ))}
+              ))}
 
-            {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
-              <CommandItem onSelect={() => selectCountry(input.trim())}>
-                Use “{input.trim()}”
-              </CommandItem>
-            )}
-          </CommandList>
+              {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
+                <CommandItem onSelect={() => selectCountry(input.trim())}>
+                  Use “{input.trim()}”
+                </CommandItem>
+              )}
+            </CommandList>
+          </ScrollArea>
         </Command>
       </PopoverContent>
     </Popover>
