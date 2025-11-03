@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase, Profile } from "../services/supabaseClient";
 import {
   Card,
@@ -53,6 +53,9 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFileName, setAvatarFileName] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const commandInputRef = useRef<HTMLInputElement | null>(null);
+  const commandListRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +89,52 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
       mounted = false;
     };
   }, []);
+
+  // Focus and scroll management for the country combobox
+  useEffect(() => {
+    if (!countryOpen) return;
+
+    // When opened, try to focus the command input and reset list scroll
+    const focusTimeout = setTimeout(() => {
+      const input = document.querySelector('[data-slot="command-input"]') as HTMLInputElement | null;
+      const list = document.querySelector('[data-slot="command-list"]') as HTMLElement | null;
+
+      if (input) {
+        try {
+          input.focus({ preventScroll: true });
+        } catch (e) {
+          input.focus();
+        }
+      }
+
+      if (list) {
+        list.scrollTop = 0;
+      }
+
+      // when typing, keep the list scrolled to top so filtered results appear from the top
+      const onInput = () => {
+        if (list) list.scrollTop = 0;
+      };
+
+      input?.addEventListener("input", onInput);
+
+      // observe selection changes and scroll the selected item into view
+      const mo = new MutationObserver(() => {
+        if (!list) return;
+        const sel = list.querySelector('[data-selected="true"]') as HTMLElement | null;
+        if (sel) sel.scrollIntoView({ block: "nearest" });
+      });
+
+      if (list) mo.observe(list, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-selected"] });
+
+      return () => {
+        input?.removeEventListener("input", onInput);
+        mo.disconnect();
+      };
+    }, 0);
+
+    return () => clearTimeout(focusTimeout);
+  }, [countryOpen]);
 
   const save = async () => {
     setErr(null);
@@ -294,7 +343,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                   <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <div className="pl-10">
                     {/* Combobox: popover + command (searchable list) */}
-                    <Popover>
+                    <Popover open={countryOpen} onOpenChange={setCountryOpen}>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
@@ -305,18 +354,41 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                       </PopoverTrigger>
                       <PopoverContent className="w-full bg-popover text-popover-foreground rounded-md border shadow-md p-2">
                         <Command>
-                          <CommandInput autoFocus placeholder="Search or type to filter countries..." />
-                          <CommandList>
+                          <CommandInput
+                            placeholder="Search or type to filter countries..."
+                            ref={(el: any) => {
+                              // prefer forwarded ref if available, otherwise store the DOM input
+                              commandInputRef.current = document.querySelector('[data-slot="command-input"]') as HTMLInputElement | null || el;
+                            }}
+                          />
+                          <CommandList
+                            ref={(el: any) => {
+                              commandListRef.current = document.querySelector('[data-slot="command-list"]') as HTMLElement | null || el;
+                            }}
+                          >
                             <CommandEmpty>No country found.</CommandEmpty>
                             <CommandGroup>
                               {[
                                 'United States','United Kingdom','Canada','Australia','India','Philippines','Singapore','United Arab Emirates','Germany','France','Spain','Italy','Netherlands','Brazil','Mexico','Japan','South Korea','China','Thailand','Vietnam'
                               ].map((c) => (
-                                <CommandItem key={c} onSelect={() => setForm({ ...form, country: c })}>
+                                <CommandItem
+                                  key={c}
+                                  onSelect={() => {
+                                    setForm({ ...form, country: c });
+                                    setCountryOpen(false);
+                                  }}
+                                >
                                   {c}
                                 </CommandItem>
                               ))}
-                              <CommandItem onSelect={() => setForm({ ...form, country: 'Other' })}>Other</CommandItem>
+                              <CommandItem
+                                onSelect={() => {
+                                  setForm({ ...form, country: "Other" });
+                                  setCountryOpen(false);
+                                }}
+                              >
+                                Other
+                              </CommandItem>
                             </CommandGroup>
                           </CommandList>
                         </Command>
