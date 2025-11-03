@@ -303,9 +303,9 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                           <span className={`${form.country ? 'text-foreground' : 'text-muted-foreground'} text-sm`}>{form.country || 'Select your country'}</span>
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full">
+                      <PopoverContent className="w-full bg-popover text-popover-foreground rounded-md border shadow-md p-2">
                         <Command>
-                          <CommandInput placeholder="Search or type to filter countries..." />
+                          <CommandInput autoFocus placeholder="Search or type to filter countries..." />
                           <CommandList>
                             <CommandEmpty>No country found.</CommandEmpty>
                             <CommandGroup>
