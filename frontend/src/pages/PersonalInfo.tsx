@@ -18,6 +18,7 @@ import {
   CommandGroup,
 } from "../components/ui/command";
 import { Label } from "../components/ui/label";
+import CountryCombobox from "../components/CountryCombobox";
 import { Button } from "../components/ui/button";
 import { Mic, Mail, User, MapPin, Globe, Book } from "lucide-react";
 
@@ -342,57 +343,13 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                 <div className="relative">
                   <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <div className="pl-10">
-                    {/* Combobox: popover + command (searchable list) */}
-                    <Popover open={countryOpen} onOpenChange={setCountryOpen}>
-                      <PopoverTrigger asChild>
-                        <button
-                          type="button"
-                          className="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base bg-input-background transition-[color,box-shadow] outline-none text-left"
-                        >
-                          <span className={`${form.country ? 'text-foreground' : 'text-muted-foreground'} text-sm`}>{form.country || 'Select your country'}</span>
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full bg-popover text-popover-foreground rounded-md border shadow-md p-2">
-                        <Command>
-                          <CommandInput
-                            placeholder="Search or type to filter countries..."
-                            ref={(el: any) => {
-                              commandInputRef.current = el;
-                            }}
-                          />
-                          <CommandList
-                            ref={(el: any) => {
-                              commandListRef.current = el;
-                            }}
-                          >
-                            <CommandEmpty>No country found.</CommandEmpty>
-                            <CommandGroup>
-                              {[
-                                'United States','United Kingdom','Canada','Australia','India','Philippines','Singapore','United Arab Emirates','Germany','France','Spain','Italy','Netherlands','Brazil','Mexico','Japan','South Korea','China','Thailand','Vietnam'
-                              ].map((c) => (
-                                <CommandItem
-                                  key={c}
-                                  onSelect={() => {
-                                    setForm({ ...form, country: c });
-                                    setCountryOpen(false);
-                                  }}
-                                >
-                                  {c}
-                                </CommandItem>
-                              ))}
-                              <CommandItem
-                                onSelect={() => {
-                                  setForm({ ...form, country: "Other" });
-                                  setCountryOpen(false);
-                                }}
-                              >
-                                Other
-                              </CommandItem>
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    {/* Combobox: Popover + Command implementation (CountryCombobox) */}
+                    <CountryCombobox
+                      value={form.country}
+                      onChange={(v: string) => setForm({ ...form, country: v })}
+                      placeholder="Select or type your country"
+                      allowCustom={true}
+                    />
                   </div>
                 </div>
               </div>
