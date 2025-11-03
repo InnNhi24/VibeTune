@@ -46,6 +46,37 @@ export default function CountryCombobox({
     );
   }, [input]);
 
+  // Group countries by first letter for alphabetical navigation
+  const grouped = React.useMemo(() => {
+    const groups: Record<string, Country[]> = {};
+    (filtered.length ? filtered : COUNTRY_LIST).forEach((c) => {
+      const letter = (c.name[0] || "").toUpperCase();
+      if (!groups[letter]) groups[letter] = [];
+      groups[letter].push(c);
+    });
+    // sort letters
+    const sorted: Record<string, Country[]> = {};
+    Object.keys(groups)
+      .sort()
+      .forEach((k) => {
+        sorted[k] = groups[k];
+      });
+    return sorted;
+  }, [filtered]);
+
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const headingRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+
+  const scrollToLetter = (letter: string) => {
+    const el = headingRefs.current[letter];
+    const list = listRef.current;
+    if (el && list) {
+      // scroll the container so that the heading is visible at top
+      const offset = el.offsetTop;
+      list.scrollTo({ top: offset - 4, behavior: "smooth" });
+    }
+  };
+
   const selectCountry = (cname: string) => {
     onChange(cname);
     setInput(cname);
@@ -83,34 +114,48 @@ export default function CountryCombobox({
               onKeyDown={handleFreeEnter}
               placeholder="Type to search or press Enter to use text"
             />
+
+            {/* Alphabet quick-jump */}
+            <div className="mt-2 mb-1 flex flex-wrap gap-1 text-xs">
+              {Object.keys(grouped).map((letter) => (
+                <button
+                  key={letter}
+                  type="button"
+                  className="h-6 w-6 rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center"
+                  onClick={() => scrollToLetter(letter)}
+                >
+                  {letter}
+                </button>
+              ))}
+            </div>
           </div>
 
           <CommandEmpty>No country found.</CommandEmpty>
 
-          <CommandList className="max-h-64 overflow-y-auto">
-            <CommandGroup>
-              {filtered.map((c) => (
-                <CommandItem
-                  key={c.cca3}
-                  value={c.name}
-                  onSelect={() => selectCountry(c.name)}
-                  className="cursor-pointer"
-                >
-                  <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
-                  {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
-                  <span className="truncate">{c.name}</span>
-                  <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
-                </CommandItem>
-              ))}
+          <CommandList className="max-h-64 overflow-y-auto" ref={(el: any) => (listRef.current = el)}>
+            {Object.entries(grouped).map(([letter, list]) => (
+              <div key={letter}>
+                <div ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)} className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                  {letter}
+                </div>
+                <CommandGroup>
+                  {list.map((c) => (
+                    <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
+                      <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
+                      {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
+                      <span className="truncate">{c.name}</span>
+                      <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </div>
+            ))}
 
-              {allowCustom &&
-                input.trim() &&
-                !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
-                  <CommandItem onSelect={() => selectCountry(input.trim())}>
-                    Use “{input.trim()}”
-                  </CommandItem>
-                )}
-            </CommandGroup>
+            {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
+              <CommandItem onSelect={() => selectCountry(input.trim())}>
+                Use “{input.trim()}”
+              </CommandItem>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
