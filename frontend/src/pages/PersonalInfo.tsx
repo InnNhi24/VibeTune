@@ -96,8 +96,8 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
 
     // When opened, try to focus the command input and reset list scroll
     const focusTimeout = setTimeout(() => {
-      const input = document.querySelector('[data-slot="command-input"]') as HTMLInputElement | null;
-      const list = document.querySelector('[data-slot="command-list"]') as HTMLElement | null;
+      const input = commandInputRef.current;
+      const list = commandListRef.current;
 
       if (input) {
         try {
@@ -357,13 +357,12 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                           <CommandInput
                             placeholder="Search or type to filter countries..."
                             ref={(el: any) => {
-                              // prefer forwarded ref if available, otherwise store the DOM input
-                              commandInputRef.current = document.querySelector('[data-slot="command-input"]') as HTMLInputElement | null || el;
+                              commandInputRef.current = el;
                             }}
                           />
                           <CommandList
                             ref={(el: any) => {
-                              commandListRef.current = document.querySelector('[data-slot="command-list"]') as HTMLElement | null || el;
+                              commandListRef.current = el;
                             }}
                           >
                             <CommandEmpty>No country found.</CommandEmpty>
