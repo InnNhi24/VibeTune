@@ -14,16 +14,14 @@ import {
 } from "../components/ui/command";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-
-const COUNTRIES = [
-  "United States","United Kingdom","Canada","Australia","India","Philippines","Singapore","United Arab Emirates","Germany","France","Spain","Italy","Netherlands","Brazil","Mexico","Japan","South Korea","China","Thailand","Vietnam"
-];
+import { COUNTRY_LIST, type Country } from "../lib/countries";
 
 type Props = {
   value?: string;
   onChange: (val: string) => void;
   placeholder?: string;
   allowCustom?: boolean;
+  showFlags?: boolean;
 };
 
 export default function CountryCombobox({
@@ -31,6 +29,7 @@ export default function CountryCombobox({
   onChange,
   placeholder = "Select or type a country...",
   allowCustom = true,
+  showFlags = true,
 }: Props) {
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState(value ?? "");
@@ -39,15 +38,17 @@ export default function CountryCombobox({
     setInput(value ?? "");
   }, [value]);
 
-  const filtered = React.useMemo(() => {
+  const filtered: Country[] = React.useMemo(() => {
     const q = input.trim().toLowerCase();
-    if (!q) return COUNTRIES;
-    return COUNTRIES.filter((c) => c.toLowerCase().includes(q));
+    if (!q) return COUNTRY_LIST;
+    return COUNTRY_LIST.filter((c) =>
+      c.name.toLowerCase().includes(q) || c.cca2.toLowerCase() === q || c.cca3.toLowerCase() === q
+    );
   }, [input]);
 
-  const selectCountry = (c: string) => {
-    onChange(c);
-    setInput(c);
+  const selectCountry = (cname: string) => {
+    onChange(cname);
+    setInput(cname);
     setOpen(false);
   };
 
@@ -65,12 +66,13 @@ export default function CountryCombobox({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between text-left">
-          <span className={cn(value && value.length > 0 ? "text-foreground" : "text-muted-foreground", "truncate")}>{value && value.length > 0 ? value : (placeholder || "Country")}</span>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+          {value && value.length > 0 ? value : (placeholder || "Country")}
           <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
 
+      {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command shouldFilter={false}>
           <div className="p-2">
@@ -84,21 +86,32 @@ export default function CountryCombobox({
           </div>
 
           <CommandEmpty>No country found.</CommandEmpty>
-          <CommandGroup>
-            <CommandList>
+
+          <CommandList className="max-h-64 overflow-y-auto">
+            <CommandGroup>
               {filtered.map((c) => (
-                <CommandItem key={c} onSelect={() => selectCountry(c)} className="cursor-pointer">
-                  <Check className={cn("mr-2 h-4 w-4", value === c ? "opacity-100" : "opacity-0")} />
-                  {c}
+                <CommandItem
+                  key={c.cca3}
+                  value={c.name}
+                  onSelect={() => selectCountry(c.name)}
+                  className="cursor-pointer"
+                >
+                  <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
+                  {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
+                  <span className="truncate">{c.name}</span>
+                  <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
                 </CommandItem>
               ))}
-              {allowCustom && input.trim() && !COUNTRIES.some((c) => c.toLowerCase() === input.trim().toLowerCase()) && (
-                <CommandItem onSelect={() => selectCountry(input.trim())}>
-                  Use "{input.trim()}"
-                </CommandItem>
-              )}
-            </CommandList>
-          </CommandGroup>
+
+              {allowCustom &&
+                input.trim() &&
+                !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
+                  <CommandItem onSelect={() => selectCountry(input.trim())}>
+                    Use “{input.trim()}”
+                  </CommandItem>
+                )}
+            </CommandGroup>
+          </CommandList>
         </Command>
       </PopoverContent>
     </Popover>
