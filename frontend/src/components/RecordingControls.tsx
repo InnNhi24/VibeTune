@@ -41,6 +41,16 @@ export function RecordingControls({
   const recognitionRef = useRef<any>(null);
   const usingServiceRef = useRef<boolean>(false);
   const [transcribeError, setTranscribeError] = useState<string | null>(null);
+  // Hold cumulative final transcript separately from interim
+  const finalRef = useRef<string>("");
+  const [interim, setInterim] = useState<string>("");
+  const [view, setView] = useState<string>("");
+  // Track stop reason to avoid unintended restarts/reset on browser timeouts
+  const stopReasonRef = useRef<'user' | 'timeout'>('user');
+  // limit automatic retries for no-speech
+  const noSpeechRetriesRef = useRef<number>(0);
+  // maximum retries for no-speech before treating as timeout
+  const MAX_NO_SPEECH_RETRIES = 1;
 
   // Check AI service status (use prop as a hint whether AI features should be shown)
   useEffect(() => {
@@ -76,6 +86,11 @@ export function RecordingControls({
     if (disabled) return;
     
     try {
+      // reset transient transcript state for a fresh recording
+      finalRef.current = "";
+      setInterim("");
+      setView("");
+      setRecordedMessage("");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -111,21 +126,31 @@ export function RecordingControls({
             setSrFailures(0);
             setTranscribeError(null);
             setListeningHint('🎙️ Listening... Please speak clearly.');
+            stopReasonRef.current = 'user'; // Mark stopReason as 'user'
+            // do not clear finalRef here - preserve previous finalized transcript
           };
 
           recognition.onresult = (event: any) => {
-            let interim = '';
-            let final = '';
+            let interimText = '';
+            let finalText = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
               const res = event.results[i];
-              if (res.isFinal) final += res[0].transcript + ' ';
-              else interim += res[0].transcript;
+              const t = res[0]?.transcript || '';
+              if (res.isFinal) finalText += t + ' ';
+              else interimText += t;
             }
-            // prefer showing final+interim combined
-            const combined = (final + interim).trim();
-            if (combined) setRecordedMessage(combined);
-            if (!event.isFinal && combined) {
-              setAnalysisProgress(Math.min(combined.length * 2, 90));
+            // Append finalized text to finalRef (persistent) and set interim separately
+            if (finalText.trim()) {
+              finalRef.current = (finalRef.current + ' ' + finalText).replace(/\s+/g, ' ').trim();
+              setInterim('');
+            } else {
+              setInterim(interimText);
+            }
+            // update combined view
+            const combinedView = (finalRef.current + ' ' + (interimText || '')).trim();
+            setView(combinedView);
+            if (!event.isFinal && combinedView) {
+              setAnalysisProgress(Math.min(combinedView.length * 2, 90));
             }
 
             // successful result -> reset failures/hint
@@ -139,27 +164,25 @@ export function RecordingControls({
             const err = ev?.error;
 
             if (err === 'no-speech') {
-              // Increment and track failures (use ref to avoid stale closure)
+              // gentle retries but bounded
+              noSpeechRetriesRef.current += 1;
               srFailuresRef.current += 1;
               setSrFailures(srFailuresRef.current);
-
-              if (srFailuresRef.current < 3) {
+              if (noSpeechRetriesRef.current <= MAX_NO_SPEECH_RETRIES) {
                 setListeningHint('🎙️ I didn\'t catch that — please speak again.');
-                // gentle auto-retry once after short pause
                 setTimeout(() => {
                   try { recognitionRef.current?.start(); } catch (e) { /* noop */ }
-                }, 1000);
+                }, 800);
               } else {
-                // Too many failures: stop SR and fallback to final-file transcription
+                // mark as timeout stop — do not clear existing transcript
+                stopReasonRef.current = 'timeout';
                 setListeningHint('Mic not cooperating — switching to server transcription.');
                 setTranscribeError('Using server transcription due to repeated recognition failures.');
                 try { recognitionRef.current?.stop(); } catch (e) { /* noop */ }
                 recognitionRef.current = null;
                 disableBrowserSRRef.current = true;
-                // ensure we don't start server chunking fallback; final-file will be used on Stop
                 usingServiceRef.current = false;
               }
-
               return;
             }
 
@@ -190,7 +213,16 @@ export function RecordingControls({
           };
 
           recognition.onend = () => {
-            // recognition ended (user stopped or browser stopped) — leave recordedMessage as-is
+            // recognition ended (user stopped or browser stopped)
+            // Do NOT clear finalRef here. Preserve transcript across browser timeouts.
+            // If the end happened and we had prior no-speech retries (or stopReason not 'user'),
+            // treat it as a browser timeout rather than a user-initiated stop.
+            if (stopReasonRef.current !== 'user' || noSpeechRetriesRef.current > 0) {
+              stopReasonRef.current = 'timeout';
+            }
+            if (stopReasonRef.current === 'timeout') {
+              setListeningHint('Session ended automatically. Tap Start to continue.');
+            }
           };
 
           recognition.start();
@@ -246,12 +278,13 @@ export function RecordingControls({
     try {
       // Stop SpeechRecognition if active
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch(e) { /* noop */ }
+        try { stopReasonRef.current = 'user'; recognitionRef.current.stop(); } catch(e) { /* noop */ }
         recognitionRef.current = null;
       }
 
-      // Stop server-based service only if we started it
-      let finalTranscript = recordedMessage;
+  // Stop server-based service only if we started it
+  // Prefer the accumulated finalRef content as the canonical transcript
+  let finalTranscript = finalRef.current || recordedMessage;
       if (usingServiceRef.current) {
         try {
           finalTranscript = await liveTranscriptionService.stop();
@@ -277,6 +310,8 @@ export function RecordingControls({
           const final = await liveTranscriptionService.transcribeFinal(blob);
           if (final && final.trim()) {
             finalTranscript = final;
+            // update finalRef to reflect the authoritative final transcription
+            finalRef.current = finalTranscript;
           }
         } catch (e: any) {
           logger.warn('Final transcription failed:', e?.message || e);
@@ -284,8 +319,10 @@ export function RecordingControls({
         }
       }
 
-      setRecordedMessage(finalTranscript || recordedMessage);
-      setAnalysisProgress(100);
+  // store final transcript in state for legacy UI code
+  setRecordedMessage(finalTranscript || recordedMessage);
+  setView(finalTranscript || (finalRef.current || '').trim());
+  setAnalysisProgress(100);
       
       if (aiReady && showAIFeedback && finalTranscript) {
         setRecordingState('analyzing');
@@ -321,6 +358,10 @@ export function RecordingControls({
   };
 
   const handleRetry = () => {
+    // clear persistent final transcript and interim
+    finalRef.current = "";
+    setInterim("");
+    setView("");
     setRecordedMessage("");
     setAudioBlob(null);
     setRecordingState('idle');
@@ -333,8 +374,13 @@ export function RecordingControls({
   };
 
   const handleSend = () => {
-    if (recordedMessage) {
-      onSendMessage(recordedMessage, true, audioBlob || undefined);
+    const payload = view || recordedMessage;
+    if (payload) {
+      onSendMessage(payload, true, audioBlob || undefined);
+      // clear after send
+      finalRef.current = "";
+      setInterim("");
+      setView("");
       setRecordedMessage("");
       setAudioBlob(null);
       setRecordingState('idle');
@@ -440,14 +486,14 @@ export function RecordingControls({
 
       {/* Transcribed Message */}
       <AnimatePresence>
-        {recordedMessage && (
+        {view && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-3"
           >
-            <p className="text-sm">"{recordedMessage}"</p>
+            <p className="text-sm">"{view}"</p>
             
             <div className="flex items-center gap-2">
               {audioBlob && (
