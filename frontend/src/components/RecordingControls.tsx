@@ -375,8 +375,19 @@ export function RecordingControls({
 
   const handleSend = () => {
     const payload = view || recordedMessage;
-    if (payload) {
-      onSendMessage(payload, true, audioBlob || undefined);
+    if (!payload) return;
+
+    // Defensive: pass a shallow copy of the Blob to avoid race where parent
+    // reads the blob after we cleared local state. slice() creates a new Blob
+    // referencing the same underlying data but yields a distinct object.
+    const blobCopy = audioBlob ? audioBlob.slice(0, audioBlob.size, audioBlob.type) : undefined;
+
+    // Send immediately. Delay clearing local state briefly so parent can
+    // capture/store the blob reference without racing with this component
+    // clearing it (observed issue: Send required a second press / Play stuck).
+    onSendMessage(payload, true, blobCopy);
+
+    setTimeout(() => {
       // clear after send
       finalRef.current = "";
       setInterim("");
@@ -385,7 +396,7 @@ export function RecordingControls({
       setAudioBlob(null);
       setRecordingState('idle');
       setAnalysisProgress(0);
-    }
+    }, 150);
   };
 
   const getRecordButtonIcon = () => {
