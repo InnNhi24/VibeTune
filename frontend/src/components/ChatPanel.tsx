@@ -41,6 +41,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
   const safeLevel = (level || "Beginner") as 'Beginner' | 'Intermediate' | 'Advanced';
   const [messages, setMessages] = useState<Message[]>([]);
   const [textInput, setTextInput] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
+  const sendingRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<ConversationContext['conversation_history']>([]);
   const [focusAreas, setFocusAreas] = useState<string[]>(['basic pronunciation', 'sentence stress']);
@@ -408,7 +410,18 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
 
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSendMessage(textInput, false);
+    void sendTextFromInput();
+  };
+
+  const sendTextFromInput = async () => {
+    if (sendingRef.current) return;
+    if (isComposing) return;
+    sendingRef.current = true;
+    try {
+      await handleSendMessage(textInput, false);
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   const handleAnalysisView = (analysis: ProsodyAnalysis) => {
@@ -529,6 +542,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
               <Textarea
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
+                onKeyDown={(e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void sendTextFromInput();
+                  }
+                }}
                 placeholder={waitingForTopic ? "Tell me what you'd like to discuss..." : "Continue the conversation..."}
                 disabled={isLoading}
                 className="flex-1 min-h-[80px] resize-y"
@@ -538,6 +559,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
               <Input
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
+                onCompositionStart={() => setIsComposing(true)}
+                onCompositionEnd={() => setIsComposing(false)}
+                onKeyDown={(e: React.KeyboardEvent) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void sendTextFromInput();
+                  }
+                }}
                 placeholder={waitingForTopic ? "Tell me what you'd like to discuss..." : "Continue the conversation..."}
                 disabled={isLoading}
                 className="flex-1"
