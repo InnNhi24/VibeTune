@@ -37,6 +37,7 @@ export function RecordingControls({
   const disableBrowserSRRef = useRef(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const activeStreamRef = useRef<MediaStream | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -131,8 +132,9 @@ export function RecordingControls({
       setView("");
       setRecordedMessage("");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+  const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
+  activeStreamRef.current = stream;
       
       const chunks: BlobPart[] = [];
       
@@ -145,7 +147,9 @@ export function RecordingControls({
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/wav' });
         setAudioBlob(blob);
-        stream.getTracks().forEach(track => track.stop());
+        // stop any active tracks
+        try { activeStreamRef.current?.getTracks().forEach(track => track.stop()); } catch (e) { /* noop */ }
+        activeStreamRef.current = null;
       };
       
       mediaRecorder.start();
@@ -425,6 +429,32 @@ export function RecordingControls({
     // capture/store the blob reference without racing with this component
     // clearing it (observed issue: Send required a second press / Play stuck).
     onSendMessage(payload, true, blobCopy);
+
+    // Ensure any active mic/recognition/service is stopped when user sends
+    try {
+      // stop MediaRecorder if still recording
+      if (mediaRecorderRef.current && (mediaRecorderRef.current.state === 'recording' || mediaRecorderRef.current.state === 'paused')) {
+        try { mediaRecorderRef.current.stop(); } catch (e) { /* noop */ }
+      }
+
+      // stop any active stream tracks
+      try { activeStreamRef.current?.getTracks().forEach(t => t.stop()); } catch (e) { /* noop */ }
+      activeStreamRef.current = null;
+
+      // stop speech recognition if active
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) { /* noop */ }
+        recognitionRef.current = null;
+      }
+
+      // stop live transcription service if we were using it
+      if (usingServiceRef.current) {
+        try { void liveTranscriptionService.stop(); } catch (e) { /* noop */ }
+        usingServiceRef.current = false;
+      }
+    } catch (e) {
+      logger.warn('Error while cleaning up mic on send', e);
+    }
 
     setTimeout(() => {
       // clear after send
