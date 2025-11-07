@@ -31,6 +31,7 @@ export function RecordingControls({
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [aiReady, setAiReady] = useState(false);
   const [srFailures, setSrFailures] = useState(0);
+  const [micPermission, setMicPermission] = useState<'granted'|'denied'|'prompt'|'unknown'>('unknown');
   const srFailuresRef = useRef(0);
   const [listeningHint, setListeningHint] = useState<string | null>(null);
   const disableBrowserSRRef = useRef(false);
@@ -56,6 +57,44 @@ export function RecordingControls({
   useEffect(() => {
     setAiReady(showAIFeedback);
   }, [showAIFeedback]);
+
+  // Check microphone permission state where supported
+  useEffect(() => {
+    const check = async () => {
+      try {
+        if ((navigator as any).permissions && (navigator as any).permissions.query) {
+          const p = await (navigator as any).permissions.query({ name: 'microphone' });
+          if (p.state === 'granted') setMicPermission('granted');
+          else if (p.state === 'denied') setMicPermission('denied');
+          else setMicPermission('prompt');
+          p.onchange = () => {
+            if (p.state === 'granted') setMicPermission('granted');
+            else if (p.state === 'denied') setMicPermission('denied');
+            else setMicPermission('prompt');
+          };
+        } else {
+          setMicPermission('unknown');
+        }
+      } catch (e) {
+        setMicPermission('unknown');
+      }
+    };
+    check();
+  }, []);
+
+  const handleEnableMicClick = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // immediately stop tracks — purpose is just to prompt permission
+      stream.getTracks().forEach(t => t.stop());
+      setMicPermission('granted');
+      setTranscribeError(null);
+    } catch (e: any) {
+      logger.warn('User denied microphone permission or getUserMedia failed', e);
+      setMicPermission('denied');
+      setTranscribeError('Microphone permission denied');
+    }
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -455,6 +494,14 @@ export function RecordingControls({
               <Settings className="w-3 h-3 mr-1" />
               Setup
             </Button>
+          )}
+          {/* Microphone enable helper - visible when permission not granted */}
+          {micPermission !== 'granted' && (
+            <div className="ml-3">
+              <Button size="sm" variant="outline" onClick={handleEnableMicClick} className="h-6 px-2">
+                Enable Microphone
+              </Button>
+            </div>
           )}
         </div>
       )}
