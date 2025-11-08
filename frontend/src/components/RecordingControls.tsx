@@ -472,6 +472,8 @@ export function RecordingControls({
     switch (recordingState) {
       case 'recording':
         return <MicOff className="w-6 h-6" />;
+      case 'ready':
+        return <Send className="w-6 h-6" />;
       case 'processing':
       case 'analyzing':
         return <Loader2 className="w-6 h-6 animate-spin" />;
@@ -485,6 +487,8 @@ export function RecordingControls({
     switch (recordingState) {
       case 'recording':
         return `${baseClass} bg-destructive hover:bg-destructive/90 text-destructive-foreground`;
+      case 'ready':
+        return `${baseClass} bg-success hover:bg-success/90 text-success-foreground shadow-lg hover:shadow-xl`;
       case 'processing':
       case 'analyzing':
         return `${baseClass} bg-muted text-muted-foreground cursor-not-allowed`;
@@ -605,19 +609,7 @@ export function RecordingControls({
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Retry
                 </Button>
-                <Button
-                  onClick={handleSend}
-                  size="sm"
-                  className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
-                  disabled={recordingState === 'analyzing'}
-                >
-                  {recordingState === 'analyzing' ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4 mr-2" />
-                  )}
-                  {recordingState === 'analyzing' ? 'Analyzing...' : 'Send'}
-                </Button>
+                {/* Send moved to main record button to reduce UI clutter; press the large button to send when ready */}
               </div>
             </div>
           </motion.div>
@@ -631,7 +623,13 @@ export function RecordingControls({
           whileTap={{ scale: 0.95 }}
         >
           <Button
-            onClick={recordingState === 'recording' ? handleStopRecording : handleStartRecording}
+            onClick={
+              recordingState === 'recording'
+                ? handleStopRecording
+                : recordingState === 'ready'
+                ? handleSend
+                : handleStartRecording
+            }
             className={getRecordButtonClass()}
             disabled={disabled || recordingState === 'processing' || recordingState === 'analyzing'}
           >
