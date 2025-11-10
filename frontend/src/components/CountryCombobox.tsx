@@ -103,64 +103,71 @@ export default function CountryCombobox({
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
       <PopoverContent
-        className="country-popover w-[--radix-popover-trigger-width] p-0"
+        className="country-popover w-[--radix-popover-trigger-width] p-0 bg-background border border-border shadow-md z-50"
         style={{ overflow: "hidden", maxHeight: "60vh" }}
       >
         <Command shouldFilter={false}>
-          <div className="p-2">
-            <Input
-              autoFocus
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleFreeEnter}
-              placeholder="Type to search or press Enter to use text"
-            />
+          <div className="grid grid-cols-[1fr_48px]">
+            {/* LEFT: search + list */}
+            <div className="p-2">
+              <Input
+                autoFocus
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleFreeEnter}
+                placeholder="Type to search or press Enter to use text"
+              />
 
-            {/* Alphabet quick-jump */}
-            <div className="mt-2 mb-1 flex flex-wrap gap-1 text-xs">
-              {Object.keys(grouped).map((letter) => (
-                <button
-                  key={letter}
-                  type="button"
-                  className="h-6 w-6 rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground flex items-center justify-center"
-                  onClick={() => scrollToLetter(letter)}
-                >
-                  {letter}
-                </button>
-              ))}
+              <CommandEmpty>No country found.</CommandEmpty>
+
+              {/* ScrollArea ensures the popover doesn't grow beyond max height */}
+              <ScrollArea style={{ maxHeight: "16rem" }} className="max-h-64 mt-2">
+                <CommandList className="!overflow-visible !max-h-none">
+                  {Object.entries(grouped).map(([letter, list]) => (
+                    <div key={letter}>
+                      <div ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)} className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                        {letter}
+                      </div>
+                      <CommandGroup>
+                        {list.map((c) => (
+                          <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
+                            <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
+                            {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
+                            <span className="truncate">{c.name}</span>
+                            <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </div>
+                  ))}
+
+                  {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
+                    <CommandItem onSelect={() => selectCountry(input.trim())}>
+                      Use “{input.trim()}”
+                    </CommandItem>
+                  )}
+                </CommandList>
+              </ScrollArea>
+            </div>
+
+            {/* RIGHT: A-Z vertical index */}
+            <div className="sticky top-0 h-full border-l border-border bg-background">
+              <ul className="flex flex-col items-center gap-1 py-2 px-1">
+                {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => (
+                  <li key={letter}>
+                    <button
+                      type="button"
+                      onClick={() => scrollToLetter(letter)}
+                      className="h-6 w-6 text-xs rounded hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                      aria-label={`Jump to ${letter}`}
+                    >
+                      {letter}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-
-          <CommandEmpty>No country found.</CommandEmpty>
-
-          {/* ScrollArea ensures the popover doesn't grow beyond max height */}
-          <ScrollArea style={{ maxHeight: "16rem" }} className="max-h-64">
-            <CommandList className="!overflow-visible !max-h-none">
-              {Object.entries(grouped).map(([letter, list]) => (
-                <div key={letter}>
-                  <div ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)} className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                    {letter}
-                  </div>
-                  <CommandGroup>
-                    {list.map((c) => (
-                      <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
-                        <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
-                        {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
-                        <span className="truncate">{c.name}</span>
-                        <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </div>
-              ))}
-
-              {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
-                <CommandItem onSelect={() => selectCountry(input.trim())}>
-                  Use “{input.trim()}”
-                </CommandItem>
-              )}
-            </CommandList>
-          </ScrollArea>
         </Command>
       </PopoverContent>
     </Popover>
