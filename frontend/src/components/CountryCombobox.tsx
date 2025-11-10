@@ -35,6 +35,9 @@ export default function CountryCombobox({
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState(value ?? "");
 
+  // height for the left list + right rail (px)
+  const LIST_HEIGHT = 256; // 16rem
+
   React.useEffect(() => {
     setInput(value ?? "");
   }, [value]);
@@ -70,15 +73,10 @@ export default function CountryCombobox({
   const scrollToLetter = (letter: string) => {
     const el = headingRefs.current[letter];
     const container = headingRefs.current.__container as HTMLDivElement | undefined;
-    if (!el) return;
-    // If we have our scroll container, compute offsetTop relative to it
-    if (container) {
-      const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
-      container.scrollTo({ top, behavior: 'smooth' });
-      return;
-    }
-    // fallback
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!el || !container) return;
+
+    const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
+    container.scrollTo({ top, behavior: 'smooth' });
   };
 
   const selectCountry = (cname: string) => {
@@ -109,8 +107,12 @@ export default function CountryCombobox({
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
       <PopoverContent
-        className="country-popover w-[--radix-popover-trigger-width] md:min-w-[640px] p-0 bg-background border border-border shadow-md z-50"
-        style={{ overflow: "hidden", maxHeight: "60vh" }}
+        className="country-popover p-0 bg-background border border-border shadow-md z-50"
+        style={{
+          width: "calc(var(--radix-popover-trigger-width) + 48px)",
+          maxHeight: "60vh",
+          overflow: "hidden",
+        }}
       >
         {/* Layout: left = search + grouped list (scrollable), right = A-Z rail (sticky) */}
         <div className="grid grid-cols-[1fr_48px] items-start">
@@ -126,7 +128,11 @@ export default function CountryCombobox({
 
             <div className="mt-2">
               {/* use a native scroll container so we can control scrollTop precisely */}
-              <div ref={(el) => (headingRefs.current.__container = el as HTMLDivElement)} className="max-h-[16rem] overflow-y-auto pr-1">
+              <div
+                ref={(el) => (headingRefs.current.__container = el as HTMLDivElement)}
+                className="overflow-y-auto pr-1"
+                style={{ maxHeight: `${LIST_HEIGHT}px` }}
+              >
                 <Command shouldFilter={false}>
                   <CommandList className="!max-h-none !overflow-visible">
                     {Object.entries(grouped).map(([letter, list]) => (
