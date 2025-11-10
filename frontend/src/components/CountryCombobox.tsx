@@ -15,7 +15,7 @@ import {
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { COUNTRY_LIST, type Country } from "../lib/countries";
-import { ScrollArea } from "../components/ui/scroll-area";
+// ScrollArea not used here; using native scroll container for precise control
 
 type Props = {
   value?: string;
@@ -69,10 +69,16 @@ export default function CountryCombobox({
 
   const scrollToLetter = (letter: string) => {
     const el = headingRefs.current[letter];
-    if (el) {
-      // scroll the heading into view inside the ScrollArea viewport
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    const container = headingRefs.current.__container as HTMLDivElement | undefined;
+    if (!el) return;
+    // If we have our scroll container, compute offsetTop relative to it
+    if (container) {
+      const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
+      container.scrollTo({ top, behavior: 'smooth' });
+      return;
     }
+    // fallback
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const selectCountry = (cname: string) => {
@@ -103,72 +109,83 @@ export default function CountryCombobox({
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
       <PopoverContent
-        className="country-popover w-[--radix-popover-trigger-width] p-0 bg-background border border-border shadow-md z-50"
+        className="country-popover w-[--radix-popover-trigger-width] md:min-w-[640px] p-0 bg-background border border-border shadow-md z-50"
         style={{ overflow: "hidden", maxHeight: "60vh" }}
       >
-        <Command shouldFilter={false}>
-          <div className="grid grid-cols-[1fr_48px]">
-            {/* LEFT: search + list */}
-            <div className="p-2">
-              <Input
-                autoFocus
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleFreeEnter}
-                placeholder="Type to search or press Enter to use text"
-              />
+        {/* Layout: left = search + grouped list (scrollable), right = A-Z rail (sticky) */}
+        <div className="grid grid-cols-[1fr_48px] items-start">
+          {/* LEFT column: search + command list inside a bounded scroll area */}
+          <div className="p-2">
+            <Input
+              autoFocus
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleFreeEnter}
+              placeholder="Type to search or press Enter to use text"
+            />
 
-              <CommandEmpty>No country found.</CommandEmpty>
-
-              {/* ScrollArea ensures the popover doesn't grow beyond max height */}
-              <ScrollArea style={{ maxHeight: "16rem" }} className="max-h-64 mt-2">
-                <CommandList className="!overflow-visible !max-h-none">
-                  {Object.entries(grouped).map(([letter, list]) => (
-                    <div key={letter}>
-                      <div ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)} className="px-2 py-1 text-xs font-medium text-muted-foreground">
-                        {letter}
+            <div className="mt-2">
+              {/* use a native scroll container so we can control scrollTop precisely */}
+              <div ref={(el) => (headingRefs.current.__container = el as HTMLDivElement)} className="max-h-[16rem] overflow-y-auto pr-1">
+                <Command shouldFilter={false}>
+                  <CommandList className="!max-h-none !overflow-visible">
+                    {Object.entries(grouped).map(([letter, list]) => (
+                      <div key={letter}>
+                        <div
+                          ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)}
+                          data-letter={letter}
+                          className="px-2 py-1 text-xs font-medium text-muted-foreground"
+                        >
+                          {letter}
+                        </div>
+                        <CommandGroup className="flex flex-col">
+                          {list.map((c) => (
+                            <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
+                              <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
+                              {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
+                              <span className="truncate">{c.name}</span>
+                              <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
                       </div>
-                      <CommandGroup>
-                        {list.map((c) => (
-                          <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
-                            <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
-                            {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
-                            <span className="truncate">{c.name}</span>
-                            <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </div>
-                  ))}
+                    ))}
 
-                  {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
-                    <CommandItem onSelect={() => selectCountry(input.trim())}>
-                      Use “{input.trim()}”
-                    </CommandItem>
-                  )}
-                </CommandList>
-              </ScrollArea>
+                    {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
+                      <CommandItem onSelect={() => selectCountry(input.trim())}>
+                        Use “{input.trim()}”
+                      </CommandItem>
+                    )}
+                  </CommandList>
+
+                  <CommandEmpty>No country found.</CommandEmpty>
+                </Command>
+              </div>
             </div>
+          </div>
 
-            {/* RIGHT: A-Z vertical index */}
-            <div className="sticky top-0 h-full border-l border-border bg-background">
-              <ul className="flex flex-col items-center gap-1 py-2 px-1">
-                {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => (
+          {/* RIGHT column: vertical A–Z index (not a child of Command) */}
+          <div className="sticky top-0 self-start h-[16rem] border-l border-border bg-background">
+            <ul className="flex flex-col items-center gap-1 py-2">
+              {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
+                const hasGroup = !!grouped[letter] && grouped[letter].length > 0;
+                return (
                   <li key={letter}>
                     <button
                       type="button"
                       onClick={() => scrollToLetter(letter)}
-                      className="h-6 w-6 text-xs rounded hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                      className={`h-8 w-8 text-xs rounded ${hasGroup ? 'hover:bg-muted' : 'opacity-50 cursor-default'} focus:outline-none focus:ring-2 focus:ring-ring`}
                       aria-label={`Jump to ${letter}`}
+                      disabled={!hasGroup}
                     >
                       {letter}
                     </button>
                   </li>
-                ))}
-              </ul>
-            </div>
+                );
+              })}
+            </ul>
           </div>
-        </Command>
+        </div>
       </PopoverContent>
     </Popover>
   );
