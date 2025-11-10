@@ -123,7 +123,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
               <h3 className="text-lg font-semibold text-center mb-6">See Your Progress</h3>
               
               {/* Progress Card */}
-              <Card className="bg-card/80 backdrop-blur-sm">
+              <Card className="bg-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <TrendingUp className="w-5 h-5 text-success" />
@@ -153,7 +153,7 @@ export function Onboarding({ onSignUp, onSignIn }: OnboardingProps) {
               </Card>
 
               {/* AI Feedback Preview */}
-              <Card className="bg-card/80 backdrop-blur-sm">
+              <Card className="bg-card">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <MessageCircle className="w-5 h-5 text-accent" />
