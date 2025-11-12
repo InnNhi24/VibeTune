@@ -76,8 +76,15 @@ export default function CountryCombobox({
     const container = listRef.current;
     if (!el || !container) return;
 
-    const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
-    container.scrollTo({ top, behavior: 'smooth' });
+    // Use scrollIntoView so the browser chooses the correct scroll container
+    // and we avoid brittle offset calculations which caused jitter.
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      // fallback to manual scroll if needed
+      const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
+      container.scrollTo({ top, behavior: 'smooth' });
+    }
   };
 
   const selectCountry = (cname: string) => {
