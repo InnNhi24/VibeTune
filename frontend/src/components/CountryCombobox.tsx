@@ -70,6 +70,8 @@ export default function CountryCombobox({
 
   const headingRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const listRef = React.useRef<HTMLDivElement | null>(null);
+  const [railTop, setRailTop] = React.useState<number>(0);
+  const [railHeight, setRailHeight] = React.useState<number>(LIST_HEIGHT);
 
   const scrollToLetter = (letter: string) => {
     const el = headingRefs.current[letter];
@@ -86,6 +88,28 @@ export default function CountryCombobox({
       container.scrollTo({ top, behavior: 'smooth' });
     }
   };
+
+  // keep rail overlay in sync with the list position/height
+  React.useLayoutEffect(() => {
+    const update = () => {
+      const el = listRef.current;
+      if (!el) return;
+      // offsetTop is relative to the nearest positioned ancestor; since we'll make the wrapper relative, this should work
+      const top = el.offsetTop || 0;
+      const h = el.clientHeight || LIST_HEIGHT;
+      setRailTop(top);
+      setRailHeight(h);
+    };
+
+    update();
+    const ro = new ResizeObserver(() => update());
+    if (listRef.current) ro.observe(listRef.current);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [open, filtered]);
 
   const selectCountry = (cname: string) => {
     onChange(cname);
@@ -124,7 +148,7 @@ export default function CountryCombobox({
         }}
       >
         {/* Layout: left = search + grouped list (scrollable). Right rail is an absolute overlay */}
-        <div className="p-2 pr-12">
+  <div className="relative p-2 pr-12">
           <Input
             autoFocus
             value={input}
@@ -178,7 +202,7 @@ export default function CountryCombobox({
         </div>
 
         {/* RIGHT: A–Z rail overlay, always at the right edge of the popover */}
-        <div className="absolute right-0 top-0 w-10 h-[16rem] border-l border-border bg-background">
+        <div className="absolute right-0 w-10 border-l border-border bg-background" style={{ top: `${railTop}px`, height: `${railHeight}px` }}>
           <ul className="flex flex-col items-center gap-1 py-2">
             {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
               const hasGroup = !!grouped[letter] && grouped[letter].length > 0;
@@ -187,7 +211,7 @@ export default function CountryCombobox({
                   <button
                     type="button"
                     onClick={() => hasGroup && scrollToLetter(letter)}
-                    className={`h-8 w-8 text-xs rounded ${hasGroup ? 'hover:bg-muted' : 'opacity-50 cursor-default'} focus:outline-none focus:ring-2 focus:ring-ring`}
+                    className={`h-8 w-8 text-[11px] rounded ${hasGroup ? 'hover:bg-muted' : 'opacity-50 cursor-default'} focus:outline-none focus:ring-2 focus:ring-ring`}
                     aria-label={`Jump to ${letter}`}
                     disabled={!hasGroup}
                   >
