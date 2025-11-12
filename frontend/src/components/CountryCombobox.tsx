@@ -69,10 +69,11 @@ export default function CountryCombobox({
   }, [filtered]);
 
   const headingRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const listRef = React.useRef<HTMLDivElement | null>(null);
 
   const scrollToLetter = (letter: string) => {
     const el = headingRefs.current[letter];
-    const container = headingRefs.current.__container as HTMLDivElement | undefined;
+    const container = listRef.current;
     if (!el || !container) return;
 
     const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
@@ -107,90 +108,88 @@ export default function CountryCombobox({
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
       <PopoverContent
-        className="country-popover p-0 bg-background border border-border shadow-md z-50"
+        className="country-popover p-0 bg-background border border-border shadow-md z-50 relative"
         style={{
-          width: "calc(var(--radix-popover-trigger-width) + 48px)",
+          // Use a sensible max width and let the list handle vertical overflow; avoid calculating +48px which can clip
+          width: "min(90vw, 480px)",
           maxHeight: "60vh",
-          overflow: "hidden",
+          overflow: "visible",
         }}
       >
-        {/* Layout: left = search + grouped list (scrollable), right = A-Z rail (sticky) */}
-        <div className="grid grid-cols-[1fr_48px] items-start">
-          {/* LEFT column: search + command list inside a bounded scroll area */}
-          <div className="p-2">
-            <Input
-              autoFocus
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleFreeEnter}
-              placeholder="Type to search or press Enter to use text"
-            />
+        {/* Layout: left = search + grouped list (scrollable). Right rail is an absolute overlay */}
+        <div className="p-2 pr-12">
+          <Input
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleFreeEnter}
+            placeholder="Type to search or press Enter to use text"
+          />
 
-            <div className="mt-2">
-              {/* use a native scroll container so we can control scrollTop precisely */}
-              <div
-                ref={(el) => (headingRefs.current.__container = el as HTMLDivElement)}
-                className="overflow-y-auto pr-1"
-                style={{ maxHeight: `${LIST_HEIGHT}px` }}
-              >
-                <Command shouldFilter={false}>
-                  <CommandList className="!max-h-none !overflow-visible">
-                    {Object.entries(grouped).map(([letter, list]) => (
-                      <div key={letter}>
-                        <div
-                          ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)}
-                          data-letter={letter}
-                          className="px-2 py-1 text-xs font-medium text-muted-foreground"
-                        >
-                          {letter}
-                        </div>
-                        <CommandGroup className="flex flex-col">
-                          {list.map((c) => (
-                            <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
-                              <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
-                              {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
-                              <span className="truncate">{c.name}</span>
-                              <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
+          <div className="mt-2">
+            {/* use a native scroll container so we can control scrollTop precisely */}
+            <div
+              ref={listRef}
+              className="overflow-y-auto pr-1"
+              style={{ maxHeight: `${LIST_HEIGHT}px` }}
+            >
+              <Command shouldFilter={false}>
+                <CommandList className="!max-h-none !overflow-visible">
+                  {Object.entries(grouped).map(([letter, list]) => (
+                    <div key={letter}>
+                      <div
+                        ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)}
+                        data-letter={letter}
+                        className="px-2 py-1 text-xs font-medium text-muted-foreground"
+                      >
+                        {letter}
                       </div>
-                    ))}
+                      <CommandGroup className="flex flex-col">
+                        {list.map((c) => (
+                          <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
+                            <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
+                            {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
+                            <span className="truncate">{c.name}</span>
+                            <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </div>
+                  ))}
 
-                    {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
-                      <CommandItem onSelect={() => selectCountry(input.trim())}>
-                        Use “{input.trim()}”
-                      </CommandItem>
-                    )}
-                  </CommandList>
+                  {allowCustom && input.trim() && !COUNTRY_LIST.some((c) => c.name.toLowerCase() === input.trim().toLowerCase()) && (
+                    <CommandItem onSelect={() => selectCountry(input.trim())}>
+                      Use “{input.trim()}”
+                    </CommandItem>
+                  )}
+                </CommandList>
 
-                  <CommandEmpty>No country found.</CommandEmpty>
-                </Command>
-              </div>
+                <CommandEmpty>No country found.</CommandEmpty>
+              </Command>
             </div>
           </div>
+        </div>
 
-          {/* RIGHT column: vertical A–Z index (not a child of Command) */}
-          <div className="sticky top-0 self-start h-[16rem] border-l border-border bg-background">
-            <ul className="flex flex-col items-center gap-1 py-2">
-              {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
-                const hasGroup = !!grouped[letter] && grouped[letter].length > 0;
-                return (
-                  <li key={letter}>
-                    <button
-                      type="button"
-                      onClick={() => scrollToLetter(letter)}
-                      className={`h-8 w-8 text-xs rounded ${hasGroup ? 'hover:bg-muted' : 'opacity-50 cursor-default'} focus:outline-none focus:ring-2 focus:ring-ring`}
-                      aria-label={`Jump to ${letter}`}
-                      disabled={!hasGroup}
-                    >
-                      {letter}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+        {/* RIGHT: A–Z rail overlay, always at the right edge of the popover */}
+        <div className="absolute right-0 top-0 w-10 h-[16rem] border-l border-border bg-background">
+          <ul className="flex flex-col items-center gap-1 py-2">
+            {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
+              const hasGroup = !!grouped[letter] && grouped[letter].length > 0;
+              return (
+                <li key={letter}>
+                  <button
+                    type="button"
+                    onClick={() => hasGroup && scrollToLetter(letter)}
+                    className={`h-8 w-8 text-xs rounded ${hasGroup ? 'hover:bg-muted' : 'opacity-50 cursor-default'} focus:outline-none focus:ring-2 focus:ring-ring`}
+                    aria-label={`Jump to ${letter}`}
+                    disabled={!hasGroup}
+                  >
+                    {letter}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </PopoverContent>
     </Popover>
