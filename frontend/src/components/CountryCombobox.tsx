@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { ChevronsUpDown } from "lucide-react";
-import { cn } from "../components/ui/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import {
   Command,
@@ -72,6 +71,14 @@ export default function CountryCombobox({
 
   // Alphabetical rail removed; rely on search/filter and grouping headers in list
 
+  // Helper: convert ISO3166-1 alpha-2 (e.g. 'US') to regional indicator flag emoji
+  const flagFromCode = (cca2?: string) => {
+    if (!cca2 || cca2.length !== 2) return "🏳️";
+    const A = 0x41; // 'A'
+    const OFFSET = 0x1F1E6 - A; // regional indicator symbol offset
+    const chars = cca2.toUpperCase().split("").map((ch) => String.fromCodePoint(ch.charCodeAt(0) + OFFSET));
+    return chars.join("");
+  };
   // A–Z rail removed: keep list simple and rely on search/filter for navigation
 
   const selectCountry = (cname: string) => {
@@ -135,7 +142,7 @@ export default function CountryCombobox({
                           <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
                             {showFlags ? (
                               <span className="mr-2 text-lg" aria-hidden>
-                                {c.flag ?? "🏳️"}
+                                {c.flag || flagFromCode(c.cca2)}
                               </span>
                             ) : null}
                             <span className="truncate">{c.name}</span>
