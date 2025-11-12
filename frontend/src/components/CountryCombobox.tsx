@@ -68,75 +68,11 @@ export default function CountryCombobox({
     return sorted;
   }, [filtered]);
 
-  const headingRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
-  const listRef = React.useRef<HTMLDivElement | null>(null);
-  const [railTop, setRailTop] = React.useState<number>(0);
-  const [railHeight, setRailHeight] = React.useState<number>(LIST_HEIGHT);
-  const popoverRef = React.useRef<HTMLDivElement | null>(null);
+  
 
-  const scrollToLetter = (letter: string) => {
-    const el = headingRefs.current[letter];
-    const container = listRef.current;
-    if (!el || !container) return;
+  // Alphabetical rail removed; rely on search/filter and grouping headers in list
 
-    // Compute precise scroll delta using bounding client rects so scrolling
-    // is accurate relative to the list container (avoids a few-px jitter).
-    try {
-      const containerRect = container.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      const currentScroll = container.scrollTop;
-      // distance from top of visible container to element
-      const delta = elRect.top - containerRect.top + currentScroll - 4; // small padding
-      container.scrollTo({ top: delta, behavior: 'smooth' });
-    } catch (err) {
-      // fallback
-      try {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } catch (e) {
-        const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
-        container.scrollTo({ top, behavior: 'smooth' });
-      }
-    }
-  };
-
-  // keep rail overlay in sync with the list position/height using bounding rects
-  React.useLayoutEffect(() => {
-    let mounted = true;
-
-    const updateFromRects = () => {
-      const pop = popoverRef.current;
-      const list = listRef.current;
-      if (!pop || !list) return;
-      try {
-        const popRect = pop.getBoundingClientRect();
-        const listRect = list.getBoundingClientRect();
-        const top = Math.max(0, listRect.top - popRect.top);
-        const h = listRect.height || LIST_HEIGHT;
-        if (!mounted) return;
-        // Use transform/translate to avoid layout reflow
-        setRailTop(top);
-        setRailHeight(h);
-      } catch (e) {
-        // ignore
-      }
-    };
-
-    // When popover opens, wait a frame to ensure layout settles, then measure
-    if (open) {
-      requestAnimationFrame(() => setTimeout(updateFromRects, 20));
-    }
-
-    const ro = new ResizeObserver(() => updateFromRects());
-    if (listRef.current) ro.observe(listRef.current);
-    if (popoverRef.current) ro.observe(popoverRef.current);
-    window.addEventListener('resize', updateFromRects);
-
-    return () => {
-      mounted = false;
-      ro.disconnect();
-      window.removeEventListener('resize', updateFromRects);
-    };
-  }, [open, filtered]);
+  // A–Z rail removed: keep list simple and rely on search/filter for navigation
 
   const selectCountry = (cname: string) => {
     onChange(cname);
@@ -166,7 +102,6 @@ export default function CountryCombobox({
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
       <PopoverContent
-        ref={popoverRef}
         className="country-popover p-0 bg-background border border-border shadow-md z-50 relative"
         style={{
           // Use a sensible max width and let the list handle vertical overflow; avoid calculating +48px which can clip
@@ -176,7 +111,7 @@ export default function CountryCombobox({
         }}
       >
         {/* Layout: left = search + grouped list (scrollable). Right rail is an absolute overlay */}
-  <div className="relative p-2 pr-12">
+  <div className="relative p-2">
           <Input
             autoFocus
             value={input}
@@ -187,20 +122,12 @@ export default function CountryCombobox({
 
           <div className="mt-2">
             {/* use a native scroll container so we can control scrollTop precisely */}
-            <div
-              ref={listRef}
-              className="overflow-y-auto pr-1"
-              style={{ maxHeight: `${LIST_HEIGHT}px` }}
-            >
+            <div className="overflow-y-auto pr-1" style={{ maxHeight: `${LIST_HEIGHT}px` }}>
               <Command shouldFilter={false}>
                 <CommandList className="!max-h-none !overflow-visible">
                   {Object.entries(grouped).map(([letter, list]) => (
                     <div key={letter}>
-                      <div
-                        ref={(el) => (headingRefs.current[letter] = el as HTMLDivElement)}
-                        data-letter={letter}
-                        className="px-2 py-1 text-xs font-medium text-muted-foreground"
-                      >
+                      <div data-letter={letter} className="px-2 py-1 text-xs font-medium text-muted-foreground">
                         {letter}
                       </div>
                       <CommandGroup className="flex flex-col">
@@ -229,30 +156,7 @@ export default function CountryCombobox({
           </div>
         </div>
 
-        {/* RIGHT: A–Z rail overlay, always at the right edge of the popover */}
-        <div
-          className="absolute right-0 w-10 border-l border-border bg-background"
-          style={{ transform: `translateY(${railTop}px)`, height: `${railHeight}px` }}
-        >
-          <ul className="flex flex-col items-center gap-1 py-2">
-            {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
-              const hasGroup = !!grouped[letter] && grouped[letter].length > 0;
-              return (
-                <li key={letter}>
-                  <button
-                    type="button"
-                    onClick={() => hasGroup && scrollToLetter(letter)}
-                    className={`h-8 w-8 text-[11px] rounded ${hasGroup ? 'hover:bg-muted' : 'opacity-50 cursor-default'} focus:outline-none focus:ring-2 focus:ring-ring`}
-                    aria-label={`Jump to ${letter}`}
-                    disabled={!hasGroup}
-                  >
-                    {letter}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+        {/* A–Z rail removed */}
       </PopoverContent>
     </Popover>
   );
