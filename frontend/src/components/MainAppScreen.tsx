@@ -197,7 +197,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
 
       {/* Settings Modal/Overlay */}
       {showSettings && (
-        <div className="fixed inset-0 z-50 bg-background">
+        // Make the overlay scrollable so the Settings content can be scrolled on small viewports
+        <div className="fixed inset-0 z-50 bg-background overflow-auto">
           <Settings
             user={user}
             onUserUpdate={(updatedUser) => {
