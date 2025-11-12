@@ -72,42 +72,69 @@ export default function CountryCombobox({
   const listRef = React.useRef<HTMLDivElement | null>(null);
   const [railTop, setRailTop] = React.useState<number>(0);
   const [railHeight, setRailHeight] = React.useState<number>(LIST_HEIGHT);
+  const popoverRef = React.useRef<HTMLDivElement | null>(null);
 
   const scrollToLetter = (letter: string) => {
     const el = headingRefs.current[letter];
     const container = listRef.current;
     if (!el || !container) return;
 
-    // Use scrollIntoView so the browser chooses the correct scroll container
-    // and we avoid brittle offset calculations which caused jitter.
+    // Compute precise scroll delta using bounding client rects so scrolling
+    // is accurate relative to the list container (avoids a few-px jitter).
     try {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch (e) {
-      // fallback to manual scroll if needed
-      const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
-      container.scrollTo({ top, behavior: 'smooth' });
+      const containerRect = container.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const currentScroll = container.scrollTop;
+      // distance from top of visible container to element
+      const delta = elRect.top - containerRect.top + currentScroll - 4; // small padding
+      container.scrollTo({ top: delta, behavior: 'smooth' });
+    } catch (err) {
+      // fallback
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e) {
+        const top = el.offsetTop - (container.offsetTop || 0) - 4; // small padding
+        container.scrollTo({ top, behavior: 'smooth' });
+      }
     }
   };
 
-  // keep rail overlay in sync with the list position/height
+  // keep rail overlay in sync with the list position/height using bounding rects
   React.useLayoutEffect(() => {
-    const update = () => {
-      const el = listRef.current;
-      if (!el) return;
-      // offsetTop is relative to the nearest positioned ancestor; since we'll make the wrapper relative, this should work
-      const top = el.offsetTop || 0;
-      const h = el.clientHeight || LIST_HEIGHT;
-      setRailTop(top);
-      setRailHeight(h);
+    let mounted = true;
+
+    const updateFromRects = () => {
+      const pop = popoverRef.current;
+      const list = listRef.current;
+      if (!pop || !list) return;
+      try {
+        const popRect = pop.getBoundingClientRect();
+        const listRect = list.getBoundingClientRect();
+        const top = Math.max(0, listRect.top - popRect.top);
+        const h = listRect.height || LIST_HEIGHT;
+        if (!mounted) return;
+        // Use transform/translate to avoid layout reflow
+        setRailTop(top);
+        setRailHeight(h);
+      } catch (e) {
+        // ignore
+      }
     };
 
-    update();
-    const ro = new ResizeObserver(() => update());
+    // When popover opens, wait a frame to ensure layout settles, then measure
+    if (open) {
+      requestAnimationFrame(() => setTimeout(updateFromRects, 20));
+    }
+
+    const ro = new ResizeObserver(() => updateFromRects());
     if (listRef.current) ro.observe(listRef.current);
-    window.addEventListener('resize', update);
+    if (popoverRef.current) ro.observe(popoverRef.current);
+    window.addEventListener('resize', updateFromRects);
+
     return () => {
+      mounted = false;
       ro.disconnect();
-      window.removeEventListener('resize', update);
+      window.removeEventListener('resize', updateFromRects);
     };
   }, [open, filtered]);
 
@@ -139,6 +166,7 @@ export default function CountryCombobox({
 
       {/* max-h-64 ~ hiển thị ~5–6 item, phần còn lại cuộn */}
       <PopoverContent
+        ref={popoverRef}
         className="country-popover p-0 bg-background border border-border shadow-md z-50 relative"
         style={{
           // Use a sensible max width and let the list handle vertical overflow; avoid calculating +48px which can clip
@@ -202,7 +230,10 @@ export default function CountryCombobox({
         </div>
 
         {/* RIGHT: A–Z rail overlay, always at the right edge of the popover */}
-        <div className="absolute right-0 w-10 border-l border-border bg-background" style={{ top: `${railTop}px`, height: `${railHeight}px` }}>
+        <div
+          className="absolute right-0 w-10 border-l border-border bg-background"
+          style={{ transform: `translateY(${railTop}px)`, height: `${railHeight}px` }}
+        >
           <ul className="flex flex-col items-center gap-1 py-2">
             {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter) => {
               const hasGroup = !!grouped[letter] && grouped[letter].length > 0;
