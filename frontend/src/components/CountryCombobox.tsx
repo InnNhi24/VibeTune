@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { cn } from "../components/ui/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "../components/ui/popover";
 import {
@@ -133,8 +133,11 @@ export default function CountryCombobox({
                       <CommandGroup className="flex flex-col">
                         {list.map((c) => (
                           <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
-                            <Check className={cn("mr-2 h-4 w-4", value === c.name ? "opacity-100" : "opacity-0")} />
-                            {showFlags && c.flag ? <span className="mr-2">{c.flag}</span> : null}
+                            {showFlags ? (
+                              <span className="mr-2 text-lg" aria-hidden>
+                                {c.flag ?? "🏳️"}
+                              </span>
+                            ) : null}
                             <span className="truncate">{c.name}</span>
                             <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>
                           </CommandItem>
