@@ -125,7 +125,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+  <div className="flex-1 flex flex-col min-h-0">
         {/* Header - Both Mobile and Desktop */}
         <div className="bg-card border-b border-border p-4">
           {/* Mobile Header */}
