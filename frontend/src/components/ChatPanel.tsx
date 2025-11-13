@@ -138,52 +138,24 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       // Prefer the Radix viewport if present (it contains the scrollable content)
       const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
 
-      // Look for any element marked as last message inside the viewport first, then root
-      const searchRoot = viewport || root;
-      const lastNodes = Array.from(searchRoot.querySelectorAll('[data-last-message]')) as HTMLElement[];
-      const lastMsgEl = lastNodes.length ? lastNodes[lastNodes.length - 1] : null;
-
-      if (lastMsgEl) {
-        // Compute bottom margin so the last message isn't hidden behind the input/mic controls.
+      // Simplified auto-scroll: always scroll the ScrollArea viewport to its bottom.
+      // We add bottom padding via CSS on the messages container (see className="space-y-4 pb-40")
+      // so the last message won't be hidden by the fixed footer. This avoids measuring
+      // the input area in JS and makes scrolling more robust across browsers.
+  const containerEl = (viewport || root) as HTMLElement | null;
+      if (containerEl) {
         try {
-          const inputEl = inputAreaRef.current as HTMLElement | null;
-          if (inputEl && lastMsgEl instanceof HTMLElement) {
-            const inputHeight = inputEl.getBoundingClientRect().height || 0;
-            // Add a bit of padding so message doesn't sit flush against input
-            const margin = Math.round(inputHeight + 24);
-            lastMsgEl.style.scrollMarginBottom = `${margin}px`;
-          }
-        } catch (e) {
-          // ignore measurement errors
-        }
-
-        // Prefer element scrollIntoView (more robust across browsers). If we have a Radix
-        // viewport we'll still try to align the viewport to the bottom as a fallback.
-        try {
-          // Use requestAnimationFrame to avoid layout thrash and ensure the element
-          // is in the DOM & measured before scrolling.
           requestAnimationFrame(() => {
             try {
-              lastMsgEl.scrollIntoView({ block: 'end', behavior: 'smooth' });
+              // smooth behavior is nicer; fallback to direct assignment if not supported
+              containerEl.scrollTo({ top: containerEl.scrollHeight, behavior: 'smooth' });
             } catch (_) {
-              // ignore
-            }
-
-            if (viewport) {
-              try {
-                // As a robust fallback, ensure the viewport is scrolled to the bottom
-                // so newly appended content is visible.
-                viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-              } catch (_) {
-                // ignore
-              }
+              try { containerEl.scrollTop = containerEl.scrollHeight; } catch (_) { /* noop */ }
             }
           });
         } catch (e) {
-          // Best-effort fallback
-          try { lastMsgEl.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (_) {}
+          try { (containerEl as any).scrollTop = (containerEl as any).scrollHeight; } catch (_) { /* noop */ }
         }
-
         return;
       }
 
