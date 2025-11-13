@@ -191,6 +191,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
             topic={currentTopic}
             level={currentLevel}
             onTopicChange={setCurrentTopic}
+            user={user}
           />
         </div>
       </div>

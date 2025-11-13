@@ -99,6 +99,8 @@ interface AppStore {
   deleteMessage: (messageId: string) => void;
   setCurrentTopic: (topic: string) => void;
   clearMessages: () => void;
+  addConversation: (conversation: Conversation) => void;
+  endConversation: (conversationId: string, updates: Partial<Conversation>) => void;
   
   // Placement test state
   placementTestProgress: PlacementTestProgress;
@@ -200,6 +202,20 @@ export const useAppStore = create<AppStore>()(
         
         setCurrentTopic: (topic) => set({ currentTopic: topic }),
         clearMessages: () => set({ messages: [] }),
+        // Conversations management
+        addConversation: (conversation) => {
+          set((state) => ({
+            conversations: [conversation, ...state.conversations],
+            activeConversationId: conversation.id
+          }));
+        },
+        endConversation: (conversationId, updates) => {
+          set((state) => ({
+            conversations: state.conversations.map(conv =>
+              conv.id === conversationId ? { ...conv, ...updates } : conv
+            )
+          }));
+        },
         
         // Placement test state
         placementTestProgress: defaultPlacementTestProgress,

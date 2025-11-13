@@ -34,9 +34,10 @@ interface ChatPanelProps {
   topic?: string;
   level: string | null;
   onTopicChange?: (topic: string) => void;
+  user?: any; // Profile
 }
 
-export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: ChatPanelProps) {
+export function ChatPanel({ topic = "New Conversation", level, onTopicChange, user }: ChatPanelProps) {
   // Handle null/undefined level gracefully
   const safeLevel = (level || "Beginner") as 'Beginner' | 'Intermediate' | 'Advanced';
   const [messages, setMessages] = useState<Message[]>([]);
@@ -54,6 +55,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
   const [currentTopic, setCurrentTopic] = useState(topic);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  // Zustand store hooks
+  const addMessageToStore = useAppStore(state => state.addMessage);
+  const addConversation = useAppStore(state => (state as any).addConversation);
+  const endConversation = useAppStore(state => (state as any).endConversation);
+  const activeConversationId = useAppStore(state => state.activeConversationId);
+  const storeMessages = useAppStore(state => state.messages);
 
 
 
@@ -93,6 +102,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
     setWaitingForTopic(true);
     setCurrentTopic("New Conversation");
   }, [safeLevel]);
+
+  // Sync messages from global store when activeConversationId changes
+  useEffect(() => {
+    try {
+      if (activeConversationId) {
+        const msgs = storeMessages
+          .filter(m => m.conversation_id === activeConversationId)
+          .map(m => ({
+            id: m.id,
+            text: m.content,
+            isUser: m.sender === 'user',
+            isAudio: m.type === 'audio',
+            timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          } as Message));
+
+        if (msgs.length > 0) {
+          setMessages(msgs);
+          setWaitingForTopic(false);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [activeConversationId, storeMessages]);
 
   // Auto-scroll to bottom when new messages arrive.
   // Use the last-message element scrollIntoView first (more robust),
@@ -307,8 +340,42 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
       timestamp,
       isProcessing: isAudio && aiReady
     };
+    // Ensure there is a conversation in the store
+    let convId = conversationId || activeConversationId || null;
+    if (!convId) {
+      convId = `local_${Date.now()}`;
+      setConversationId(convId);
+      try {
+        addConversation({
+          id: convId,
+          profile_id: (user as any)?.id || '',
+          topic: currentTopic,
+          is_placement_test: false,
+          started_at: new Date().toISOString(),
+          message_count: 0,
+          avg_prosody_score: 0
+        });
+      } catch (e) {
+        // best-effort
+      }
+    }
 
     setMessages(prev => [...prev, userMessage]);
+
+    // Persist user message to global store so it survives reload
+    try {
+      addMessageToStore({
+        id: messageId,
+        conversation_id: convId,
+        sender: 'user',
+        type: isAudio ? 'audio' : 'text',
+        content: messageText.trim(),
+        created_at: new Date().toISOString(),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+    } catch (e) {
+      // ignore
+    }
     setTextInput("");
     setIsLoading(true);
 
@@ -342,7 +409,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
           ));
 
           // Update conversation history with analysis
-          newHistoryEntry.audio_analysis = prosodyAnalysis;
+          (newHistoryEntry as any).audio_analysis = prosodyAnalysis;
           
         } catch (error) {
           logger.error('Audio analysis failed:', error);
@@ -412,8 +479,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           aiResponse
         };
-
         setMessages(prev => [...prev, aiResponseMessage]);
+        // Persist AI message to global store
+        try {
+          addMessageToStore({
+            id: aiResponseMessage.id,
+            conversation_id: convId || activeConversationId || '',
+            sender: 'ai',
+            type: 'text',
+            content: aiResponseMessage.text,
+            created_at: new Date().toISOString(),
+            timestamp: aiResponseMessage.timestamp
+          });
+        } catch (e) {
+          // ignore
+        }
         setIsLoading(false);
 
         // Update conversation history
@@ -442,7 +522,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
     }
   };
 
-  const generateFallbackResponse = (userMessage: string, userLevel: string): string => {
+  const generateFallbackResponse = (_userMessage: string, userLevel: string): string => {
     const responses = {
       Beginner: [
         "That's great! I can hear you're working hard on your pronunciation. Let's practice some more basic patterns.",
