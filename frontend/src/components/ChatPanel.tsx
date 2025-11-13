@@ -611,7 +611,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+  // Make this component a flex column that can shrink; ensure the messages
+  // area can scroll independently by using `min-h-0` on the container and
+  // `flex-1 overflow-auto` on the ScrollArea. This keeps the header and
+  // the input/footer pinned while only the messages list scrolls.
+  <div className="flex flex-col flex-1 min-h-0 bg-background">
       {/* Enhanced Chat Header */}
       <div className="bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
@@ -641,8 +645,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         )}
       </div>
 
-      {/* Messages Area */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+  {/* Messages Area (scrollable) */}
+  <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-auto p-4">
         <div className="space-y-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
@@ -694,7 +698,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       </ScrollArea>
 
       {/* Clean Text Input */}
-  <div ref={inputAreaRef} className="bg-card border-t border-border p-4 space-y-3">
+  {/* Input / Recording controls (fixed footer area) */}
+  <div ref={inputAreaRef} className="flex-none bg-card border-t border-border p-4 space-y-3">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">

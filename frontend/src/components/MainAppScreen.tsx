@@ -185,8 +185,10 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           </div>
         </div>
 
-        {/* Chat Panel */}
-        <div className="flex-1">
+        {/* Chat Panel - make this a flex column that can shrink so the inner
+            ChatPanel (which is a flex child) can take full available height and
+            allow its messages area to scroll independently. */}
+        <div className="flex-1 flex flex-col min-h-0">
           <ChatPanel
             topic={currentTopic}
             level={currentLevel}
