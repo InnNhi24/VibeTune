@@ -7,15 +7,26 @@
     "backend"
   ],
   "scripts": {
-    "build": "npm run build --workspace=frontend && npm run build --workspace=backend"
+    "build": "npm run build --workspace=frontend && npm run build --workspace=backend",
+    "lint": "eslint . --ext .js,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,ts,tsx,json,md}\""
   },
-  "engines": { "node": ">=20 <21" },
+  "engines": {
+    "node": ">=20 <21"
+  },
   "dependencies": {
-    "serverless-http": "^3.2.0",
-    "openai": "^4.9.0"
-  }
-  ,
+    "openai": "^4.9.0",
+    "serverless-http": "^3.2.0"
+  },
   "devDependencies": {
-    "@vercel/node": "^3.2.0"
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "@vercel/node": "^4.0.0",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.6.2"
   }
 }
