@@ -31,7 +31,7 @@ import { Profile } from "../services/supabaseClient";
 
 interface Conversation {
   id: string;
-  title: string;
+  title?: string;
   topic?: string;
   timestamp: string;
   messagesCount: number;

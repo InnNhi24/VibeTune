@@ -13,7 +13,7 @@ import { useAppStore, useConversations, useSync } from "../store/appStore";
 
 interface Conversation {
   id: string;
-  title: string;
+  title?: string;
   topic?: string;
   timestamp: string;
   messagesCount: number;
@@ -60,14 +60,33 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
 
   const handleConversationSelect = (conversation: Conversation) => {
     // Set topic from conversation if available, otherwise use title
-    const topicToSet = conversation.topic || conversation.title;
-    setCurrentTopic(topicToSet);
+  const topicToSet = conversation.topic || conversation.title || 'New Conversation';
+  setCurrentTopic(topicToSet);
     setActiveConversation(conversation.id);
     setIsSidebarOpen(false);
     trackEvent('conversation_selected', { 
       conversation_id: conversation.id,
       topic: topicToSet
     });
+    // Ensure we have latest messages for this conversation
+    try {
+      void syncData();
+    } catch (e) {
+      // best-effort
+    }
+  };
+
+  const handleConversationDelete = (conversationId: string) => {
+    // Remove locally and trigger sync. Caller should confirm deletion in UI.
+    const store = useAppStore.getState();
+    const remaining = store.conversations.filter(c => c.id !== conversationId);
+    try {
+      store.setConversations(remaining);
+      // attempt server-side deletion as best-effort (backend route optional)
+      void fetch(`/api/delete-conversation/${conversationId}`, { method: 'DELETE' }).catch(() => {});
+    } catch (e) {
+      // ignore
+    }
   };
 
   // Determine placement test button text based on user status
@@ -99,6 +118,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           user={user}
           conversations={conversations}
           onConversationSelect={handleConversationSelect}
+          onConversationDelete={handleConversationDelete}
           onLogout={onLogout}
           onSettings={() => setShowSettings(true)}
         />
