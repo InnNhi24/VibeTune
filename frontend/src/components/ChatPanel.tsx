@@ -619,7 +619,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       </div>
 
   {/* Messages Area (scrollable) */}
-  <ScrollArea ref={scrollAreaRef} className="flex-1 h-full">
+  <ScrollArea ref={scrollAreaRef} className="flex-1">
     <div className="space-y-4 pb-40 min-h-0 p-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
