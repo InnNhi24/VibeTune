@@ -290,9 +290,9 @@ export function AppSidebar({
                                   whileTap={{ scale: 0.99 }}
                                 >
                                   <Card 
-                                    className="cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm"
-                                    onClick={() => onConversationSelect(conversation)}
-                                  >
+                                      className="group cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm"
+                                      onClick={() => onConversationSelect(conversation)}
+                                    >
                                     <CardContent className="p-2 relative">
                                       <div className="space-y-2">
                                         {/* Header */}
@@ -324,7 +324,7 @@ export function AppSidebar({
                                       </div>
                                     </CardContent>
                                     {typeof onConversationDelete === 'function' && (
-                                      <div className="absolute top-1 right-1">
+                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Button
                                           variant="ghost"
                                           size="sm"
