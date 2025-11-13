@@ -293,9 +293,17 @@ TECHNICAL / SYSTEM NOTES
     }
     let data: any = {};
     try {
+      // Try to parse structured JSON returned by model; if not JSON, fall back to raw text
       data = JSON.parse(j?.choices?.[0]?.message?.content || '{}');
     } catch {
       data = { replyText: j?.choices?.[0]?.message?.content || '', feedback: '' };
+    }
+
+    // Development debug: surface the raw model text in logs to help diagnose control tags
+    try {
+      console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', raw_model: j?.choices?.[0]?.message?.content || '' }));
+    } catch (e) {
+      // ignore logging errors
     }
 
     const replyText = data.replyText || '';
@@ -310,10 +318,15 @@ TECHNICAL / SYSTEM NOTES
     if (topicTagMatch) {
       topic = topicTagMatch[1].trim();
     }
-    // Decide next stage
-    const nextStage = stage === 'topic' ? 'practice' : stage === 'practice' ? 'wrapup' : 'done';
+  // Decide next stage
+  const nextStage = stage === 'topic' ? 'practice' : stage === 'practice' ? 'wrapup' : 'done';
 
-    console.log(JSON.stringify({ lvl: 'info', ts: new Date().toISOString(), endpoint: '/api/chat', ip, node_env: process.env.NODE_ENV, text_len: text.length, duration_ms: Date.now() - startTime }));
+  console.log(JSON.stringify({ lvl: 'info', ts: new Date().toISOString(), endpoint: '/api/chat', ip, node_env: process.env.NODE_ENV, text_len: text.length, duration_ms: Date.now() - startTime }));
+
+  // Prepare debug holders for Supabase insert responses
+  let convInsertResult: any = null;
+  let userMsgInsertResult: any = null;
+  let aiMsgInsertResult: any = null;
 
     // ===== Optionally persist conversation + messages to Supabase via REST (service role key) =====
     const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
@@ -363,9 +376,12 @@ TECHNICAL / SYSTEM NOTES
       // Create conversation row when stage is 'topic' and no incomingConversationId
       if (!conversationId && stage === 'topic' && SUPABASE_URL && SUPABASE_KEY) {
         const convRows = [{ profile_id: profileId, topic: topic || null, is_placement_test: false, started_at: new Date().toISOString() }];
-        const inserted = await supabaseInsert('conversations', convRows);
-        if (Array.isArray(inserted) && inserted[0] && inserted[0].id) {
-          conversationId = inserted[0].id;
+        convInsertResult = await supabaseInsert('conversations', convRows);
+        try {
+          console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_conv_insert: convInsertResult }));
+        } catch (e) {}
+        if (Array.isArray(convInsertResult) && convInsertResult[0] && convInsertResult[0].id) {
+          conversationId = convInsertResult[0].id;
         }
       }
 
@@ -396,7 +412,10 @@ TECHNICAL / SYSTEM NOTES
           profile_id: profileId || null,
           created_at: new Date().toISOString()
         };
-        await supabaseInsert('messages', [userMsg]);
+        userMsgInsertResult = await supabaseInsert('messages', [userMsg]);
+        try {
+          console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_user_message: userMsgInsertResult }));
+        } catch (e) {}
       }
 
       // Insert AI message
@@ -414,7 +433,10 @@ TECHNICAL / SYSTEM NOTES
           profile_id: profileId || null,
           created_at: new Date().toISOString()
         };
-        await supabaseInsert('messages', [aiMsg]);
+        aiMsgInsertResult = await supabaseInsert('messages', [aiMsg]);
+        try {
+          console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_ai_message: aiMsgInsertResult }));
+        } catch (e) {}
       }
 
       // If wrapup stage, mark conversation ended
@@ -443,6 +465,19 @@ TECHNICAL / SYSTEM NOTES
   if (typeof topic === 'string' && topicTagMatch) {
     baseResponse.topic_confirmed = topic;
   }
+  // Attach lightweight debug info in development to help triage topic persistence
+  try {
+    if (process.env.NODE_ENV === 'development') {
+      baseResponse._debug = {
+        topicTag: topicTagMatch ? topicTagMatch[0] : null,
+        topicFromBody: topicFromBody || null,
+        resolvedTopic: topic || null,
+        convInsertResult: convInsertResult ? (Array.isArray(convInsertResult) ? convInsertResult[0] : convInsertResult) : null,
+        userMsgInsertResult: userMsgInsertResult ? (Array.isArray(userMsgInsertResult) ? userMsgInsertResult[0] : userMsgInsertResult) : null,
+        aiMsgInsertResult: aiMsgInsertResult ? (Array.isArray(aiMsgInsertResult) ? aiMsgInsertResult[0] : aiMsgInsertResult) : null
+      };
+    }
+  } catch (e) {}
   return res.status(200).json(baseResponse);
   } catch (e: any) {
     const isAbort = e?.name === 'TimeoutError' || e?.name === 'AbortError';
