@@ -53,6 +53,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement | null>(null);
 
 
 
@@ -102,8 +103,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
         // Try to find the last rendered message element that we mark with data-last-message
         const lastMsgEl = scrollAreaRef.current.querySelector('[data-last-message]');
         if (lastMsgEl) {
-          // Use scrollIntoView so that varying content (images/audio) is handled correctly
-          (lastMsgEl as HTMLElement).scrollIntoView({ block: 'end', behavior: 'smooth' });
+          // Compute bottom margin so the last message isn't hidden behind the input/mic controls.
+          try {
+            const inputEl = inputAreaRef.current;
+            if (inputEl && lastMsgEl instanceof HTMLElement) {
+              const inputHeight = inputEl.getBoundingClientRect().height || 0;
+              // Add a bit of padding so message doesn't sit flush against input
+              const margin = Math.round(inputHeight + 24);
+              lastMsgEl.style.scrollMarginBottom = `${margin}px`;
+            }
+          } catch (e) {
+            // ignore measurement errors
+          }
+
+          // Use an instant scroll to ensure final placement is deterministic (no mid-scroll reflows)
+          (lastMsgEl as HTMLElement).scrollIntoView({ block: 'end', behavior: 'auto' });
           return;
         }
 
