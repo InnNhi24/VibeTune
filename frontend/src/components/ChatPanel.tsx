@@ -665,15 +665,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
             </div>
           )}
         </form>
-      </div>
 
-      {/* Enhanced Recording Controls */}
-      <RecordingControls
-        onSendMessage={handleSendMessage}
-        conversationContext={buildConversationContext()}
-        disabled={isLoading}
-        showAIFeedback={aiReady}
-      />
+        {/* Enhanced Recording Controls - FIX: Constrain height and keep input+controls together */}
+        <div className="overflow-y-auto max-h-[40vh] border-t border-border mt-3">
+          <RecordingControls
+            onSendMessage={handleSendMessage}
+            conversationContext={buildConversationContext()}
+            disabled={isLoading}
+            showAIFeedback={aiReady}
+          />
+        </div>
+      </div>
 
       {/* Analysis Overlay */}
       <AnimatePresence>
