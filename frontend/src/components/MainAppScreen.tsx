@@ -88,7 +88,11 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   };
 
   return (
-    <div className="h-screen bg-background flex">
+  // Prevent the overall page from scrolling; keep header/footer fixed and
+  // allow only the chat messages area to scroll. overflow-hidden blocks the
+  // browser-level scrollbar while inner scrollable regions (ScrollArea)
+  // remain functional.
+  <div className="h-screen bg-background flex overflow-hidden overflow-x-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-80 h-full">
         <AppSidebar
