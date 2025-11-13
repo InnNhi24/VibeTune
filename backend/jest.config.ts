@@ -6,7 +6,9 @@ const config: Config = {
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   setupFilesAfterEnv: [],
-  globals: { 'ts-jest': { tsconfig: '<rootDir>/tsconfig.json' } }
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
+  },
 };
 
 export default config;
