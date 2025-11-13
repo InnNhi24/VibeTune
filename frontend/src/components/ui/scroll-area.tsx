@@ -25,6 +25,7 @@ const ScrollArea = React.forwardRef<
         // overflow classes to the Root doesn't enable scrolling.
         "overflow-auto"
       )}
+      style={{ overflow: 'auto' }}
     >
       {children}
     </ScrollAreaPrimitive.Viewport>
