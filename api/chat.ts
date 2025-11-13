@@ -200,6 +200,12 @@ Rules: Tailor replyText and feedback to the user level. Keep feedback under 30 w
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     let conversationId: string | null = incomingConversationId;
 
+    // If either value is missing, persistence to Supabase REST will be disabled.
+    const persistenceDisabled = !SUPABASE_URL || !SUPABASE_KEY;
+    if (persistenceDisabled) {
+      console.warn('Supabase persistence disabled: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured. Messages will not be persisted to the DB.');
+    }
+
     const supabaseHeaders = SUPABASE_KEY
       ? {
           'Content-Type': 'application/json',
@@ -210,7 +216,11 @@ Rules: Tailor replyText and feedback to the user level. Keep feedback under 30 w
       : null;
 
     async function supabaseInsert(table: string, rows: any[]) {
-      if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+        // Provide clearer diagnostic info in server logs when missing keys.
+        console.warn('supabaseInsert skipped for', table, '- service key or url missing');
+        return null;
+      }
       try {
         const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
           method: 'POST',
@@ -303,7 +313,13 @@ Rules: Tailor replyText and feedback to the user level. Keep feedback under 30 w
       console.warn('Supabase persistence failed:', e);
     }
 
-  return res.status(200).json({ ok: true, replyText, feedback, guidance, tags, conversationId, topic, stage, nextStage });
+  // Include persistence diagnostics so devs can see when DB writes were skipped.
+  const baseResponse: any = { ok: true, replyText, feedback, guidance, tags, conversationId, topic, stage, nextStage };
+  if (persistenceDisabled) {
+    baseResponse.persistence_disabled = true;
+    baseResponse.persistence_warning = 'SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL not configured on the server; messages were not persisted.';
+  }
+  return res.status(200).json(baseResponse);
   } catch (e: any) {
     const isAbort = e?.name === 'TimeoutError' || e?.name === 'AbortError';
     const code = isAbort ? 504 : 500;
