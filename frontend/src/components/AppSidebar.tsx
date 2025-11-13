@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Progress } from "./ui/progress";
+// Progress component not used here
 import { ScrollArea } from "./ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { 
@@ -26,6 +26,7 @@ import {
   Utensils
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Trash2 } from "lucide-react";
 import { Profile } from "../services/supabaseClient";
 
 interface Conversation {
@@ -41,6 +42,7 @@ interface AppSidebarProps {
   user: Profile;
   conversations: Conversation[];
   onConversationSelect: (conversation: Conversation) => void;
+  onConversationDelete?: (conversationId: string) => void;
   onLogout: () => void;
   onSettings?: () => void;
 }
@@ -49,6 +51,7 @@ export function AppSidebar({
   user,
   conversations,
   onConversationSelect,
+  onConversationDelete,
   onLogout,
   onSettings
 }: AppSidebarProps) {
@@ -133,7 +136,7 @@ export function AppSidebar({
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 overflow-x-hidden">
         <div className="p-4 space-y-4">
           {/* Current Level Display Only - No Actions */}
           <Card>
@@ -224,7 +227,7 @@ export function AppSidebar({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="mt-2 space-y-3 max-h-80 overflow-y-auto">
+              <div className="mt-2 space-y-3 max-h-64">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
@@ -237,7 +240,6 @@ export function AppSidebar({
                   sortedTopics.map((topicName) => {
                     const topicConversations = groupedConversations[topicName];
                     const TopicIcon = getTopicIcon(topicName);
-                    const totalMessages = topicConversations.reduce((sum, conv) => sum + conv.messagesCount, 0);
                     const avgScore = topicConversations
                       .filter(conv => conv.prosodyScore)
                       .reduce((sum, conv, _, arr) => sum + (conv.prosodyScore || 0) / arr.length, 0);
@@ -281,7 +283,7 @@ export function AppSidebar({
                               const completion = getCompletionStatus(conversation.messagesCount);
                               const StatusIcon = completion.icon;
 
-                              return (
+                                return (
                                 <motion.div
                                   key={conversation.id}
                                   whileHover={{ scale: 1.01 }}
@@ -291,11 +293,11 @@ export function AppSidebar({
                                     className="cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm"
                                     onClick={() => onConversationSelect(conversation)}
                                   >
-                                    <CardContent className="p-2">
+                                    <CardContent className="p-2 relative">
                                       <div className="space-y-2">
                                         {/* Header */}
                                         <div className="flex items-start justify-between gap-2">
-                                          <h4 className="text-xs font-medium truncate text-sidebar-foreground">{conversation.title}</h4>
+                                          <h4 className="text-xs font-medium truncate text-sidebar-foreground">{conversation.title || 'New Conversation'}</h4>
                                           <div className="flex items-center gap-1">
                                             <StatusIcon className={`w-3 h-3 ${completion.color}`} />
                                             {conversation.prosodyScore && (
@@ -321,6 +323,21 @@ export function AppSidebar({
                                         </div>
                                       </div>
                                     </CardContent>
+                                    {typeof onConversationDelete === 'function' && (
+                                      <div className="absolute top-1 right-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onConversationDelete(conversation.id);
+                                          }}
+                                          className="h-6 w-6 p-0"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                      </div>
+                                    )}
                                   </Card>
                                 </motion.div>
                               );
