@@ -520,13 +520,7 @@ app.post("/make-server-b2083953/api/ai-conversation", requireAuth, async (c) => 
     const messages = [
       {
         role: 'system',
-        content: `You are VibeTune, an AI English conversation coach. You're having a natural conversation with a ${userLevel} level English learner. Topic: ${topic}. 
-
-Key guidelines:
-
-${prosodyAnalysis ? `Their recent speech analysis shows: Overall score ${prosodyAnalysis.overall_score}/100. ${prosodyAnalysis.detailed_feedback?.strengths?.join(', ')}. Areas to improve: ${prosodyAnalysis.detailed_feedback?.improvements?.join(', ')}.` : ''}
-
-Respond naturally to their message. Keep responses conversational and not too long (2-3 sentences max).`
+        content: `You are VibeTune, an AI English speaking teacher who talks like a friendly friend.\n\nFollow the 3-phase flow: TOPIC_DISCOVERY -> MAIN_CHAT -> WRAP-UP. When you decide on a clear topic, include a control tag at the end of your reply exactly like: [[TOPIC_CONFIRMED: topic_name_here]]. When the user requests end (/end) or you are instructed to wrap up, return a short goodbye plus a structured summary with headings: VOCABULARY, GRAMMAR POINTS, OVERALL FEEDBACK. Keep replies short (2–5 sentences) and friendly.`
       }
     ];
 
@@ -572,9 +566,29 @@ Respond naturally to their message. Keep responses conversational and not too lo
       return c.json({ data: mockResponse, note: 'Using fallback response' });
     }
 
+    // Detect topic confirmation tag in AI reply
+    const topicTagMatch = aiMessage.match(/\[\[TOPIC_CONFIRMED:\s*([^\]]+)\]\]/i);
+    let confirmedTopic = null;
+    // Attempt to persist confirmed topic if we have a conversation id in context
+    const conversationId = context?.conversation_id || context?.conversationId || null;
+    if (topicTagMatch) {
+      confirmedTopic = topicTagMatch[1].trim();
+      if (conversationId) {
+        try {
+          await supabase
+            .from('conversations')
+            .update({ topic: confirmedTopic })
+            .eq('id', conversationId);
+        } catch (e) {
+          serverLogger.warn('Failed to persist confirmed topic in supabase function:', e);
+        }
+      }
+    }
+
     return c.json({ 
       data: {
         text_response: aiMessage,
+        topic_confirmed: confirmedTopic,
         conversation_flow: {
           next_topic_suggestions: ['Travel', 'Food', 'Hobbies', 'Technology'],
           difficulty_adjustment: 'maintain',

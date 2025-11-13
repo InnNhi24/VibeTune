@@ -34,8 +34,12 @@ const chatRoute = async (req: Request, res: Response) => {
       userText = result.results?.channels[0]?.alternatives[0]?.transcript || "";
     }
 
-    // 3. Call OpenAI with system prompt and JSON response format
-    const systemPrompt = `You are VibeTune, a friendly AI prosody coach.\nRespond casually in 2–4 short sentences.\nThen provide “AI Analysis” with word stress marks, intonation arrows (↗︎/↘︎),\nrhythm pacing comments, and a short actionable tip.\nReturn structured JSON:\n{\n  "replyText": "...",\n  "turn_feedback": {\n    "grammar": [{"error": "...", "suggest": "..."}],\n    "vocab": [{"word": "...", "explain": "...", "CEFR": "B1"}],\n    "prosody": {"rate": 0.7, "pitch": 0.8, "energy": 0.6, "notes": "..."}\n  },\n  "guidance": "Short motivational tip"\n}`; 
+  // 3. Call OpenAI with VibeTune system prompt (topic discovery / main chat / wrap-up)
+  const systemPrompt = `You are VibeTune, an AI English speaking teacher who talks like a friendly friend.
+
+Follow the 3-phase flow: TOPIC_DISCOVERY -> MAIN_CHAT -> WRAP-UP. When you decide on a clear topic, include a control tag at the end of your reply exactly like: [[TOPIC_CONFIRMED: topic_name_here]]. When the user requests end (/end) or you are instructed to wrap up, return a short goodbye plus a structured summary with headings: VOCABULARY, GRAMMAR POINTS, OVERALL FEEDBACK.
+
+Keep replies short (2–5 sentences) and friendly. Correct only a few important mistakes. Use simple, level-appropriate vocabulary in summaries.`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini', // or gpt-3.5-turbo
@@ -90,6 +94,20 @@ const chatRoute = async (req: Request, res: Response) => {
     // b) ai message
     const { replyText, turn_feedback, guidance, scores } = aiResponse;
 
+    // Parse control tag for topic confirmation
+    const topicTagMatch = (replyText || '').match(/\[\[TOPIC_CONFIRMED:\s*([^\]]+)\]\]/i);
+    if (topicTagMatch) {
+      const confirmedTopic = topicTagMatch[1].trim();
+      try {
+        await supabaseServiceRole
+          .from('conversations')
+          .update({ topic: confirmedTopic })
+          .eq('id', conversationId);
+      } catch (e) {
+        logger.warn('Failed to persist confirmed topic:', e);
+      }
+    }
+
     const { error: aiMessageError } = await supabaseServiceRole
       .from('messages')
       .insert({
@@ -115,6 +133,7 @@ const chatRoute = async (req: Request, res: Response) => {
       feedback: aiResponse.turn_feedback,
       guidance: aiResponse.guidance,
       scores: scores,
+      topic_confirmed: topicTagMatch ? topicTagMatch[1].trim() : null
     });
 
   } catch (error: any) {
