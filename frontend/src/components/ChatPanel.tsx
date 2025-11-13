@@ -615,7 +615,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // area can scroll independently by using `min-h-0` on the container and
   // `flex-1 overflow-auto` on the ScrollArea. This keeps the header and
   // the input/footer pinned while only the messages list scrolls.
-  <div className="flex flex-col flex-1 min-h-0 bg-background">
+  <div className="flex flex-col flex-1 min-h-0 h-full bg-background">
       {/* Enhanced Chat Header */}
       <div className="bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
@@ -646,7 +646,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       </div>
 
   {/* Messages Area (scrollable) */}
-  <ScrollArea ref={scrollAreaRef} className="flex-1 overflow-auto p-4">
+  <ScrollArea ref={scrollAreaRef} className="flex-1 h-full overflow-auto p-4">
         <div className="space-y-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
@@ -699,7 +699,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
       {/* Clean Text Input */}
   {/* Input / Recording controls (fixed footer area) */}
-  <div ref={inputAreaRef} className="flex-none bg-card border-t border-border p-4 space-y-3">
+  <div ref={inputAreaRef} className="flex-none bg-card border-t border-border p-4 space-y-3 max-h-[45vh] overflow-hidden">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">
@@ -718,7 +718,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 }}
                 placeholder={waitingForTopic ? "Tell me what you'd like to discuss..." : "Continue the conversation..."}
                 disabled={isLoading}
-                className="flex-1 min-h-[80px] resize-y"
+                // Limit textarea growth so it doesn't push the chat area; allow internal scroll when large
+                className="flex-1 min-h-[80px] max-h-40 resize-y overflow-auto"
                 maxLength={500}
               />
             ) : (
@@ -775,7 +776,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         </form>
 
         {/* Enhanced Recording Controls - FIX: Constrain height and keep input+controls together */}
-        <div className="overflow-y-auto max-h-[40vh] border-t border-border mt-3">
+        <div className="overflow-y-auto max-h-40 border-t border-border mt-3">
           <RecordingControls
             onSendMessage={handleSendMessage}
             conversationContext={buildConversationContext()}
