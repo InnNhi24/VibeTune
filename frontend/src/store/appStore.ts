@@ -54,11 +54,16 @@ export interface Conversation {
   id: string;
   profile_id: string;
   topic: string;
+  // Human-friendly title shown in the sidebar UI
+  title?: string;
   is_placement_test: boolean;
   started_at: string;
   ended_at?: string;
   message_count?: number;
   avg_prosody_score?: number;
+  // Convenience fields used by UI components (optional)
+  timestamp?: string;
+  messagesCount?: number;
 }
 
 export interface SyncStatus {
@@ -100,6 +105,8 @@ interface AppStore {
   setCurrentTopic: (topic: string) => void;
   clearMessages: () => void;
   addConversation: (conversation: Conversation) => void;
+  // Reconcile a locally-created conversation id (local_<ts>) with the server canonical id
+  reconcileConversationId: (localId: string, serverId: string) => void;
   endConversation: (conversationId: string, updates: Partial<Conversation>) => void;
   
   // Placement test state
@@ -208,6 +215,24 @@ export const useAppStore = create<AppStore>()(
             conversations: [conversation, ...state.conversations],
             activeConversationId: conversation.id
           }));
+        },
+        reconcileConversationId: (localId, serverId) => {
+          // Replace conversation id and update any messages referencing the local id
+          set((state) => {
+            const conversations = state.conversations.map(conv =>
+              conv.id === localId ? { ...conv, id: serverId } : conv
+            );
+
+            const messages = state.messages.map(msg =>
+              msg.conversation_id === localId ? { ...msg, conversation_id: serverId } : msg
+            );
+
+            return {
+              conversations,
+              messages,
+              activeConversationId: serverId
+            };
+          });
         },
         endConversation: (conversationId, updates) => {
           set((state) => ({

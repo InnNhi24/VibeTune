@@ -1,11 +1,23 @@
 // Minimal conversation service helpers used by frontend hooks
-export async function ensureConversation({ topic, profileId }: { topic: string; profileId?: string }) {
+import { useAppStore } from '../store/appStore';
+
+// If localId is provided, we will attempt to reconcile it with the server's canonical id
+export async function ensureConversation({ topic, profileId, localId }: { topic: string; profileId?: string; localId?: string }) {
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ stage: 'topic', topic, profileId }),
   });
-  return res.json();
+  const data = await res.json();
+  try {
+    if (data?.conversationId && localId) {
+      // Best-effort reconciliation of local -> server id
+      try { useAppStore.getState().reconcileConversationId(localId, data.conversationId); } catch (e) { /* ignore */ }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return data;
 }
 
 export async function saveTurn({ conversationId, role, text }: { conversationId?: string; role: 'user' | 'assistant' | string; text: string }) {

@@ -64,9 +64,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const storeMessages = useAppStore(state => state.messages);
 
-
-
-
   // Check AI service status
   useEffect(() => {
     const checkAI = () => {
@@ -132,49 +129,65 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // then fallback to the Radix viewport scrollTop behavior.
   useEffect(() => {
     try {
-      if (scrollAreaRef.current) {
-        // Try to find the last rendered message element that we mark with data-last-message
-        const lastMsgEl = scrollAreaRef.current.querySelector('[data-last-message]');
-        if (lastMsgEl) {
-          // Compute bottom margin so the last message isn't hidden behind the input/mic controls.
-          try {
-            const inputEl = inputAreaRef.current;
-            if (inputEl && lastMsgEl instanceof HTMLElement) {
-              const inputHeight = inputEl.getBoundingClientRect().height || 0;
-              // Add a bit of padding so message doesn't sit flush against input
-              const margin = Math.round(inputHeight + 24);
-              lastMsgEl.style.scrollMarginBottom = `${margin}px`;
-            }
-          } catch (e) {
-            // ignore measurement errors
-          }
-
-          // Use an instant scroll to ensure final placement is deterministic (no mid-scroll reflows)
-          (lastMsgEl as HTMLElement).scrollIntoView({ block: 'end', behavior: 'auto' });
-          return;
-        }
-
-        // Fallback: target the Radix viewport directly
-        const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-        if (scrollContainer) {
-          setTimeout(() => {
-            try {
-              (scrollContainer as HTMLElement).scrollTop = (scrollContainer as HTMLElement).scrollHeight;
-            } catch (e) {
-              // If scroll fails, surface a debug message to the console
-              // so we can reproduce and inspect DOM structure in the app.
-              // eslint-disable-next-line no-console
-              console.warn('ChatPanel: fallback scroll failed', e);
-            }
-          }, 100);
-          return;
-        }
+      const root = scrollAreaRef.current as HTMLElement | null;
+      if (!root) {
+        console.warn('ChatPanel: scrollAreaRef.current is null');
+        return;
       }
 
-      // If we reach here, both the last message and viewport were not found
-      // Log an informative message to help debugging layout issues.
-      // eslint-disable-next-line no-console
-      console.warn('ChatPanel: unable to find scroll container or last message element to auto-scroll');
+      // Prefer the Radix viewport if present (it contains the scrollable content)
+      const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+
+      // Look for any element marked as last message inside the viewport first, then root
+      const searchRoot = viewport || root;
+      const lastNodes = Array.from(searchRoot.querySelectorAll('[data-last-message]')) as HTMLElement[];
+      const lastMsgEl = lastNodes.length ? lastNodes[lastNodes.length - 1] : null;
+
+      if (lastMsgEl) {
+        // Compute bottom margin so the last message isn't hidden behind the input/mic controls.
+        try {
+          const inputEl = inputAreaRef.current as HTMLElement | null;
+          if (inputEl && lastMsgEl instanceof HTMLElement) {
+            const inputHeight = inputEl.getBoundingClientRect().height || 0;
+            // Add a bit of padding so message doesn't sit flush against input
+            const margin = Math.round(inputHeight + 24);
+            lastMsgEl.style.scrollMarginBottom = `${margin}px`;
+          }
+        } catch (e) {
+          // ignore measurement errors
+        }
+
+        // Scroll the viewport (if we have one) or the last element into view
+        if (viewport) {
+          // Ensure we scroll the viewport to make the last message visible
+          setTimeout(() => {
+            try {
+              viewport.scrollTop = lastMsgEl.offsetTop - (viewport.clientHeight - lastMsgEl.clientHeight) + 8;
+            } catch (e) {
+              // fallback to element scrollIntoView
+              try { lastMsgEl.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (_) {}
+            }
+          }, 40);
+        } else {
+          try { lastMsgEl.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (_) {}
+        }
+
+        return;
+      }
+
+      // No last message found - fallback to scrolling the viewport to bottom
+      if (viewport) {
+        setTimeout(() => {
+          try {
+            viewport.scrollTop = viewport.scrollHeight;
+          } catch (e) {
+            console.warn('ChatPanel: fallback scroll failed', e);
+          }
+        }, 100);
+        return;
+      }
+
+      console.warn('ChatPanel: unable to find last message element or scroll viewport');
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('ChatPanel auto-scroll error:', err);
@@ -314,6 +327,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               if (data.conversationId) {
                 // Set active conversation and refresh history so sidebar updates
                 store.setActiveConversation(data.conversationId);
+                // If the server confirmed the topic, also update the conversation record in the store
+                if (data.topic_confirmed) {
+                  try { store.endConversation(data.conversationId, { topic: data.topic_confirmed, title: data.topic_confirmed }); } catch (e) { /* best-effort */ }
+                }
                 // Trigger a sync to refresh conversations list
                 try { await store.syncData(); } catch (e) { /* best-effort */ }
               }
@@ -350,6 +367,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           id: convId,
           profile_id: (user as any)?.id || '',
           topic: currentTopic,
+          // Title shown in the sidebar - use the human-friendly topic label
+          title: currentTopic || 'New Conversation',
           is_placement_test: false,
           started_at: new Date().toISOString(),
           message_count: 0,
@@ -575,9 +594,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   };
 
-
-
-
   const toggleInputMode = () => {
     setIsTextareaMode(!isTextareaMode);
   };
@@ -638,14 +654,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 onAnalysisView={message.prosodyAnalysis ? () => handleAnalysisView(message.prosodyAnalysis!) : undefined}
                 onRetry={() => handleRetryRecording(message.id)}
               />
-              
-
             </div>
           ))}
 
-
-          
-          
           {/* Loading indicator */}
           {isLoading && (
             <motion.div
@@ -671,7 +682,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       </ScrollArea>
 
       {/* Clean Text Input */}
-      <div className="bg-card border-t border-border p-4 space-y-3">
+  <div ref={inputAreaRef} className="bg-card border-t border-border p-4 space-y-3">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">

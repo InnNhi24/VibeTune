@@ -317,6 +317,45 @@ TECHNICAL / SYSTEM NOTES
     const topicTagMatch = (replyText || '').match(/\[\[TOPIC_CONFIRMED:\s*([^\]]+)\]\]/i);
     if (topicTagMatch) {
       topic = topicTagMatch[1].trim();
+    } else {
+      // If no explicit control tag, attempt to infer a natural-language confirmation
+      // The model may reply in a friendly sentence, e.g.: "So our topic for today would be coffee, is that right?"
+      // Try several regex patterns to extract a short topic phrase from the replyText.
+      const guessTopicFromReply = (text: string | null) => {
+        if (!text) return null;
+        const t = text.replace(/\n+/g, ' ').trim();
+        // common patterns: "topic ... is X", "our topic ... would be X", "let's talk about X"
+        const patterns = [
+          /(?:our )?topic(?: for today| for this (?:session|practice))? (?:would be|is|will be|:)?\s*([a-zA-Z0-9 &\-']{2,60})/i,
+          /let(?:'|)s talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
+          /talk about\s+([a-zA-Z0-9 &\-']{2,60})(?:[\.\?!\,]|$)/i,
+          /I(?:'|)d like to talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
+          /shall we talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
+          /(?:topic is|topic:)\s*([a-zA-Z0-9 &\-']{2,60})/i
+        ];
+
+        for (const re of patterns) {
+          const m = t.match(re);
+          if (m && m[1]) {
+            // Clean candidate: trim, remove trailing punctuation, keep short phrase
+            let cand = m[1].trim();
+            cand = cand.replace(/[\.\,\!\?]$/,'').trim();
+            // If candidate contains many words, try to pick a concise label (first 3 words)
+            const parts = cand.split(/\s+/).slice(0,3);
+            return parts.join(' ');
+          }
+        }
+
+        // Fallback: look for single-word nouns after a short phrase
+        const fallback = t.match(/(?:about|on)\s+([a-zA-Z0-9 &\-']{2,30})(?:[\.\?!\,]|$)/i);
+        if (fallback && fallback[1]) return fallback[1].trim().split(/\s+/).slice(0,3).join(' ');
+        return null;
+      };
+
+      const inferred = guessTopicFromReply(replyText || '');
+      if (inferred) {
+        topic = inferred;
+      }
     }
   // Decide next stage
   const nextStage = stage === 'topic' ? 'practice' : stage === 'practice' ? 'wrapup' : 'done';
