@@ -17,7 +17,14 @@ const ScrollArea = React.forwardRef<
   >
     <ScrollAreaPrimitive.Viewport
       data-slot="scroll-area-viewport"
-      className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+      className={cn(
+        "focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1",
+        // Ensure the Radix viewport itself is the scroll container so
+        // overflow is correctly handled when the parent/root controls
+        // layout (flex, height). This fixes cases where passing
+        // overflow classes to the Root doesn't enable scrolling.
+        "overflow-auto"
+      )}
     >
       {children}
     </ScrollAreaPrimitive.Viewport>
