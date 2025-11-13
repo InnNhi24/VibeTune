@@ -40,6 +40,10 @@ export function RecordingControls({
   const activeStreamRef = useRef<MediaStream | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  // Store the last produced audio blob in a ref so consumers can await it without
+  // relying on React state (avoids race conditions where state updates are not
+  // immediately visible in the current function scope).
+  const lastBlobRef = useRef<Blob | null>(null);
   const recognitionRef = useRef<any>(null);
   const usingServiceRef = useRef<boolean>(false);
   const [transcribeError, setTranscribeError] = useState<string | null>(null);
@@ -146,6 +150,8 @@ export function RecordingControls({
       
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { type: 'audio/wav' });
+        // store both in state (for rendering) and in ref for synchronous access
+        lastBlobRef.current = blob;
         setAudioBlob(blob);
         // stop any active tracks
         try { activeStreamRef.current?.getTracks().forEach(track => track.stop()); } catch (e) { /* noop */ }
@@ -337,16 +343,19 @@ export function RecordingControls({
       }
 
       // Wait briefly for mediaRecorder.onstop to set audioBlob (onstop is async)
-      const waitForBlob = async (timeout = 2000) => {
+      // Wait for the recorder onstop handler to set the blob. We check the
+      // lastBlobRef which is written synchronously by onstop so this avoids
+      // races caused by React state not being visible immediately.
+      const waitForBlobRef = async (timeout = 3000) => {
         const start = Date.now();
-        while (!audioBlob && Date.now() - start < timeout) {
+        while (!lastBlobRef.current && Date.now() - start < timeout) {
           // eslint-disable-next-line no-await-in-loop
           await new Promise((r) => setTimeout(r, 50));
         }
-        return audioBlob;
+        return lastBlobRef.current;
       };
 
-      const blob = await waitForBlob(3000);
+      const blob = await waitForBlobRef(3000);
       // If we have a final audio blob, try the OpenAI final transcription endpoint
       if (blob) {
         try {
@@ -463,6 +472,8 @@ export function RecordingControls({
       setView("");
       setRecordedMessage("");
       setAudioBlob(null);
+      // clear the ref as well to avoid leaking the blob reference
+      lastBlobRef.current = null;
       setRecordingState('idle');
       setAnalysisProgress(0);
     }, 150);

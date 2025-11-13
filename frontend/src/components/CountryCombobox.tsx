@@ -141,9 +141,26 @@ export default function CountryCombobox({
                         {list.map((c) => (
                           <CommandItem key={c.cca3} value={c.name} onSelect={() => selectCountry(c.name)} className="cursor-pointer">
                             {showFlags ? (
-                              <span className="mr-2 text-lg" aria-hidden>
-                                {c.flag || flagFromCode(c.cca2)}
-                              </span>
+                              // Prefer a small raster/SVG flag from a CDN for the "old" logo look.
+                              // Fall back to the emoji value from world-countries if the image fails.
+                              c.cca2 ? (
+                                <img
+                                  src={`https://flagcdn.com/24x18/${c.cca2.toLowerCase()}.png`}
+                                  onError={(e) => {
+                                    // fallback to emoji
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) parent.setAttribute('data-fallback-flag', c.flag || flagFromCode(c.cca2));
+                                  }}
+                                  alt={`${c.name} flag`}
+                                  className="mr-2 w-6 h-4 object-cover rounded-sm"
+                                />
+                              ) : (
+                                <span className="mr-2 text-lg" aria-hidden>
+                                  {c.flag || flagFromCode(c.cca2)}
+                                </span>
+                              )
                             ) : null}
                             <span className="truncate">{c.name}</span>
                             <span className="ml-2 text-muted-foreground text-xs">({c.cca2})</span>

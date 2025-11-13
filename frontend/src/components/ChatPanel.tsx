@@ -157,18 +157,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           // ignore measurement errors
         }
 
-        // Scroll the viewport (if we have one) or the last element into view
-        if (viewport) {
-          // Ensure we scroll the viewport to make the last message visible
-          setTimeout(() => {
+        // Prefer element scrollIntoView (more robust across browsers). If we have a Radix
+        // viewport we'll still try to align the viewport to the bottom as a fallback.
+        try {
+          // Use requestAnimationFrame to avoid layout thrash and ensure the element
+          // is in the DOM & measured before scrolling.
+          requestAnimationFrame(() => {
             try {
-              viewport.scrollTop = lastMsgEl.offsetTop - (viewport.clientHeight - lastMsgEl.clientHeight) + 8;
-            } catch (e) {
-              // fallback to element scrollIntoView
-              try { lastMsgEl.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (_) {}
+              lastMsgEl.scrollIntoView({ block: 'end', behavior: 'smooth' });
+            } catch (_) {
+              // ignore
             }
-          }, 40);
-        } else {
+
+            if (viewport) {
+              try {
+                // As a robust fallback, ensure the viewport is scrolled to the bottom
+                // so newly appended content is visible.
+                viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+              } catch (_) {
+                // ignore
+              }
+            }
+          });
+        } catch (e) {
+          // Best-effort fallback
           try { lastMsgEl.scrollIntoView({ block: 'end', behavior: 'auto' }); } catch (_) {}
         }
 
