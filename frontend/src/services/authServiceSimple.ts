@@ -343,6 +343,18 @@ export class SimpleAuthService {
         device_id: this.getDeviceId()
       };
 
+      // Update last_login in the profiles table to reflect current access.
+      // This ensures 'Last Login' shown in Settings is current even when the
+      // session was persisted (user didn't explicitly sign in during this run).
+      try {
+        await supabase
+          .from('profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', session.user.id);
+      } catch (e) {
+        logger.warn('⚠️ Failed to update last_login during session check:', e);
+      }
+
       return { data: { session, user: session.user, profile }, error: null };
     } catch (error: any) {
         logger.error('❌ Session check failed:', error);
