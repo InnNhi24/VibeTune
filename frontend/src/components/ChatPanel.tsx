@@ -93,15 +93,44 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
     setCurrentTopic("New Conversation");
   }, [safeLevel]);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive.
+  // Use the last-message element scrollIntoView first (more robust),
+  // then fallback to the Radix viewport scrollTop behavior.
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        setTimeout(() => {
-          scrollContainer.scrollTop = scrollContainer.scrollHeight;
-        }, 100);
+    try {
+      if (scrollAreaRef.current) {
+        // Try to find the last rendered message element that we mark with data-last-message
+        const lastMsgEl = scrollAreaRef.current.querySelector('[data-last-message]');
+        if (lastMsgEl) {
+          // Use scrollIntoView so that varying content (images/audio) is handled correctly
+          (lastMsgEl as HTMLElement).scrollIntoView({ block: 'end', behavior: 'smooth' });
+          return;
+        }
+
+        // Fallback: target the Radix viewport directly
+        const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollContainer) {
+          setTimeout(() => {
+            try {
+              (scrollContainer as HTMLElement).scrollTop = (scrollContainer as HTMLElement).scrollHeight;
+            } catch (e) {
+              // If scroll fails, surface a debug message to the console
+              // so we can reproduce and inspect DOM structure in the app.
+              // eslint-disable-next-line no-console
+              console.warn('ChatPanel: fallback scroll failed', e);
+            }
+          }, 100);
+          return;
+        }
       }
+
+      // If we reach here, both the last message and viewport were not found
+      // Log an informative message to help debugging layout issues.
+      // eslint-disable-next-line no-console
+      console.warn('ChatPanel: unable to find scroll container or last message element to auto-scroll');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('ChatPanel auto-scroll error:', err);
     }
   }, [messages]);
 
@@ -227,11 +256,25 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
 
           if (resp.ok) {
             const data = await resp.json();
-            if (data.conversationId) {
-              // Set active conversation and refresh history so sidebar updates
-              store.setActiveConversation(data.conversationId);
-              // Trigger a sync to refresh conversations list
-              try { await store.syncData(); } catch (e) { /* best-effort */ }
+            if (data) {
+              // If the server confirms the topic (from model control tag), prefer that
+              if (data.topic_confirmed) {
+                // Update local UI and global store
+                setCurrentTopic(data.topic_confirmed);
+                if (onTopicChange) onTopicChange(data.topic_confirmed);
+              }
+
+              if (data.conversationId) {
+                // Set active conversation and refresh history so sidebar updates
+                store.setActiveConversation(data.conversationId);
+                // Trigger a sync to refresh conversations list
+                try { await store.syncData(); } catch (e) { /* best-effort */ }
+              }
+
+              // Helpful debug: surface when persistence is disabled on the server
+              if (data.persistence_disabled) {
+                console.warn('Server indicated persistence is disabled for /api/chat responses');
+              }
             }
           }
         } catch (err) {
@@ -480,7 +523,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange }: 
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
         <div className="space-y-4">
           {messages.map((message, index) => (
-            <div key={message.id}>
+            // mark the last message with a data attribute so the scroll effect can target it
+            <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
               <MessageBubble
                 message={message.text}
                 isUser={message.isUser}
