@@ -108,10 +108,10 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
 
   return (
   // Prevent the overall page from scrolling; keep header/footer fixed and
-  // allow only the chat messages area to scroll. overflow-hidden blocks the
-  // browser-level scrollbar while inner scrollable regions (ScrollArea)
-  // remain functional.
-  <div className="h-screen bg-background flex overflow-hidden overflow-x-hidden">
+  // allow only the chat messages area to scroll. Use min-h-screen on the
+  // root flex container so children can size correctly and we avoid the
+  // document body growing with chat content.
+  <div className="flex min-h-screen overflow-hidden bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-80 h-full">
         <AppSidebar
@@ -126,8 +126,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
 
       {/* Main Content */}
   <div className="flex-1 flex flex-col min-h-0">
-        {/* Header - Both Mobile and Desktop */}
-        <div className="bg-card border-b border-border p-4">
+  {/* Header - Both Mobile and Desktop */}
+  <div className="shrink-0 bg-card border-b border-border p-4">
           {/* Mobile Header */}
           <div className="md:hidden flex items-center justify-between">
             <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
@@ -211,9 +211,10 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
 
     {/* Chat Panel - make this a flex column so the inner ChatPanel (a flex
       child) can take the full available height and allow its messages
-      area to scroll independently. Removed `min-h-0` here to avoid
-      conflicting height calculations with Radix/Shadcn ScrollArea. */}
-    <div className="flex-1 flex flex-col">
+      area to scroll independently. Ensure `min-h-0` is present so flex
+      children can shrink and the inner ScrollArea becomes the scroll
+      container rather than the document. */}
+    <div className="flex-1 min-h-0 flex flex-col">
           <ChatPanel
             topic={currentTopic}
             level={currentLevel}
