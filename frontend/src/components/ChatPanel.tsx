@@ -131,10 +131,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // Use the last-message element scrollIntoView first (more robust),
   // then fallback to the Radix viewport scrollTop behavior.
   const scrollToBottom = (smooth = true) => {
-    const root = scrollAreaRef.current as HTMLElement | null;
-    if (!root) return;
-    const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-    const containerEl = (viewport || root) as HTMLElement | null;
+    const containerEl = scrollAreaRef.current as HTMLElement | null;
     if (!containerEl) return;
     try {
       containerEl.scrollTo({ top: containerEl.scrollHeight, behavior: smooth ? 'smooth' : undefined });
@@ -146,25 +143,18 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const isNearBottom = (el: HTMLElement) => el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
 
   const handleScroll = () => {
-    const root = scrollAreaRef.current as HTMLElement | null;
-    if (!root) return;
-    const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-    const containerEl = (viewport || root) as HTMLElement | null;
+    const containerEl = scrollAreaRef.current as HTMLElement | null;
     if (!containerEl) return;
     setShowNewMessageIndicator(!isNearBottom(containerEl));
   };
 
   useEffect(() => {
     try {
-      const root = scrollAreaRef.current as HTMLElement | null;
-      if (!root) {
+      const containerEl = scrollAreaRef.current as HTMLElement | null;
+      if (!containerEl) {
         console.warn('ChatPanel: scrollAreaRef.current is null');
         return;
       }
-
-      const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-      const containerEl = (viewport || root) as HTMLElement | null;
-      if (!containerEl) return;
 
       if (isNearBottom(containerEl)) {
         // only auto-scroll when user is already near the bottom
@@ -673,7 +663,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
         {/* New messages indicator (shown when user scrolled up) - Inside messages area */}
         {showNewMessageIndicator && (
-          <div className="absolute bottom-4 right-4">
+          <div className="absolute bottom-4 right-4 z-50">
             <Button
               size="icon"
               onClick={() => {
@@ -687,6 +677,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             </Button>
           </div>
         )}
+        
+        {/* Debug indicator - remove after testing */}
+        <div className="absolute top-4 right-4 z-50 bg-red-500 text-white px-2 py-1 text-xs rounded">
+          Show: {showNewMessageIndicator ? 'YES' : 'NO'}
+        </div>
       </div>
 
       {/* Input / Recording controls - Fixed at bottom */}
