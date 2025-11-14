@@ -54,12 +54,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [currentTopic, setCurrentTopic] = useState(topic);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
+  const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
+  const SCROLL_THRESHOLD = 160; // px from bottom to consider "near bottom"
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Zustand store hooks
   const addMessageToStore = useAppStore(state => state.addMessage);
   const addConversation = useAppStore(state => (state as any).addConversation);
   const endConversation = useAppStore(state => (state as any).endConversation);
+  // reference to avoid unused variable lint where store selector exists but value optional
+  void endConversation;
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const storeMessages = useAppStore(state => state.messages);
 
@@ -126,6 +130,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // Auto-scroll to bottom when new messages arrive.
   // Use the last-message element scrollIntoView first (more robust),
   // then fallback to the Radix viewport scrollTop behavior.
+  const scrollToBottom = (smooth = true) => {
+    const root = scrollAreaRef.current as HTMLElement | null;
+    if (!root) return;
+    const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const containerEl = (viewport || root) as HTMLElement | null;
+    if (!containerEl) return;
+    try {
+      containerEl.scrollTo({ top: containerEl.scrollHeight, behavior: smooth ? 'smooth' : undefined });
+    } catch (_) {
+      try { containerEl.scrollTop = containerEl.scrollHeight; } catch (_) { /* noop */ }
+    }
+  };
+
+  const isNearBottom = (el: HTMLElement) => el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+
+  const handleScroll = () => {
+    const root = scrollAreaRef.current as HTMLElement | null;
+    if (!root) return;
+    const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+    const containerEl = (viewport || root) as HTMLElement | null;
+    if (!containerEl) return;
+    setShowNewMessageIndicator(!isNearBottom(containerEl));
+  };
+
   useEffect(() => {
     try {
       const root = scrollAreaRef.current as HTMLElement | null;
@@ -134,43 +162,18 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         return;
       }
 
-      // Prefer the Radix viewport if present (it contains the scrollable content)
       const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
+      const containerEl = (viewport || root) as HTMLElement | null;
+      if (!containerEl) return;
 
-      // Simplified auto-scroll: always scroll the ScrollArea viewport to its bottom.
-      // We add bottom padding via CSS on the messages container (see className="space-y-4 pb-40")
-      // so the last message won't be hidden by the fixed footer. This avoids measuring
-      // the input area in JS and makes scrolling more robust across browsers.
-  const containerEl = (viewport || root) as HTMLElement | null;
-      if (containerEl) {
-        try {
-          requestAnimationFrame(() => {
-            try {
-              // smooth behavior is nicer; fallback to direct assignment if not supported
-              containerEl.scrollTo({ top: containerEl.scrollHeight, behavior: 'smooth' });
-            } catch (_) {
-              try { containerEl.scrollTop = containerEl.scrollHeight; } catch (_) { /* noop */ }
-            }
-          });
-        } catch (e) {
-          try { (containerEl as any).scrollTop = (containerEl as any).scrollHeight; } catch (_) { /* noop */ }
-        }
-        return;
+      if (isNearBottom(containerEl)) {
+        // only auto-scroll when user is already near the bottom
+        requestAnimationFrame(() => scrollToBottom(true));
+        setShowNewMessageIndicator(false);
+      } else {
+        // user scrolled up; show indicator instead of forcing scroll
+        setShowNewMessageIndicator(true);
       }
-
-      // No last message found - fallback to scrolling the viewport to bottom
-      if (viewport) {
-        setTimeout(() => {
-          try {
-            viewport.scrollTop = viewport.scrollHeight;
-          } catch (e) {
-            console.warn('ChatPanel: fallback scroll failed', e);
-          }
-        }, 100);
-        return;
-      }
-
-      console.warn('ChatPanel: unable to find last message element or scroll viewport');
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('ChatPanel auto-scroll error:', err);
@@ -620,7 +623,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       {/* Messages Area (scrollable) */}
       <div
         ref={scrollAreaRef}
-        className="flex-1 min-h-0 overflow-y-auto"
+        className="flex-1 min-h-0 overflow-y-auto relative"
+        onScroll={handleScroll}
       >
         <div className="space-y-4 pb-24 p-4">
           {messages.map((message, index) => (
@@ -668,6 +672,23 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 </div>
               </div>
             </motion.div>
+          )}
+
+          {/* New messages indicator (shown when user scrolled up) */}
+          {showNewMessageIndicator && (
+            <div className="absolute bottom-6 right-6">
+              <Button
+                size="sm"
+                onClick={() => {
+                  scrollToBottom(true);
+                  setShowNewMessageIndicator(false);
+                }}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-md"
+                aria-label="Jump to latest messages"
+              >
+                New messages
+              </Button>
+            </div>
           )}
         </div>
       </div>

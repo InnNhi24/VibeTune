@@ -227,7 +227,7 @@ export function AppSidebar({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="mt-2 space-y-3 max-h-64">
+              <div className="mt-2 space-y-3 max-h-64 overflow-y-auto pr-1">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
