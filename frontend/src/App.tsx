@@ -298,12 +298,14 @@ function AppContent() {
         return null;
       }
       return (
-        <MainAppScreen
-          user={user}
-          onLogout={handleLogout}
-          onStartPlacementTest={() => setCurrentState("placement-test")}
-          onUserUpdate={(updatedUser) => dispatch(appActions.setUser(updatedUser))}
-        />
+        <div className="h-screen overflow-hidden">
+          <MainAppScreen
+            user={user}
+            onLogout={handleLogout}
+            onStartPlacementTest={() => setCurrentState("placement-test")}
+            onUserUpdate={(updatedUser) => dispatch(appActions.setUser(updatedUser))}
+          />
+        </div>
       );
 
     default:
