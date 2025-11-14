@@ -585,10 +585,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   };
 
   return (
-  // ChatGPT-style layout: fixed header and input, scrollable messages in between
-  <div className="h-full bg-background rounded-lg border border-border flex flex-col">
+  // ChatGPT-style layout: Use CSS Grid for precise height control
+  <div className="h-full bg-background rounded-lg border border-border grid grid-rows-[auto_1fr_auto]">
       {/* Enhanced Chat Header - Fixed at top */}
-        <div className="flex-none bg-card border-b border-border p-4">
+        <div className="bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="text-center flex-1">
             <h2 className="font-medium">{currentTopic}</h2>
@@ -616,10 +616,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         )}
       </div>
 
-      {/* Messages Area (scrollable) - Takes remaining space */}
+      {/* Messages Area (scrollable) - Grid row 2, takes remaining space */}
       <div
         ref={scrollAreaRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden bg-background"
+        className="overflow-y-auto overflow-x-hidden bg-background"
         onScroll={handleScroll}
       >
         <div className="p-4 space-y-4">
@@ -689,8 +689,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         </div>
       </div>
 
-      {/* Input / Recording controls - Fixed at bottom */}
-  <div ref={inputAreaRef} className="flex-none bg-card border-t border-border p-4 space-y-3">
+      {/* Input / Recording controls - Grid row 3, fixed at bottom */}
+  <div ref={inputAreaRef} className="bg-card border-t border-border p-4 space-y-3">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">
