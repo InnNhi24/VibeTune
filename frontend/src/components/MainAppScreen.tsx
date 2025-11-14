@@ -121,8 +121,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
         />
       </div>
 
-    {/* Main Content - Use grid for precise height control */}
-  <div className="flex-1 grid grid-rows-[auto_1fr]">
+    {/* Main Content */}
+  <div className="flex-1 flex flex-col">
   {/* Header - Both Mobile and Desktop */}
   <div className="shrink-0 bg-card border-b border-border p-4">
           {/* Mobile Header */}
@@ -206,8 +206,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           </div>
         </div>
 
-    {/* Chat Panel - Use grid to ensure ChatPanel gets exact height */}
-  <main className="flex-1 p-4 grid">
+    {/* Chat Panel - Relative container for absolute positioned ChatPanel */}
+  <main className="flex-1 p-4 relative">
       <ChatPanel
         topic={currentTopic}
         level={currentLevel}
