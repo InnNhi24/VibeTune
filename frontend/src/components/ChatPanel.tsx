@@ -585,12 +585,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   };
 
   return (
-  // Make this component a flex column with fixed height; ensure the messages
-  // area can scroll independently. Header and input/footer remain pinned 
-  // while only the messages list scrolls.
-  <div className="flex flex-col h-full bg-background rounded-lg border border-border overflow-hidden">
-      {/* Enhanced Chat Header */}
-        <div className="shrink-0 bg-card border-b border-border p-4">
+  // ChatGPT-style layout: fixed header and input, scrollable messages in between
+  <div className="h-full bg-background rounded-lg border border-border flex flex-col">
+      {/* Enhanced Chat Header - Fixed at top */}
+        <div className="flex-none bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="text-center flex-1">
             <h2 className="font-medium">{currentTopic}</h2>
@@ -618,13 +616,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         )}
       </div>
 
-      {/* Messages Area (scrollable) */}
+      {/* Messages Area (scrollable) - Takes remaining space */}
       <div
         ref={scrollAreaRef}
-        className="flex-1 min-h-0 overflow-y-auto relative bg-background"
+        className="flex-1 overflow-y-auto overflow-x-hidden bg-background"
         onScroll={handleScroll}
       >
-        <div className="space-y-4 p-4 pb-6">
+        <div className="p-4 space-y-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
@@ -691,9 +689,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         </div>
       </div>
 
-      {/* Clean Text Input */}
-  {/* Input / Recording controls (fixed footer area) */}
-  <div ref={inputAreaRef} className="shrink-0 bg-card border-t border-border p-4 space-y-3">
+      {/* Input / Recording controls - Fixed at bottom */}
+  <div ref={inputAreaRef} className="flex-none bg-card border-t border-border p-4 space-y-3">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">
