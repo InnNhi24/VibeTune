@@ -682,14 +682,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </div>
 
-        {/* New messages indicator - FORCED visibility */}
+        {/* Scroll to bottom button - appears when scrolled up */}
         {showNewMessageIndicator && (
           <div 
             style={{
-              position: 'fixed',
-              bottom: '140px',
-              right: '32px',
-              zIndex: 99999
+              position: 'absolute',
+              bottom: '16px',
+              right: '16px',
+              zIndex: 1000
             }}
           >
             <button
@@ -698,17 +698,18 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 setShowNewMessageIndicator(false);
               }}
               style={{
-                width: '48px',
-                height: '48px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '50%',
-                backgroundColor: '#10b981',
+                backgroundColor: '#3b82f6',
                 color: 'white',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                fontSize: '18px'
               }}
               aria-label="Jump to latest messages"
             >
@@ -717,48 +718,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           </div>
         )}
         
-        {/* Debug indicator - FORCED visibility */}
-        <div 
-          style={{
-            position: 'fixed',
-            top: '16px',
-            right: '16px',
-            zIndex: 99999,
-            backgroundColor: 'red',
-            color: 'white',
-            padding: '8px',
-            fontSize: '12px',
-            borderRadius: '4px',
-            pointerEvents: 'none'
-          }}
-        >
-          Show: {showNewMessageIndicator ? 'YES' : 'NO'}
-        </div>
-        
-        {/* Test button - FORCED visibility */}
-        <div 
-          style={{
-            position: 'fixed',
-            bottom: '80px',
-            right: '16px',
-            zIndex: 99999
-          }}
-        >
-          <button
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              backgroundColor: 'blue',
-              color: 'white',
-              border: 'none',
-              fontSize: '12px',
-              cursor: 'pointer'
-            }}
-          >
-            TEST
-          </button>
-        </div>
+
       </div>
 
       {/* Input / Recording controls - Fixed at bottom */}
