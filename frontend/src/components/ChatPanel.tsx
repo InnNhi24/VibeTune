@@ -585,12 +585,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   };
 
   return (
-  // Make this component a flex column that can shrink; ensure the messages
-  // area can scroll independently by using `flex-1 overflow-auto` on the
-  // ScrollArea. Header and the input/footer remain pinned while only the
-  // messages list scrolls. Note: removed `min-h-0` from the container to
-  // avoid height calculation conflicts with Radix/Shadcn ScrollArea.
-  <div className="flex flex-col flex-1 min-h-0 bg-background">
+  // Make this component a flex column with fixed height; ensure the messages
+  // area can scroll independently. Header and input/footer remain pinned 
+  // while only the messages list scrolls.
+  <div className="flex flex-col h-full bg-background rounded-lg border border-border overflow-hidden">
       {/* Enhanced Chat Header */}
         <div className="shrink-0 bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
