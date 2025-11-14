@@ -121,8 +121,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
         />
       </div>
 
-    {/* Main Content */}
-  <div className="flex-1 flex flex-col min-h-0">
+    {/* Main Content - Use grid for precise height control */}
+  <div className="flex-1 grid grid-rows-[auto_1fr]">
   {/* Header - Both Mobile and Desktop */}
   <div className="shrink-0 bg-card border-b border-border p-4">
           {/* Mobile Header */}
@@ -206,12 +206,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           </div>
         </div>
 
-    {/* Chat Panel - make this a flex column so the inner ChatPanel (a flex
-      child) can take the full available height and allow its messages
-      area to scroll independently. Ensure `min-h-0` is present so flex
-      children can shrink and the inner ScrollArea becomes the scroll
-      container rather than the document. */}
-  <main className="flex-1 flex flex-col min-h-0 p-4">
+    {/* Chat Panel - Use grid to ensure ChatPanel gets exact height */}
+  <main className="flex-1 p-4 grid">
       <ChatPanel
         topic={currentTopic}
         level={currentLevel}
