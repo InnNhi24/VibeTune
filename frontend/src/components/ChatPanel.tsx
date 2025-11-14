@@ -590,7 +590,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // avoid height calculation conflicts with Radix/Shadcn ScrollArea.
   <div className="flex flex-col flex-1 min-h-0 bg-background">
       {/* Enhanced Chat Header */}
-      <div className="bg-card border-b border-border p-4">
+        <div className="shrink-0 bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
           <div className="text-center flex-1">
             <h2 className="font-medium">{currentTopic}</h2>
@@ -620,7 +620,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
   {/* Messages Area (scrollable) */}
   <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0">
-    <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pb-24 p-4">
+    <div className="space-y-4 pb-24 p-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
