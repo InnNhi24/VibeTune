@@ -141,35 +141,15 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   };
 
   const isNearBottom = (el: HTMLElement) => {
-    const scrollHeight = el.scrollHeight;
-    const scrollTop = el.scrollTop;
-    const clientHeight = el.clientHeight;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-    const nearBottom = distanceFromBottom < SCROLL_THRESHOLD;
-    
-    // Debug logging
-    console.log('Scroll Debug:', {
-      scrollHeight,
-      scrollTop,
-      clientHeight,
-      distanceFromBottom,
-      SCROLL_THRESHOLD,
-      nearBottom
-    });
-    
-    return nearBottom;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distanceFromBottom < SCROLL_THRESHOLD;
   };
 
   const handleScroll = () => {
     const containerEl = scrollAreaRef.current as HTMLElement | null;
     if (!containerEl) return;
-    const nearBottom = isNearBottom(containerEl);
-    const shouldShow = !nearBottom;
-    console.log('handleScroll: nearBottom =', nearBottom, 'shouldShow =', shouldShow, 'current state =', showNewMessageIndicator);
-    
-    // Force state update even if same value
-    setShowNewMessageIndicator(false);
-    setTimeout(() => setShowNewMessageIndicator(shouldShow), 0);
+    const shouldShow = !isNearBottom(containerEl);
+    setShowNewMessageIndicator(shouldShow);
   };
 
   useEffect(() => {
@@ -685,18 +665,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </div>
 
-        {/* Debug state */}
-        <div style={{position: 'absolute', top: '10px', left: '10px', background: 'yellow', padding: '4px', fontSize: '10px', zIndex: 1000}}>
-          State: {showNewMessageIndicator ? 'TRUE' : 'FALSE'}
-        </div>
-        
-        {/* Scroll to bottom button - appears when scrolled up */}
+        {/* Scroll to bottom button - elegant design like in image */}
         {showNewMessageIndicator && (
           <div 
             style={{
               position: 'absolute',
-              bottom: '16px',
-              right: '16px',
+              bottom: '20px',
+              right: '20px',
               zIndex: 1000
             }}
           >
@@ -706,18 +681,29 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 setShowNewMessageIndicator(false);
               }}
               style={{
-                width: '40px',
-                height: '40px',
+                width: '48px',
+                height: '48px',
                 borderRadius: '50%',
-                backgroundColor: '#3b82f6',
-                color: 'white',
+                backgroundColor: 'white',
+                color: '#374151',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '18px'
+                fontSize: '20px',
+                fontWeight: 'bold',
+                transition: 'all 0.2s ease',
+                transform: 'translateY(0px)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)';
               }}
               aria-label="Jump to latest messages"
             >
