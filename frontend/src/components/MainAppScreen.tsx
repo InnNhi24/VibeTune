@@ -111,7 +111,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   // allow only the chat messages area to scroll. Use min-h-screen on the
   // root flex container so children can size correctly and we avoid the
   // document body growing with chat content.
-  <div className="flex min-h-screen overflow-hidden bg-background">
+  <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-80 h-full">
         <AppSidebar
@@ -214,14 +214,16 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
       area to scroll independently. Ensure `min-h-0` is present so flex
       children can shrink and the inner ScrollArea becomes the scroll
       container rather than the document. */}
-    <div className="flex-1 min-h-0 flex flex-col">
-          <ChatPanel
-            topic={currentTopic}
-            level={currentLevel}
-            onTopicChange={setCurrentTopic}
-            user={user}
-          />
-        </div>
+    <main className="flex-1 min-h-0 px-4 py-4">
+      <div className="h-full">
+        <ChatPanel
+          topic={currentTopic}
+          level={currentLevel}
+          onTopicChange={setCurrentTopic}
+          user={user}
+        />
+      </div>
+    </main>
       </div>
 
       {/* Settings Modal/Overlay */}

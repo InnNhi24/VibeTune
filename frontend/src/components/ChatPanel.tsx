@@ -619,8 +619,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       </div>
 
   {/* Messages Area (scrollable) */}
-  <ScrollArea ref={scrollAreaRef} className="flex-1">
-  <div className="space-y-4 pb-24 min-h-0 p-4">
+  <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0">
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pb-24 p-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
@@ -672,7 +672,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
       {/* Clean Text Input */}
   {/* Input / Recording controls (fixed footer area) */}
-  <div ref={inputAreaRef} className="flex-none bg-card border-t border-border p-4 space-y-3 max-h-[45vh] overflow-hidden">
+  <div ref={inputAreaRef} className="shrink-0 bg-card border-t border-border p-4 space-y-3 max-h-[45vh] overflow-hidden">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">
