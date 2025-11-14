@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { ScrollArea } from "./ui/scroll-area";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -618,9 +617,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         )}
       </div>
 
-  {/* Messages Area (scrollable) */}
-  <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0">
-    <div className="space-y-4 pb-24 p-4">
+      {/* Messages Area (scrollable) */}
+      <div
+        ref={scrollAreaRef}
+        className="flex-1 min-h-0 overflow-y-auto"
+      >
+        <div className="space-y-4 pb-24 p-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
@@ -668,7 +670,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             </motion.div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Clean Text Input */}
   {/* Input / Recording controls (fixed footer area) */}
