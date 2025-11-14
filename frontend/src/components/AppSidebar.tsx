@@ -227,7 +227,7 @@ export function AppSidebar({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="mt-2 space-y-3 max-h-64 overflow-y-auto pr-1">
+              <div className="mt-2 space-y-3 max-h-64 overflow-y-auto overflow-x-hidden pr-1">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
@@ -290,14 +290,14 @@ export function AppSidebar({
                                   whileTap={{ scale: 0.99 }}
                                 >
                                   <Card 
-                                      className="group cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm"
+                                      className="group cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm w-full min-w-0"
                                       onClick={() => onConversationSelect(conversation)}
                                     >
                                     <CardContent className="p-2 relative">
                                       <div className="space-y-2">
                                         {/* Header */}
-                                        <div className="flex items-start justify-between gap-2">
-                                          <h4 className="text-xs font-medium truncate text-sidebar-foreground">{conversation.title || 'New Conversation'}</h4>
+                                        <div className="flex items-start justify-between gap-2 min-w-0">
+                                          <h4 className="text-xs font-medium truncate text-sidebar-foreground flex-1 min-w-0">{conversation.title || 'New Conversation'}</h4>
                                           <div className="flex items-center gap-1">
                                             <StatusIcon className={`w-3 h-3 ${completion.color}`} />
                                             {conversation.prosodyScore && (
@@ -309,10 +309,10 @@ export function AppSidebar({
                                         </div>
 
                                         {/* Status and Time */}
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2 text-xs text-sidebar-foreground/60">
-                                            <Clock className="w-2 h-2" />
-                                            <span>{conversation.timestamp}</span>
+                                        <div className="flex items-center justify-between min-w-0">
+                                          <div className="flex items-center gap-2 text-xs text-sidebar-foreground/60 flex-1 min-w-0">
+                                            <Clock className="w-2 h-2 flex-shrink-0" />
+                                            <span className="truncate">{conversation.timestamp}</span>
                                           </div>
                                           <div className="flex items-center gap-1">
                                             <Badge variant="outline" className={`text-xs ${completion.color}`}>
