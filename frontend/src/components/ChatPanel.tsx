@@ -682,30 +682,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </div>
 
-        {/* New messages indicator (shown when user scrolled up) - Inside messages area */}
+        {/* New messages indicator (shown when user scrolled up) - FIXED positioning */}
         {showNewMessageIndicator && (
-          <div className="absolute bottom-4 right-4 z-50">
+          <div className="fixed bottom-32 right-8 z-[9999]">
             <Button
               size="icon"
               onClick={() => {
                 scrollToBottom(true);
                 setShowNewMessageIndicator(false);
               }}
-              className="h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
+              className="h-12 w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
               aria-label="Jump to latest messages"
             >
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-6 h-6" />
             </Button>
           </div>
         )}
         
-        {/* Debug indicator - remove after testing */}
-        <div className="absolute top-4 right-4 z-50 bg-red-500 text-white px-2 py-1 text-xs rounded">
+        {/* Debug indicator - FIXED positioning */}
+        <div className="fixed top-4 right-4 z-[9999] bg-red-500 text-white px-2 py-1 text-xs rounded">
           Show: {showNewMessageIndicator ? 'YES' : 'NO'}
         </div>
         
-        {/* Test button - always visible */}
-        <div className="absolute bottom-16 right-4 z-50">
+        {/* Test button - FIXED positioning */}
+        <div className="fixed bottom-16 right-4 z-[9999]">
           <Button
             size="icon"
             className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
