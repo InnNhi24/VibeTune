@@ -3211,6 +3211,13 @@
   --sidebar-ring: #8686af;
 }
 
+/* Ensure Radix ScrollArea viewport always allows scrolling when content overflows.
+   Some environments or inline styles may interfere; using a specific attribute selector
+   with !important makes the viewport reliably scrollable. */
+[data-slot="scroll-area-viewport"] {
+  overflow: auto !important;
+}
+
 .dark {
   --background: oklch(.145 0 0);
   --foreground: oklch(.985 0 0);
