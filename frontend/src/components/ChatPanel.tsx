@@ -174,6 +174,29 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   }, [messages]);
 
+  // Check initial state and when container size changes
+  useEffect(() => {
+    const checkScrollPosition = () => {
+      const containerEl = scrollAreaRef.current as HTMLElement | null;
+      if (!containerEl) return;
+      
+      // Always check if we should show the button
+      const shouldShow = messages.length > 0 && !isNearBottom(containerEl);
+      setShowNewMessageIndicator(shouldShow);
+    };
+
+    // Check after a short delay to ensure DOM is ready
+    const timer = setTimeout(checkScrollPosition, 100);
+    
+    // Also check on resize in case container size changes
+    window.addEventListener('resize', checkScrollPosition);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkScrollPosition);
+    };
+  }, [messages.length]);
+
   const getFocusAreasForLevel = (userLevel: string): string[] => {
     switch (userLevel) {
       case 'Advanced':
@@ -665,6 +688,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </div>
 
+        {/* Debug info - remove after testing */}
+        <div style={{position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '4px', fontSize: '10px', zIndex: 1000, borderRadius: '4px'}}>
+          Messages: {messages.length} | Show: {showNewMessageIndicator ? 'YES' : 'NO'}
+        </div>
+        
         {/* Scroll to bottom button - elegant design like in image */}
         {showNewMessageIndicator && (
           <div 
