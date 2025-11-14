@@ -587,7 +587,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // ScrollArea. Header and the input/footer remain pinned while only the
   // messages list scrolls. Note: removed `min-h-0` from the container to
   // avoid height calculation conflicts with Radix/Shadcn ScrollArea.
-  <div className="flex flex-col flex-1 min-h-0 bg-background">
+  <div className="flex flex-col flex-1 min-h-0 h-full bg-background">
       {/* Enhanced Chat Header */}
         <div className="shrink-0 bg-card border-b border-border p-4">
         <div className="flex items-center justify-between">
@@ -674,7 +674,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
       {/* Clean Text Input */}
   {/* Input / Recording controls (fixed footer area) */}
-  <div ref={inputAreaRef} className="shrink-0 bg-card border-t border-border p-4 space-y-3 max-h-[45vh] overflow-hidden">
+  <div ref={inputAreaRef} className="shrink-0 bg-card border-t border-border p-4 space-y-3 max-h-[40vh] overflow-y-auto">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">
