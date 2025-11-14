@@ -122,8 +122,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
         />
       </div>
 
-      {/* Main Content */}
-  <div className="flex-1 flex flex-col min-h-0">
+    {/* Main Content */}
+  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
   {/* Header - Both Mobile and Desktop */}
   <div className="shrink-0 bg-card border-b border-border p-4">
           {/* Mobile Header */}
@@ -212,7 +212,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
       area to scroll independently. Ensure `min-h-0` is present so flex
       children can shrink and the inner ScrollArea becomes the scroll
       container rather than the document. */}
-    <main className="flex-1 flex flex-col min-h-0 px-4 py-4">
+  <main className="flex-1 flex flex-col min-h-0 px-4 py-4 overflow-hidden">
       <ChatPanel
         topic={currentTopic}
         level={currentLevel}
