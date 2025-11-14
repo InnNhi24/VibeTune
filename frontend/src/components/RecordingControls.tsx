@@ -44,6 +44,7 @@ export function RecordingControls({
   // relying on React state (avoids race conditions where state updates are not
   // immediately visible in the current function scope).
   const lastBlobRef = useRef<Blob | null>(null);
+  const actualMimeTypeRef = useRef<string>('audio/wav');
   const recognitionRef = useRef<any>(null);
   const usingServiceRef = useRef<boolean>(false);
   const [transcribeError, setTranscribeError] = useState<string | null>(null);
@@ -136,7 +137,36 @@ export function RecordingControls({
       setView("");
       setRecordedMessage("");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const mediaRecorder = new MediaRecorder(stream);
+      
+      // Try different audio formats for better mobile compatibility
+      let mediaRecorder: MediaRecorder;
+      
+      const mimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus', 
+        'audio/mp4',
+        'audio/wav'
+      ];
+      
+      for (const mimeType of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mimeType)) {
+          try {
+            mediaRecorder = new MediaRecorder(stream, { mimeType });
+            actualMimeTypeRef.current = mimeType;
+            break;
+          } catch (e) {
+            continue;
+          }
+        }
+      }
+      
+      // Fallback to default if no specific type worked
+      if (!mediaRecorder!) {
+        mediaRecorder = new MediaRecorder(stream);
+        actualMimeTypeRef.current = 'audio/webm'; // most common default
+      }
+      
       mediaRecorderRef.current = mediaRecorder;
   activeStreamRef.current = stream;
       
@@ -149,7 +179,8 @@ export function RecordingControls({
       };
       
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/wav' });
+        // Use the actual MIME type that MediaRecorder produced
+        const blob = new Blob(chunks, { type: actualMimeTypeRef.current });
         // store both in state (for rendering) and in ref for synchronous access
         lastBlobRef.current = blob;
         setAudioBlob(blob);
