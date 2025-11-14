@@ -619,7 +619,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       {/* Messages Area (scrollable) - Flex-1 takes remaining space */}
       <div
         ref={scrollAreaRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden bg-background min-h-0"
+        className="flex-1 overflow-y-auto overflow-x-hidden bg-background min-h-0 relative"
         onScroll={handleScroll}
       >
         <div className="p-4 space-y-4">
@@ -669,24 +669,24 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               </div>
             </motion.div>
           )}
-
-          {/* New messages indicator (shown when user scrolled up) */}
-          {showNewMessageIndicator && (
-            <div className="absolute bottom-6 right-6">
-              <Button
-                size="icon"
-                onClick={() => {
-                  scrollToBottom(true);
-                  setShowNewMessageIndicator(false);
-                }}
-                className="h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
-                aria-label="Jump to latest messages"
-              >
-                <ChevronDown className="w-5 h-5" />
-              </Button>
-            </div>
-          )}
         </div>
+
+        {/* New messages indicator (shown when user scrolled up) - Inside messages area */}
+        {showNewMessageIndicator && (
+          <div className="absolute bottom-4 right-4">
+            <Button
+              size="icon"
+              onClick={() => {
+                scrollToBottom(true);
+                setShowNewMessageIndicator(false);
+              }}
+              className="h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
+              aria-label="Jump to latest messages"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Input / Recording controls - Fixed at bottom */}
