@@ -245,7 +245,7 @@ export function AppSidebar({
                       .reduce((sum, conv, _, arr) => sum + (conv.prosodyScore || 0) / arr.length, 0);
 
                     return (
-                      <div key={topicName} className="space-y-2">
+                      <div key={topicName} className="space-y-2 overflow-hidden">
                         {/* Topic Header */}
                         <div className="flex items-center gap-2 px-2 py-1 bg-sidebar-accent/20 rounded">
                           <TopicIcon className="w-3 h-3 text-sidebar-accent" />
@@ -262,10 +262,9 @@ export function AppSidebar({
                         </div>
 
                         {/* Conversations in Topic */}
-                        <div className="space-y-1 ml-4">
+                        <div className="space-y-1 ml-4 overflow-hidden">
                           {topicConversations
                             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                            .slice(0, 3) // Show only most recent 3 per topic
                             .map((conversation) => {
                               const getScoreColor = (score: number) => {
                                 if (score >= 85) return "bg-success text-success-foreground";
@@ -293,7 +292,7 @@ export function AppSidebar({
                                       className="group cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm w-full min-w-0"
                                       onClick={() => onConversationSelect(conversation)}
                                     >
-                                    <CardContent className="p-2 relative">
+                                    <CardContent className="p-2 relative overflow-hidden">
                                       <div className="space-y-2">
                                         {/* Header */}
                                         <div className="flex items-start justify-between gap-2 min-w-0">
@@ -342,12 +341,6 @@ export function AppSidebar({
                                 </motion.div>
                               );
                             })}
-                          
-                          {topicConversations.length > 3 && (
-                            <div className="text-xs text-sidebar-foreground/60 text-center py-1">
-                              +{topicConversations.length - 3} more sessions
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
