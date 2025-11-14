@@ -682,36 +682,82 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </div>
 
-        {/* New messages indicator (shown when user scrolled up) - FIXED positioning */}
+        {/* New messages indicator - FORCED visibility */}
         {showNewMessageIndicator && (
-          <div className="fixed bottom-32 right-8 z-[9999]">
-            <Button
-              size="icon"
+          <div 
+            style={{
+              position: 'fixed',
+              bottom: '140px',
+              right: '32px',
+              zIndex: 99999
+            }}
+          >
+            <button
               onClick={() => {
                 scrollToBottom(true);
                 setShowNewMessageIndicator(false);
               }}
-              className="h-12 w-12 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
+              style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
               aria-label="Jump to latest messages"
             >
-              <ChevronDown className="w-6 h-6" />
-            </Button>
+              ↓
+            </button>
           </div>
         )}
         
-        {/* Debug indicator - FIXED positioning */}
-        <div className="fixed top-4 right-4 z-[9999] bg-red-500 text-white px-2 py-1 text-xs rounded">
+        {/* Debug indicator - FORCED visibility */}
+        <div 
+          style={{
+            position: 'fixed',
+            top: '16px',
+            right: '16px',
+            zIndex: 99999,
+            backgroundColor: 'red',
+            color: 'white',
+            padding: '8px',
+            fontSize: '12px',
+            borderRadius: '4px',
+            pointerEvents: 'none'
+          }}
+        >
           Show: {showNewMessageIndicator ? 'YES' : 'NO'}
         </div>
         
-        {/* Test button - FIXED positioning */}
-        <div className="fixed bottom-16 right-4 z-[9999]">
-          <Button
-            size="icon"
-            className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+        {/* Test button - FORCED visibility */}
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '80px',
+            right: '16px',
+            zIndex: 99999
+          }}
+        >
+          <button
+            style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '50%',
+              backgroundColor: 'blue',
+              color: 'white',
+              border: 'none',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
           >
             TEST
-          </Button>
+          </button>
         </div>
       </div>
 
