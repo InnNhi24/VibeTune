@@ -107,11 +107,9 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   };
 
   return (
-  // Prevent the overall page from scrolling; keep header/footer fixed and
-  // allow only the chat messages area to scroll. Use min-h-screen on the
-  // root flex container so children can size correctly and we avoid the
-  // document body growing with chat content.
-  <div className="flex h-screen overflow-hidden bg-background">
+  // Root: lock viewport height but allow vertical scrolling inside children
+  // (remove `overflow-hidden` so ChatPanel's internal overflow-y works).
+  <div className="flex h-screen bg-background overflow-x-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-80 h-full">
         <AppSidebar
