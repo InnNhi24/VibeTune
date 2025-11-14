@@ -49,7 +49,7 @@ export function AIConfigDialog({ open, onOpenChange, trigger }: AIConfigDialogPr
           const stored = localStorage.getItem('vibetune_ai_config');
           if (stored) {
             try {
-+              const config = JSON.parse(stored);
+              const config = JSON.parse(stored);
               setApiKey(config.apiKey || '');
               setBaseUrl(config.baseUrl || '');
             } catch (e) {

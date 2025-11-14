@@ -623,10 +623,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       {/* Messages Area (scrollable) */}
       <div
         ref={scrollAreaRef}
-        className="flex-1 min-h-0 overflow-y-auto relative max-h-[calc(100vh-200px)]"
+        className="flex-1 min-h-0 overflow-y-auto relative"
         onScroll={handleScroll}
       >
-        <div className="space-y-4 pb-24 p-4">
+        <div className="space-y-4 p-4">
           {messages.map((message, index) => (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
@@ -695,7 +695,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
       {/* Clean Text Input */}
   {/* Input / Recording controls (fixed footer area) */}
-  <div ref={inputAreaRef} className="shrink-0 bg-card border-t border-border p-4 space-y-3 max-h-[40vh] overflow-y-auto">
+  <div ref={inputAreaRef} className="shrink-0 bg-card border-t border-border p-4 space-y-3">
 
         {/* Text Input with Toggle */}
         <form onSubmit={handleTextSubmit} className="space-y-2">
@@ -771,8 +771,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </form>
 
-        {/* Enhanced Recording Controls - FIX: Constrain height and keep input+controls together */}
-        <div className="overflow-y-auto max-h-40 border-t border-border mt-3">
+        {/* Enhanced Recording Controls */}
+        <div className="border-t border-border pt-3">
           <RecordingControls
             onSendMessage={handleSendMessage}
             conversationContext={buildConversationContext()}

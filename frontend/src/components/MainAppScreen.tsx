@@ -107,9 +107,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   };
 
   return (
-  // Root: lock viewport height but allow vertical scrolling inside children
-  // (remove `overflow-hidden` so ChatPanel's internal overflow-y works).
-  <div className="flex h-screen bg-background overflow-x-hidden">
+  // Root: lock viewport height and prevent page scroll
+  <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-80 h-full">
         <AppSidebar

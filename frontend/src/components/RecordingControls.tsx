@@ -524,7 +524,7 @@ export function RecordingControls({
   };
 
   return (
-    <div className="bg-card border-t border-border p-4 space-y-4">
+    <div className="space-y-4">
       {/* AI Status */}
       {showAIFeedback && (
         <div className="flex items-center justify-between text-xs">
