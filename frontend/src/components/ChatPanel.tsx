@@ -674,15 +674,15 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           {showNewMessageIndicator && (
             <div className="absolute bottom-6 right-6">
               <Button
-                size="sm"
+                size="icon"
                 onClick={() => {
                   scrollToBottom(true);
                   setShowNewMessageIndicator(false);
                 }}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-md"
+                className="h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
                 aria-label="Jump to latest messages"
               >
-                New messages
+                <ChevronDown className="w-5 h-5" />
               </Button>
             </div>
           )}
