@@ -140,12 +140,33 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   };
 
-  const isNearBottom = (el: HTMLElement) => el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_THRESHOLD;
+  const isNearBottom = (el: HTMLElement) => {
+    const scrollHeight = el.scrollHeight;
+    const scrollTop = el.scrollTop;
+    const clientHeight = el.clientHeight;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    const nearBottom = distanceFromBottom < SCROLL_THRESHOLD;
+    
+    // Debug logging
+    console.log('Scroll Debug:', {
+      scrollHeight,
+      scrollTop,
+      clientHeight,
+      distanceFromBottom,
+      SCROLL_THRESHOLD,
+      nearBottom
+    });
+    
+    return nearBottom;
+  };
 
   const handleScroll = () => {
     const containerEl = scrollAreaRef.current as HTMLElement | null;
     if (!containerEl) return;
-    setShowNewMessageIndicator(!isNearBottom(containerEl));
+    const nearBottom = isNearBottom(containerEl);
+    const shouldShow = !nearBottom;
+    console.log('handleScroll: nearBottom =', nearBottom, 'shouldShow =', shouldShow);
+    setShowNewMessageIndicator(shouldShow);
   };
 
   useEffect(() => {
@@ -681,6 +702,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         {/* Debug indicator - remove after testing */}
         <div className="absolute top-4 right-4 z-50 bg-red-500 text-white px-2 py-1 text-xs rounded">
           Show: {showNewMessageIndicator ? 'YES' : 'NO'}
+        </div>
+        
+        {/* Test button - always visible */}
+        <div className="absolute bottom-16 right-4 z-50">
+          <Button
+            size="icon"
+            className="h-10 w-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+          >
+            TEST
+          </Button>
         </div>
       </div>
 
