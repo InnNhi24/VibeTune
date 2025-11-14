@@ -165,8 +165,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     if (!containerEl) return;
     const nearBottom = isNearBottom(containerEl);
     const shouldShow = !nearBottom;
-    console.log('handleScroll: nearBottom =', nearBottom, 'shouldShow =', shouldShow);
-    setShowNewMessageIndicator(shouldShow);
+    console.log('handleScroll: nearBottom =', nearBottom, 'shouldShow =', shouldShow, 'current state =', showNewMessageIndicator);
+    
+    // Force state update even if same value
+    setShowNewMessageIndicator(false);
+    setTimeout(() => setShowNewMessageIndicator(shouldShow), 0);
   };
 
   useEffect(() => {
@@ -682,6 +685,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </div>
 
+        {/* Debug state */}
+        <div style={{position: 'absolute', top: '10px', left: '10px', background: 'yellow', padding: '4px', fontSize: '10px', zIndex: 1000}}>
+          State: {showNewMessageIndicator ? 'TRUE' : 'FALSE'}
+        </div>
+        
         {/* Scroll to bottom button - appears when scrolled up */}
         {showNewMessageIndicator && (
           <div 
