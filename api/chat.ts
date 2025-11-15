@@ -99,9 +99,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Detect explicit end session command from user text
     const isEndCommand = text.trim().toLowerCase() === '/end';
 
-    // ==== System prompt: use the provided VibeTune prompt for all chat calls ====
-    // The model will follow a 3-phase flow (TOPIC_DISCOVERY, MAIN_CHAT, WRAP-UP)
-    const system = `You are VibeTune, an AI English speaking teacher who talks like a friendly friend.
+    // Handle different conversation stages
+    let systemPrompt;
+    if (stage === 'topic_discovery') {
+      // Topic discovery mode - help user decide what to talk about
+      systemPrompt = `You are an AI English conversation partner helping users practice English. Your current task is to determine what topic the user wants to discuss.
+
+IMPORTANT INSTRUCTIONS:
+- If the user mentions ANY specific topic (like music, travel, food, work, etc.), confirm it immediately
+- Don't ask too many clarifying questions - be decisive
+- Be friendly and encouraging
+- ALWAYS confirm the topic after 1-2 exchanges maximum
+
+When you identify a clear topic from the user's message, you MUST:
+1) Confirm the topic naturally in conversation
+2) Include the control line at the end in this EXACT format:
+
+  [[TOPIC_CONFIRMED: topic_name_here]]
+
+Examples - ALWAYS confirm when user mentions a topic:
+- User: "I want to talk about music" → "Great! Let's chat about music then! [[TOPIC_CONFIRMED: music]]"
+- User: "Let's discuss travel" → "Perfect! Travel it is! [[TOPIC_CONFIRMED: travel]]"
+- User: "I love cooking" → "Awesome! Let's talk about cooking! [[TOPIC_CONFIRMED: cooking]]"
+- User: "My job is stressful" → "I understand! Let's discuss work and career! [[TOPIC_CONFIRMED: work]]"
+
+DO NOT ask clarifying questions if the topic is obvious. Confirm immediately!
+
+- After confirming the topic, continue the conversation naturally about that topic.
+- Use simple, clear English appropriate for ${level} level learners.
+- Be encouraging and supportive.
+- Ask follow-up questions to keep the conversation flowing.
+
+Current conversation context:
+${body.conversationHistory ? body.conversationHistory.map((msg: any) => `${msg.isUser ? 'User' : 'AI'}: ${msg.text}`).join('\n') : 'This is the start of the conversation.'}
+
+User's latest message: "${text}"
+
+Remember: If you can identify a topic from their message, confirm it immediately with [[TOPIC_CONFIRMED: topic_name]]!`;
+
+    } else {
+      // ==== System prompt: use the provided VibeTune prompt for all chat calls ====
+      // The model will follow a 3-phase flow (TOPIC_DISCOVERY, MAIN_CHAT, WRAP-UP)
+      systemPrompt = `You are VibeTune, an AI English speaking teacher who talks like a friendly friend.
 
 HIGH-LEVEL GOAL
 - Have a natural, relaxed conversation in English about ONE clear topic that the student chooses.
@@ -249,6 +288,7 @@ TECHNICAL / SYSTEM NOTES
 - Never output any other control tags besides [[TOPIC_CONFIRMED: …]].
 
 `;
+    } // Close else block
 
     // Abort after 9s to fit within Hobby 10s limit (use AbortController for broad support)
     const ac = new AbortController();
@@ -257,9 +297,9 @@ TECHNICAL / SYSTEM NOTES
     const payload = {
       model: 'gpt-4o-mini',
       temperature: 0.4,
-      max_tokens: 200,
+      max_tokens: 400, // Increased from 200 to allow for topic confirmation
       messages: [
-        { role: 'system', content: system },
+        { role: 'system', content: systemPrompt }, // Use systemPrompt instead of system
         { role: 'user', content: `User: "${text}". Recent mistakes: ${JSON.stringify(lastMistakes)}` }
       ]
     };
