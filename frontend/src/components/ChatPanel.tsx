@@ -230,6 +230,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = Date.now().toString();
     
+    // Ensure there is a conversation in the store
+    let convId = conversationId || activeConversationId || null;
+    if (!convId) {
+      convId = `local_${Date.now()}`;
+      setConversationId(convId);
+    }
+    
     // Always send message to AI for topic analysis (AI will decide when topic is confirmed)
     if (waitingForTopic) {
       try {
@@ -251,12 +258,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
         if (resp.ok) {
           const data = await resp.json();
+          console.log('Topic discovery response:', data); // Debug log
           if (data) {
             // Always show AI response, but clean control tags from display
             let aiResponseText = data.replyText || data.text_response || "I'm thinking...";
+            console.log('AI response text:', aiResponseText); // Debug log
             
             // Remove control tags from display (but keep them for parsing)
             const cleanText = aiResponseText.replace(/\[\[TOPIC_CONFIRMED:[^\]]+\]\]/gi, '').trim();
+            console.log('Clean text:', cleanText); // Debug log
+            console.log('Topic confirmed:', data.topic_confirmed); // Debug log
             
             // Add AI response message
             setTimeout(() => {
@@ -286,6 +297,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
             // AI will return topic_confirmed when it's confident about the topic
             if (data.topic_confirmed) {
+              console.log('Topic confirmed! Setting topic to:', data.topic_confirmed);
               // AI has confirmed the topic - update UI and create conversation
               setCurrentTopic(data.topic_confirmed);
               setWaitingForTopic(false);
@@ -294,18 +306,47 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 onTopicChange(data.topic_confirmed);
               }
 
-              if (data.conversationId) {
-                // Set active conversation and refresh history so sidebar updates
-                store.setActiveConversation(data.conversationId);
-                // Update the conversation record in the store with confirmed topic
-                try { 
-                  store.endConversation(data.conversationId, { 
-                    topic: data.topic_confirmed, 
-                    title: data.topic_confirmed 
-                  }); 
-                } catch (e) { /* best-effort */ }
-                // Trigger a sync to refresh conversations list
-                try { await store.syncData(); } catch (e) { /* best-effort */ }
+              // Ensure we have a conversation to attach messages to
+              let finalConvId = data.conversationId || convId;
+              if (!finalConvId) {
+                finalConvId = `topic_${Date.now()}`;
+                setConversationId(finalConvId);
+              }
+
+              // Set active conversation and update with confirmed topic
+              store.setActiveConversation(finalConvId);
+              
+              // Update or create conversation with confirmed topic
+              try {
+                // First try to update existing conversation
+                store.endConversation(finalConvId, { 
+                  topic: data.topic_confirmed, 
+                  title: data.topic_confirmed 
+                });
+              } catch (e) {
+                // If update fails, create new conversation
+                try {
+                  store.addConversation({
+                    id: finalConvId,
+                    profile_id: (user as any)?.id || '',
+                    topic: data.topic_confirmed,
+                    title: data.topic_confirmed,
+                    is_placement_test: false,
+                    started_at: new Date().toISOString(),
+                    message_count: messages.length + 1, // +1 for current user message
+                    avg_prosody_score: 0
+                  });
+                } catch (e2) {
+                  console.warn('Failed to create conversation:', e2);
+                }
+              }
+              
+              // Trigger a sync to refresh conversations list
+              try { 
+                await store.syncData(); 
+                console.log('Sync completed after topic confirmation');
+              } catch (e) { 
+                console.warn('Sync failed:', e);
               }
             }
             // If no topic_confirmed, AI is still asking questions to clarify topic
@@ -331,27 +372,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       timestamp,
       isProcessing: isAudio && aiReady
     };
-    // Ensure there is a conversation in the store
-    let convId = conversationId || activeConversationId || null;
-    if (!convId) {
-      convId = `local_${Date.now()}`;
-      setConversationId(convId);
-      try {
-        addConversation({
-          id: convId,
-          profile_id: (user as any)?.id || '',
-          topic: currentTopic,
-          // Title shown in the sidebar - use the human-friendly topic label
-          title: currentTopic || 'New Conversation',
-          is_placement_test: false,
-          started_at: new Date().toISOString(),
-          message_count: 0,
-          avg_prosody_score: 0
-        });
-      } catch (e) {
-        // best-effort
-      }
-    }
 
     setMessages(prev => [...prev, userMessage]);
 
