@@ -55,7 +55,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
   const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
-  const SCROLL_THRESHOLD = 160; // px from bottom to consider "near bottom"
+  const SCROLL_THRESHOLD = 50; // px from bottom to consider "near bottom" - reduced from 160
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Zustand store hooks
@@ -145,6 +145,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
   const isNearBottom = (el: HTMLElement) => {
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    console.log('Scroll debug:', {
+      scrollHeight: el.scrollHeight,
+      scrollTop: el.scrollTop, 
+      clientHeight: el.clientHeight,
+      distanceFromBottom,
+      threshold: SCROLL_THRESHOLD,
+      isNear: distanceFromBottom < SCROLL_THRESHOLD
+    });
     return distanceFromBottom < SCROLL_THRESHOLD;
   };
 

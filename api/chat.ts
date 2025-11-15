@@ -558,9 +558,10 @@ TECHNICAL / SYSTEM NOTES
     baseResponse.persistence_disabled = true;
     baseResponse.persistence_warning = 'SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL not configured on the server; messages were not persisted.';
   }
-  // If AI explicitly confirmed a topic using the control tag, surface it in the response
-  if (typeof topic === 'string' && topicTagMatch) {
+  // If AI confirmed a topic (either via control tag or natural language), surface it in the response
+  if (typeof topic === 'string' && topic.trim() && stage === 'topic_discovery') {
     baseResponse.topic_confirmed = topic;
+    console.log('Setting topic_confirmed:', topic);
   }
   // Attach lightweight debug info in development to help triage topic persistence
   try {
