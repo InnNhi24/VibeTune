@@ -252,6 +252,38 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         if (resp.ok) {
           const data = await resp.json();
           if (data) {
+            // Always show AI response, but clean control tags from display
+            let aiResponseText = data.replyText || data.text_response || "I'm thinking...";
+            
+            // Remove control tags from display (but keep them for parsing)
+            const cleanText = aiResponseText.replace(/\[\[TOPIC_CONFIRMED:[^\]]+\]\]/gi, '').trim();
+            
+            // Add AI response message
+            setTimeout(() => {
+              const aiResponseMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                text: cleanText, // Show clean text without control tags
+                isUser: false,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              };
+              setMessages(prev => [...prev, aiResponseMessage]);
+              
+              // Persist AI message to global store
+              try {
+                addMessageToStore({
+                  id: aiResponseMessage.id,
+                  conversation_id: convId || '',
+                  sender: 'ai',
+                  type: 'text',
+                  content: cleanText,
+                  created_at: new Date().toISOString(),
+                  timestamp: aiResponseMessage.timestamp
+                });
+              } catch (e) {
+                // ignore
+              }
+            }, 800);
+
             // AI will return topic_confirmed when it's confident about the topic
             if (data.topic_confirmed) {
               // AI has confirmed the topic - update UI and create conversation
@@ -282,6 +314,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         }
       } catch (err) {
         logger.warn('Failed to send message for topic discovery', err);
+        setIsLoading(false);
+      } finally {
+        // Set loading to false after AI response is processed
+        setTimeout(() => setIsLoading(false), 1000);
       }
     }
     
