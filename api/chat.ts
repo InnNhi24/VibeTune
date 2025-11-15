@@ -105,23 +105,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Topic discovery mode - help user decide what to talk about
       systemPrompt = `You are an AI English conversation partner helping users practice English. Your current task is to determine what topic the user wants to discuss.
 
-CRITICAL INSTRUCTIONS - FOLLOW EXACTLY:
-- When user mentions ANY topic (music, travel, food, work, money, etc.), you MUST confirm it IMMEDIATELY
-- DO NOT ask clarifying questions - just confirm the topic right away
-- ALWAYS include [[TOPIC_CONFIRMED: topic_name]] in your first response
+INSTRUCTIONS:
+- When user mentions ANY topic (music, travel, food, work, money, etc.), respond naturally like a friend
+- Confirm the topic in a conversational way and start discussing it
+- Be friendly, encouraging, and natural
 
-MANDATORY RESPONSE FORMAT when user mentions a topic:
-1) Brief friendly acknowledgment 
-2) IMMEDIATELY add: [[TOPIC_CONFIRMED: topic_name]]
+RESPONSE EXAMPLES - Natural conversation style:
+- User: "I want to talk about music" → "So let's talk about music! What kind of music do you like?"
+- User: "Let's discuss travel" → "Perfect! I love talking about travel. Where have you been recently?"  
+- User: "I love cooking" → "Awesome! Cooking is so much fun. What's your favorite dish to make?"
+- User: "My job is stressful" → "I understand. Work can be tough sometimes. What do you do for work?"
+- User: "I want to talk about money" → "So let's talk about money! What's on your mind about it?"
 
-EXAMPLES - Copy this exact pattern:
-- User: "I want to talk about music" → "Great! Let's chat about music! [[TOPIC_CONFIRMED: music]]"
-- User: "Let's discuss travel" → "Perfect! [[TOPIC_CONFIRMED: travel]]"  
-- User: "I love cooking" → "Awesome! [[TOPIC_CONFIRMED: cooking]]"
-- User: "My job is stressful" → "I understand! [[TOPIC_CONFIRMED: work]]"
-- User: "I want to talk about money" → "Great topic! [[TOPIC_CONFIRMED: money]]"
-
-NEVER ask "what aspect" or "what specifically" - just confirm the main topic immediately!
+Be conversational and natural - no special formatting needed.
 
 - After confirming the topic, continue the conversation naturally about that topic.
 - Use simple, clear English appropriate for ${level} level learners.
@@ -133,10 +129,10 @@ ${body.conversationHistory ? body.conversationHistory.map((msg: any) => `${msg.i
 
 User's latest message: "${text}"
 
-CRITICAL REMINDER: 
-- If user mentions ANY topic, respond with: "Great! [[TOPIC_CONFIRMED: topic_name]]"  
-- DO NOT ask clarifying questions
-- CONFIRM IMMEDIATELY with the control tag`;
+REMINDER: 
+- If user mentions ANY topic, respond naturally and start discussing it
+- Be conversational like: "So let's talk about [topic]! What's on your mind?"
+- No special formatting needed - just natural conversation`;
 
     } else {
       // ==== System prompt: use the provided VibeTune prompt for all chat calls ====
@@ -355,6 +351,14 @@ TECHNICAL / SYSTEM NOTES
 
     // Determine topic to return: prefer explicit from AI JSON, then request body, then user text (for topic stage)
     let topic = (data.topic && String(data.topic).trim()) || topicFromBody || (stage === 'topic' ? text : null);
+    // Debug logging for topic discovery
+    if (stage === 'topic_discovery') {
+      console.log('=== TOPIC DISCOVERY DEBUG ===');
+      console.log('User message:', text);
+      console.log('AI reply:', replyText);
+      console.log('Stage:', stage);
+    }
+    
     // Prefer an explicit control tag in replyText: [[TOPIC_CONFIRMED: topic_name]]
     const topicTagMatch = (replyText || '').match(/\[\[TOPIC_CONFIRMED:\s*([^\]]+)\]\]/i);
     if (topicTagMatch) {
@@ -373,7 +377,12 @@ TECHNICAL / SYSTEM NOTES
           /talk about\s+([a-zA-Z0-9 &\-']{2,60})(?:[\.\?!\,]|$)/i,
           /I(?:'|)d like to talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
           /shall we talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
-          /(?:topic is|topic:)\s*([a-zA-Z0-9 &\-']{2,60})/i
+          /(?:topic is|topic:)\s*([a-zA-Z0-9 &\-']{2,60})/i,
+          // Additional patterns for topic discovery responses
+          /so let(?:'|)s talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
+          /(?:great|awesome|perfect)!?\s+(?:let(?:'|)s talk about|talking about)\s+([a-zA-Z0-9 &\-']{2,60})/i,
+          /(?:i love|love) talking about\s+([a-zA-Z0-9 &\-']{2,60})/i,
+          /what(?:'|)s on your mind about\s+([a-zA-Z0-9 &\-']{2,60})/i
         ];
 
         for (const re of patterns) {
@@ -397,6 +406,13 @@ TECHNICAL / SYSTEM NOTES
       const inferred = guessTopicFromReply(replyText || '');
       if (inferred) {
         topic = inferred;
+      }
+      
+      // Debug for topic discovery
+      if (stage === 'topic_discovery') {
+        console.log('Natural topic inferred:', inferred);
+        console.log('Final topic:', topic);
+        console.log('=== END DEBUG ===');
       }
     }
   // Decide next stage
