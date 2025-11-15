@@ -55,7 +55,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
   const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
-  const SCROLL_THRESHOLD = 50; // px from bottom to consider "near bottom" - reduced from 160
+  const SCROLL_THRESHOLD = 100; // px from bottom to consider "near bottom" - increased for more aggressive auto-scroll
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Zustand store hooks
@@ -291,6 +291,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               };
               setMessages(prev => [...prev, aiResponseMessage]);
+              
+              // Force scroll to bottom for new AI messages
+              setTimeout(() => scrollToBottom(true), 100);
               
               // Persist AI message to global store
               try {
@@ -707,9 +710,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         {showNewMessageIndicator && (
           <div 
             style={{
-              position: 'fixed',
-              bottom: '120px', // Fixed distance from viewport bottom, above input area
-              right: '32px',   // Fixed distance from viewport right edge
+              position: 'absolute',
+              bottom: '16px',  // Bottom of messages area
+              right: '16px',   // Right edge of messages area
               zIndex: 1000
             }}
           >
