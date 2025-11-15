@@ -91,7 +91,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
     const topicQuestion: Message = {
       id: '2',
-      text: "What would you like to talk about today? Feel free to tell me about anything that interests you - your hobbies, work, travel experiences, or any topic you'd like to practice discussing in English!",
+      text: "What would you like to talk about today? I'll help you practice English conversation on any topic that interests you. Just tell me what's on your mind!",
       isUser: false,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -208,64 +208,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   };
 
-  // Extract topic from user message
-  const extractTopicFromMessage = (message: string): string => {
-    const trimmed = message.trim();
-    // Ignore very short messages or simple greetings as topics
-    if (trimmed.length < 6) return null as any;
-    const lowerMessage = message.toLowerCase();
-    // common greetings should not be treated as topic
-    const greetings = ['hi', 'hey', 'hello', 'hii', 'hiii', 'hiya'];
-    if (greetings.includes(lowerMessage.trim())) return null as any;
-    
-    // Simple topic extraction based on keywords
-    if (lowerMessage.includes('weather') || lowerMessage.includes('rain') || lowerMessage.includes('sunny') || lowerMessage.includes('temperature') || lowerMessage.includes('climate')) {
-      return 'Weather & Climate';
-    } else if (lowerMessage.includes('travel') || lowerMessage.includes('trip') || lowerMessage.includes('vacation') || lowerMessage.includes('country') || lowerMessage.includes('visit')) {
-      return 'Travel & Adventures';
-    } else if (lowerMessage.includes('work') || lowerMessage.includes('job') || lowerMessage.includes('career') || lowerMessage.includes('office') || lowerMessage.includes('business')) {
-      return 'Work & Career';
-    } else if (lowerMessage.includes('food') || lowerMessage.includes('cook') || lowerMessage.includes('eat') || lowerMessage.includes('restaurant') || lowerMessage.includes('recipe')) {
-      return 'Food & Cooking';
-    } else if (lowerMessage.includes('music') || lowerMessage.includes('art') || lowerMessage.includes('paint') || lowerMessage.includes('draw') || lowerMessage.includes('sing')) {
-      return 'Music & Arts';
-    } else if (lowerMessage.includes('hobby') || lowerMessage.includes('interest') || lowerMessage.includes('free time') || lowerMessage.includes('enjoy') || lowerMessage.includes('love')) {
-      return 'Hobbies & Interests';
-    } else if (lowerMessage.includes('daily') || lowerMessage.includes('routine') || lowerMessage.includes('morning') || lowerMessage.includes('evening') || lowerMessage.includes('weekend')) {
-      return 'Daily Life & Routines';
-    } else if (lowerMessage.includes('game') || lowerMessage.includes('movie') || lowerMessage.includes('tv') || lowerMessage.includes('entertainment') || lowerMessage.includes('fun')) {
-      return 'Entertainment & Gaming';
-    } else if (lowerMessage.includes('learn') || lowerMessage.includes('study') || lowerMessage.includes('school') || lowerMessage.includes('education') || lowerMessage.includes('book')) {
-      return 'Education & Learning';
-    } else if (lowerMessage.includes('technology') || lowerMessage.includes('computer') || lowerMessage.includes('phone') || lowerMessage.includes('internet') || lowerMessage.includes('social media')) {
-      return 'Technology & Social Media';
-    } else if (lowerMessage.includes('health') || lowerMessage.includes('fitness') || lowerMessage.includes('exercise') || lowerMessage.includes('doctor') || lowerMessage.includes('medicine')) {
-      return 'Health & Fitness';
-    } else if (lowerMessage.includes('family') || lowerMessage.includes('friend') || lowerMessage.includes('relationship') || lowerMessage.includes('love') || lowerMessage.includes('marriage')) {
-      return 'Family & Relationships';
-    } else {
-      // Try to extract a key noun or phrase as the topic
-      const words = message.split(' ').filter(word => word.length > 3);
-      if (words.length > 0) {
-        return words[0].charAt(0).toUpperCase() + words[0].slice(1).toLowerCase();
-      }
-      return 'General Conversation';
-    }
-  };
 
-  // Map a human-readable topic label to a normalized topic code used by the DB
-  const mapTopicLabelToCode = (label: string): string => {
-    const l = label.toLowerCase();
-    if (l.includes('travel')) return 'travel';
-    if (l.includes('work') || l.includes('career') || l.includes('job')) return 'work';
-    if (l.includes('food') || l.includes('cook')) return 'food';
-    if (l.includes('music') || l.includes('art')) return 'entertainment';
-    if (l.includes('hobby') || l.includes('interest')) return 'hobby';
-    if (l.includes('daily')) return 'daily_small_talk';
-    if (l.includes('greet') || l.includes('hello')) return 'greeting';
-    // default fallback code
-    return 'general';
-  };
 
   const buildConversationContext = (): ConversationContext => {
     return {
@@ -287,72 +230,58 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = Date.now().toString();
     
-    // If this is the first user message, extract topic and update conversation title
+    // Always send message to AI for topic analysis (AI will decide when topic is confirmed)
     if (waitingForTopic) {
-      const extractedLabel = extractTopicFromMessage(messageText.trim());
-      // Only proceed if we were able to extract a meaningful topic label
-      if (extractedLabel) {
-        const topicCode = mapTopicLabelToCode(extractedLabel);
+      try {
+        const store = useAppStore.getState();
+        const profile = store.user;
+        const payload = {
+          text: messageText.trim(),
+          stage: 'topic_discovery', // Let AI analyze and decide topic
+          profileId: profile?.id || null,
+          level: safeLevel,
+          conversationHistory: conversationHistory // Send conversation context
+        } as any;
 
-        // Display the human-friendly label in the UI, but send topicCode to server/db
-        setCurrentTopic(extractedLabel);
-        setWaitingForTopic(false);
+        const resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
-        if (onTopicChange) {
-          onTopicChange(extractedLabel);
-        }
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data) {
+            // AI will return topic_confirmed when it's confident about the topic
+            if (data.topic_confirmed) {
+              // AI has confirmed the topic - update UI and create conversation
+              setCurrentTopic(data.topic_confirmed);
+              setWaitingForTopic(false);
 
-        // Create a conversation immediately on topic confirmation so subsequent
-        // messages can be attached to a conversationId. Call server /api/chat
-        // with stage='topic' and use the returned conversationId to update app state.
-        try {
-          const store = useAppStore.getState();
-          const profile = store.user;
-          const payload = {
-            text: messageText.trim(),
-            stage: 'topic',
-            profileId: profile?.id || null,
-            level: safeLevel,
-            // IMPORTANT: pass normalized topic code, not free-form message text
-            topic: topicCode
-          } as any;
-
-          const resp = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data) {
-              // If the server confirms the topic (from model control tag), prefer that
-              if (data.topic_confirmed) {
-                // Update local UI and global store
-                setCurrentTopic(data.topic_confirmed);
-                if (onTopicChange) onTopicChange(data.topic_confirmed);
+              if (onTopicChange) {
+                onTopicChange(data.topic_confirmed);
               }
 
               if (data.conversationId) {
                 // Set active conversation and refresh history so sidebar updates
                 store.setActiveConversation(data.conversationId);
-                // If the server confirmed the topic, also update the conversation record in the store
-                if (data.topic_confirmed) {
-                  try { store.endConversation(data.conversationId, { topic: data.topic_confirmed, title: data.topic_confirmed }); } catch (e) { /* best-effort */ }
-                }
+                // Update the conversation record in the store with confirmed topic
+                try { 
+                  store.endConversation(data.conversationId, { 
+                    topic: data.topic_confirmed, 
+                    title: data.topic_confirmed 
+                  }); 
+                } catch (e) { /* best-effort */ }
                 // Trigger a sync to refresh conversations list
                 try { await store.syncData(); } catch (e) { /* best-effort */ }
               }
-
-              // Helpful debug: surface when persistence is disabled on the server
-              if (data.persistence_disabled) {
-                console.warn('Server indicated persistence is disabled for /api/chat responses');
-              }
             }
+            // If no topic_confirmed, AI is still asking questions to clarify topic
+            // Continue in waitingForTopic state until AI confirms
           }
-        } catch (err) {
-          logger.warn('Failed to create conversation on topic confirmation', err);
         }
+      } catch (err) {
+        logger.warn('Failed to send message for topic discovery', err);
       }
     }
     
