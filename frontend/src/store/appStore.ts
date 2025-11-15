@@ -91,6 +91,7 @@ interface AppStore {
   // User state
   user: Profile | null;
   setUser: (user: Profile | null) => void;
+  clearUserData: () => void;
   
   // Conversation state
   conversations: Conversation[];
@@ -170,6 +171,22 @@ export const useAppStore = create<AppStore>()(
         // User state
         user: null,
         setUser: (user) => set({ user }),
+        clearUserData: () => set({
+          user: null,
+          conversations: [],
+          messages: [],
+          activeConversationId: null,
+          currentTopic: 'General Conversation',
+          placementTestProgress: {
+            currentQuestionIndex: 0,
+            answers: [],
+            score: 0,
+            level: null,
+            completed: false,
+            startedAt: null,
+            completedAt: null
+          }
+        }),
         
         // Conversation state
         conversations: [],
@@ -487,8 +504,21 @@ export const useAppStore = create<AppStore>()(
 
 // Selectors
 export const useUser = () => useAppStore((state) => state.user);
-export const useConversations = () => useAppStore((state) => state.conversations);
-export const useMessages = () => useAppStore((state) => state.messages);
+export const useConversations = () => useAppStore((state) => {
+  const conversations = state.conversations;
+  const user = state.user;
+  // Filter conversations by current user to prevent data leakage
+  return user ? conversations.filter(conv => conv.profile_id === user.id) : [];
+});
+export const useMessages = () => useAppStore((state) => {
+  const messages = state.messages;
+  const user = state.user;
+  const activeConversationId = state.activeConversationId;
+  // Filter messages by current user and active conversation
+  return user && activeConversationId 
+    ? messages.filter(msg => msg.conversation_id === activeConversationId)
+    : [];
+});
 export const useSync = () => useAppStore((state) => state.sync);
 export const usePlacementTest = () => useAppStore((state) => state.placementTestProgress);
 export const useRetryQueue = () => useAppStore((state) => state.retryQueue);

@@ -228,6 +228,9 @@ function AppContent() {
       logger.warn("⚠️ Logout cleanup failed:", err);
     } finally {
       dispatch(appActions.setUser(null));
+      // Clear all user data to prevent data leakage between accounts
+      const { clearUserData } = useAppStore.getState();
+      clearUserData();
       setCurrentState("onboarding");
     }
   }, [dispatch, trackEvent, user?.id]);
