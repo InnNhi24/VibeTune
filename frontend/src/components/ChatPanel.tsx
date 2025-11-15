@@ -379,12 +379,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       timestamp: new Date().toISOString()
     };
 
-    try {
-      let prosodyAnalysis: ProsodyAnalysis | undefined;
-      let aiResponse: AIResponse;
+    // Only generate normal AI response if NOT in topic discovery mode
+    if (!waitingForTopic) {
+      try {
+        let prosodyAnalysis: ProsodyAnalysis | undefined;
+        let aiResponse: AIResponse;
 
-      // If it's audio and AI is ready, analyze it
-      if (isAudio && audioBlob && aiReady) {
+        // If it's audio and AI is ready, analyze it
+        if (isAudio && audioBlob && aiReady) {
         const context = buildConversationContext();
         
           try {
@@ -499,20 +501,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         setConversationHistory(prev => [...prev, newHistoryEntry, responseHistoryEntry]);
       }, aiReady ? 1500 : 800);
 
-    } catch (error) {
-      logger.error('Message processing failed:', error);
-      setIsLoading(false);
-      
-      // Add error message
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "I'm having trouble processing your message right now. Let's try again!",
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
-    }
+      } catch (error) {
+        logger.error('Message processing failed:', error);
+        setIsLoading(false);
+        
+        // Add error message
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: "I'm having trouble processing your message right now. Let's try again!",
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } // End of !waitingForTopic block
   };
 
   const generateFallbackResponse = (_userMessage: string, userLevel: string): string => {
