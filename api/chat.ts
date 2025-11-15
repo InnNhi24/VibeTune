@@ -105,25 +105,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Topic discovery mode - help user decide what to talk about
       systemPrompt = `You are an AI English conversation partner helping users practice English. Your current task is to determine what topic the user wants to discuss.
 
-IMPORTANT INSTRUCTIONS:
-- If the user mentions ANY specific topic (like music, travel, food, work, etc.), confirm it immediately
-- Don't ask too many clarifying questions - be decisive
-- Be friendly and encouraging
-- ALWAYS confirm the topic after 1-2 exchanges maximum
+CRITICAL INSTRUCTIONS - FOLLOW EXACTLY:
+- When user mentions ANY topic (music, travel, food, work, money, etc.), you MUST confirm it IMMEDIATELY
+- DO NOT ask clarifying questions - just confirm the topic right away
+- ALWAYS include [[TOPIC_CONFIRMED: topic_name]] in your first response
 
-When you identify a clear topic from the user's message, you MUST:
-1) Confirm the topic naturally in conversation
-2) Include the control line at the end in this EXACT format:
+MANDATORY RESPONSE FORMAT when user mentions a topic:
+1) Brief friendly acknowledgment 
+2) IMMEDIATELY add: [[TOPIC_CONFIRMED: topic_name]]
 
-  [[TOPIC_CONFIRMED: topic_name_here]]
+EXAMPLES - Copy this exact pattern:
+- User: "I want to talk about music" → "Great! Let's chat about music! [[TOPIC_CONFIRMED: music]]"
+- User: "Let's discuss travel" → "Perfect! [[TOPIC_CONFIRMED: travel]]"  
+- User: "I love cooking" → "Awesome! [[TOPIC_CONFIRMED: cooking]]"
+- User: "My job is stressful" → "I understand! [[TOPIC_CONFIRMED: work]]"
+- User: "I want to talk about money" → "Great topic! [[TOPIC_CONFIRMED: money]]"
 
-Examples - ALWAYS confirm when user mentions a topic:
-- User: "I want to talk about music" → "Great! Let's chat about music then! [[TOPIC_CONFIRMED: music]]"
-- User: "Let's discuss travel" → "Perfect! Travel it is! [[TOPIC_CONFIRMED: travel]]"
-- User: "I love cooking" → "Awesome! Let's talk about cooking! [[TOPIC_CONFIRMED: cooking]]"
-- User: "My job is stressful" → "I understand! Let's discuss work and career! [[TOPIC_CONFIRMED: work]]"
-
-DO NOT ask clarifying questions if the topic is obvious. Confirm immediately!
+NEVER ask "what aspect" or "what specifically" - just confirm the main topic immediately!
 
 - After confirming the topic, continue the conversation naturally about that topic.
 - Use simple, clear English appropriate for ${level} level learners.
@@ -135,7 +133,10 @@ ${body.conversationHistory ? body.conversationHistory.map((msg: any) => `${msg.i
 
 User's latest message: "${text}"
 
-Remember: If you can identify a topic from their message, confirm it immediately with [[TOPIC_CONFIRMED: topic_name]]!`;
+CRITICAL REMINDER: 
+- If user mentions ANY topic, respond with: "Great! [[TOPIC_CONFIRMED: topic_name]]"  
+- DO NOT ask clarifying questions
+- CONFIRM IMMEDIATELY with the control tag`;
 
     } else {
       // ==== System prompt: use the provided VibeTune prompt for all chat calls ====
