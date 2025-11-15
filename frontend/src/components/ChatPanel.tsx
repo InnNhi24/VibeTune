@@ -100,7 +100,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     setConversationHistory([]);
     setFocusAreas(getFocusAreasForLevel(safeLevel));
     setWaitingForTopic(true);
-    setCurrentTopic("New Conversation");
+    // Only reset topic if we don't have a confirmed topic yet
+    if (!currentTopic || currentTopic === "New Conversation") {
+      setCurrentTopic("New Conversation");
+    }
   }, [safeLevel]);
 
   // Sync messages from global store when activeConversationId changes
@@ -318,15 +321,18 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               
               // Update or create conversation with confirmed topic
               try {
+                console.log('Attempting to update conversation:', finalConvId, 'with topic:', data.topic_confirmed);
                 // First try to update existing conversation
                 store.endConversation(finalConvId, { 
                   topic: data.topic_confirmed, 
                   title: data.topic_confirmed 
                 });
+                console.log('Successfully updated conversation');
               } catch (e) {
+                console.log('Update failed, creating new conversation:', e);
                 // If update fails, create new conversation
                 try {
-                  store.addConversation({
+                  const newConv = {
                     id: finalConvId,
                     profile_id: (user as any)?.id || '',
                     topic: data.topic_confirmed,
@@ -335,7 +341,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     started_at: new Date().toISOString(),
                     message_count: messages.length + 1, // +1 for current user message
                     avg_prosody_score: 0
-                  });
+                  };
+                  console.log('Creating conversation:', newConv);
+                  store.addConversation(newConv);
+                  console.log('Successfully created conversation');
                 } catch (e2) {
                   console.warn('Failed to create conversation:', e2);
                 }
