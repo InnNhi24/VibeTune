@@ -707,9 +707,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         {showNewMessageIndicator && (
           <div 
             style={{
-              position: 'absolute',
-              bottom: '20px',
-              right: '20px',
+              position: 'fixed',
+              bottom: '120px', // Fixed distance from viewport bottom, above input area
+              right: '32px',   // Fixed distance from viewport right edge
               zIndex: 1000
             }}
           >
@@ -745,7 +745,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               }}
               aria-label="Jump to latest messages"
             >
-              ↓
+              <ChevronDown size={20} />
             </button>
           </div>
         )}
