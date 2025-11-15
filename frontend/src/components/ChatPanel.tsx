@@ -152,6 +152,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const containerEl = scrollAreaRef.current as HTMLElement | null;
     if (!containerEl) return;
     const shouldShow = !isNearBottom(containerEl);
+    console.log('Scroll event - shouldShow button:', shouldShow, 'isNearBottom:', isNearBottom(containerEl));
     setShowNewMessageIndicator(shouldShow);
   };
 
@@ -185,6 +186,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       
       // Always check if we should show the button
       const shouldShow = messages.length > 0 && !isNearBottom(containerEl);
+      console.log('Initial scroll check - messages:', messages.length, 'isNearBottom:', isNearBottom(containerEl), 'shouldShow:', shouldShow);
       setShowNewMessageIndicator(shouldShow);
     };
 
@@ -693,6 +695,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
 
         {/* Scroll to bottom button - elegant design like in image */}
+        {console.log('Rendering scroll button:', showNewMessageIndicator)}
         {showNewMessageIndicator && (
           <div 
             style={{
