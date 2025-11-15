@@ -219,7 +219,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     if (greetings.includes(lowerMessage.trim())) return null as any;
     
     // Simple topic extraction based on keywords
-    if (lowerMessage.includes('travel') || lowerMessage.includes('trip') || lowerMessage.includes('vacation') || lowerMessage.includes('country') || lowerMessage.includes('visit')) {
+    if (lowerMessage.includes('weather') || lowerMessage.includes('rain') || lowerMessage.includes('sunny') || lowerMessage.includes('temperature') || lowerMessage.includes('climate')) {
+      return 'Weather & Climate';
+    } else if (lowerMessage.includes('travel') || lowerMessage.includes('trip') || lowerMessage.includes('vacation') || lowerMessage.includes('country') || lowerMessage.includes('visit')) {
       return 'Travel & Adventures';
     } else if (lowerMessage.includes('work') || lowerMessage.includes('job') || lowerMessage.includes('career') || lowerMessage.includes('office') || lowerMessage.includes('business')) {
       return 'Work & Career';
@@ -237,6 +239,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       return 'Education & Learning';
     } else if (lowerMessage.includes('technology') || lowerMessage.includes('computer') || lowerMessage.includes('phone') || lowerMessage.includes('internet') || lowerMessage.includes('social media')) {
       return 'Technology & Social Media';
+    } else if (lowerMessage.includes('health') || lowerMessage.includes('fitness') || lowerMessage.includes('exercise') || lowerMessage.includes('doctor') || lowerMessage.includes('medicine')) {
+      return 'Health & Fitness';
+    } else if (lowerMessage.includes('family') || lowerMessage.includes('friend') || lowerMessage.includes('relationship') || lowerMessage.includes('love') || lowerMessage.includes('marriage')) {
+      return 'Family & Relationships';
     } else {
       // Try to extract a key noun or phrase as the topic
       const words = message.split(' ').filter(word => word.length > 3);
@@ -688,11 +694,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           )}
         </div>
 
-        {/* Debug info - remove after testing */}
-        <div style={{position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.7)', color: 'white', padding: '4px', fontSize: '10px', zIndex: 1000, borderRadius: '4px'}}>
-          Messages: {messages.length} | Show: {showNewMessageIndicator ? 'YES' : 'NO'}
-        </div>
-        
+
         {/* Scroll to bottom button - elegant design like in image */}
         {showNewMessageIndicator && (
           <div 
