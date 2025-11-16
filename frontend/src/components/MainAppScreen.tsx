@@ -42,14 +42,17 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
     setActiveConversation, 
     initializeApp,
     syncData,
-    trackEvent
+    trackEvent,
+    setUser
   } = useAppStore();
 
   // Initialize app when component mounts
   useEffect(() => {
+    // Set user in store first
+    setUser(user);
     initializeApp();
     trackEvent('main_app_viewed', { user_level: currentLevel });
-  }, [initializeApp, trackEvent, currentLevel]);
+  }, [user, setUser, initializeApp, trackEvent, currentLevel]);
 
   // Auto-sync when online
   useEffect(() => {
