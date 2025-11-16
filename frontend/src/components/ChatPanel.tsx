@@ -54,8 +54,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [currentTopic, setCurrentTopic] = useState(topic);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
-  const [showNewMessageIndicator, setShowNewMessageIndicator] = useState(false);
-  const SCROLL_THRESHOLD = 100; // px from bottom to consider "near bottom" - increased for more aggressive auto-scroll
+  // Removed scroll button - not needed
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   // Zustand store hooks
@@ -143,26 +142,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   };
 
-  const isNearBottom = (el: HTMLElement) => {
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    console.log('Scroll debug:', {
-      scrollHeight: el.scrollHeight,
-      scrollTop: el.scrollTop, 
-      clientHeight: el.clientHeight,
-      distanceFromBottom,
-      threshold: SCROLL_THRESHOLD,
-      isNear: distanceFromBottom < SCROLL_THRESHOLD
-    });
-    return distanceFromBottom < SCROLL_THRESHOLD;
-  };
-
-  const handleScroll = () => {
-    const containerEl = scrollAreaRef.current as HTMLElement | null;
-    if (!containerEl) return;
-    const shouldShow = !isNearBottom(containerEl);
-    console.log('Scroll event - shouldShow button:', shouldShow, 'isNearBottom:', isNearBottom(containerEl));
-    setShowNewMessageIndicator(shouldShow);
-  };
+  // Simplified scroll logic - just auto scroll to bottom
 
   useEffect(() => {
     try {
@@ -172,43 +152,15 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         return;
       }
 
-      if (isNearBottom(containerEl)) {
-        // only auto-scroll when user is already near the bottom
-        requestAnimationFrame(() => scrollToBottom(true));
-        setShowNewMessageIndicator(false);
-      } else {
-        // user scrolled up; show indicator instead of forcing scroll
-        setShowNewMessageIndicator(true);
-      }
+      // Always auto-scroll to bottom for new messages
+      requestAnimationFrame(() => scrollToBottom(true));
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('ChatPanel auto-scroll error:', err);
     }
   }, [messages]);
 
-  // Check initial state and when container size changes
-  useEffect(() => {
-    const checkScrollPosition = () => {
-      const containerEl = scrollAreaRef.current as HTMLElement | null;
-      if (!containerEl) return;
-      
-      // Always check if we should show the button
-      const shouldShow = messages.length > 0 && !isNearBottom(containerEl);
-      console.log('Initial scroll check - messages:', messages.length, 'isNearBottom:', isNearBottom(containerEl), 'shouldShow:', shouldShow);
-      setShowNewMessageIndicator(shouldShow);
-    };
-
-    // Check after a short delay to ensure DOM is ready
-    const timer = setTimeout(checkScrollPosition, 100);
-    
-    // Also check on resize in case container size changes
-    window.addEventListener('resize', checkScrollPosition);
-    
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', checkScrollPosition);
-    };
-  }, [messages.length]);
+  // Removed scroll position checking - not needed without button
 
   const getFocusAreasForLevel = (userLevel: string): string[] => {
     switch (userLevel) {
@@ -332,35 +284,23 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               // Set active conversation and update with confirmed topic
               store.setActiveConversation(finalConvId);
               
-              // Update or create conversation with confirmed topic
+              // Create new conversation with confirmed topic
               try {
-                console.log('Attempting to update conversation:', finalConvId, 'with topic:', data.topic_confirmed);
-                // First try to update existing conversation
-                store.endConversation(finalConvId, { 
-                  topic: data.topic_confirmed, 
-                  title: data.topic_confirmed 
-                });
-                console.log('Successfully updated conversation');
+                const newConv = {
+                  id: finalConvId,
+                  profile_id: (user as any)?.id || '',
+                  topic: data.topic_confirmed,
+                  title: data.topic_confirmed,
+                  is_placement_test: false,
+                  started_at: new Date().toISOString(),
+                  message_count: messages.length + 1, // +1 for current user message
+                  avg_prosody_score: 0
+                };
+                console.log('Creating new conversation:', newConv);
+                store.addConversation(newConv);
+                console.log('Successfully created conversation in store');
               } catch (e) {
-                console.log('Update failed, creating new conversation:', e);
-                // If update fails, create new conversation
-                try {
-                  const newConv = {
-                    id: finalConvId,
-                    profile_id: (user as any)?.id || '',
-                    topic: data.topic_confirmed,
-                    title: data.topic_confirmed,
-                    is_placement_test: false,
-                    started_at: new Date().toISOString(),
-                    message_count: messages.length + 1, // +1 for current user message
-                    avg_prosody_score: 0
-                  };
-                  console.log('Creating conversation:', newConv);
-                  store.addConversation(newConv);
-                  console.log('Successfully created conversation');
-                } catch (e2) {
-                  console.warn('Failed to create conversation:', e2);
-                }
+                console.warn('Failed to create conversation:', e);
               }
               
               // Trigger a sync to refresh conversations list
@@ -653,7 +593,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       <div
         ref={scrollAreaRef}
         className="flex-1 overflow-y-auto overflow-x-hidden bg-background min-h-0 relative"
-        onScroll={handleScroll}
       >
         <div className="p-4 space-y-4">
           {messages.map((message, index) => (
@@ -705,53 +644,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         </div>
 
 
-        {/* Scroll to bottom button - elegant design like in image */}
-        {console.log('Rendering scroll button:', showNewMessageIndicator)}
-        {showNewMessageIndicator && (
-          <div 
-            style={{
-              position: 'absolute',
-              bottom: '16px',  // Bottom of messages area
-              right: '16px',   // Right edge of messages area
-              zIndex: 1000
-            }}
-          >
-            <button
-              onClick={() => {
-                scrollToBottom(true);
-                setShowNewMessageIndicator(false);
-              }}
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                backgroundColor: 'white',
-                color: '#374151',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px',
-                fontWeight: 'bold',
-                transition: 'all 0.2s ease',
-                transform: 'translateY(0px)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)';
-              }}
-              aria-label="Jump to latest messages"
-            >
-              <ChevronDown size={20} />
-            </button>
-          </div>
-        )}
+        {/* Scroll button removed - auto scroll handles everything */}
         
 
       </div>
