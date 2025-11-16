@@ -125,7 +125,7 @@ Be conversational and natural - no special formatting needed.
 - Ask follow-up questions to keep the conversation flowing.
 
 Current conversation context:
-${body.conversationHistory ? body.conversationHistory.map((msg: any) => `${msg.isUser ? 'User' : 'AI'}: ${msg.text}`).join('\n') : 'This is the start of the conversation.'}
+This is the start of the conversation.
 
 User's latest message: "${text}"
 

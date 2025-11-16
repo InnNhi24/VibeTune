@@ -4,7 +4,7 @@ import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 
-import { Card, CardContent } from "./ui/card";
+
 
 import { MessageBubble } from "./MessageBubble";
 import { RecordingControls } from "./RecordingControls";
@@ -13,8 +13,7 @@ import { AIConnectionStatus } from "./AIConnectionStatus";
 import { Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext, ProsodyAnalysis, AIResponse } from "../services/aiProsodyService";
-import { useAppStore, useMessages, Message as StoreMessage } from "../store/appStore";
-import { useUser } from '../store/appStore';
+import { useAppStore } from "../store/appStore";
 import { logger } from "../utils/logger";
 
 interface Message {
@@ -59,10 +58,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
   // Zustand store hooks
   const addMessageToStore = useAppStore(state => state.addMessage);
-  const addConversation = useAppStore(state => (state as any).addConversation);
-  const endConversation = useAppStore(state => (state as any).endConversation);
-  // reference to avoid unused variable lint where store selector exists but value optional
-  void endConversation;
+  const store = useAppStore();
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const storeMessages = useAppStore(state => state.messages);
 
