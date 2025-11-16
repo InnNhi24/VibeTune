@@ -510,7 +510,13 @@ export const useConversations = () => useAppStore((state) => {
   const conversations = state.conversations;
   const user = state.user;
   // Filter conversations by current user to prevent data leakage
-  return user ? conversations.filter(conv => conv.profile_id === user.id) : [];
+  if (!user) {
+    return [];
+  }
+  
+  const userConversations = conversations.filter(conv => conv.profile_id === user.id);
+  
+  return userConversations;
 });
 export const useMessages = () => useAppStore((state) => {
   const messages = state.messages;

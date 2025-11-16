@@ -125,7 +125,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           const historyEntries = msgs.map(msg => ({
             role: msg.isUser ? 'user' as const : 'assistant' as const,
             content: msg.text,
-            timestamp: new Date(msg.timestamp).toISOString()
+            timestamp: new Date().toISOString() // Use current time since msg.timestamp is just time format
           }));
           setConversationHistory(historyEntries);
           
@@ -329,12 +329,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               
               // Create new conversation with confirmed topic
               try {
-                console.log('User object:', user);
-                console.log('User ID:', (user as any)?.id);
-                console.log('Store user:', useAppStore.getState().user);
+                const storeUser = useAppStore.getState().user;
+                const userId = storeUser?.id || user?.id || '';
+                
                 const newConv = {
                   id: finalConvId,
-                  profile_id: (user as any)?.id || '',
+                  profile_id: userId,
                   topic: data.topic_confirmed,
                   title: data.topic_confirmed,
                   is_placement_test: false,
@@ -342,11 +342,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   message_count: messages.length + 1, // +1 for current user message
                   avg_prosody_score: 0
                 };
-                console.log('Creating new conversation:', newConv);
+                
                 addConversation(newConv);
-                console.log('Successfully created conversation in store');
-                console.log('Store conversations after add:', useAppStore.getState().conversations);
-                console.log('Filtered conversations for user:', useAppStore.getState().conversations.filter(conv => conv.profile_id === useAppStore.getState().user?.id));
               } catch (e) {
                 console.warn('Failed to create conversation:', e);
               }
