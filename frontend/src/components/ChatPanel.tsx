@@ -95,10 +95,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     setConversationHistory([]);
     setFocusAreas(getFocusAreasForLevel(safeLevel));
     setWaitingForTopic(true);
-    // Only reset topic if we don't have a confirmed topic yet
-    if (!currentTopic || currentTopic === "New Conversation") {
-      setCurrentTopic("New Conversation");
-    }
+    // Always reset topic and conversation state for new session
+    setCurrentTopic("New Conversation");
+    setConversationId(null);
+    store.setActiveConversation(null);
   }, [safeLevel]);
 
   // Sync messages from global store when activeConversationId changes
