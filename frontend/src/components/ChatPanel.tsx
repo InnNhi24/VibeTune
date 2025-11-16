@@ -297,6 +297,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               try {
                 console.log('User object:', user);
                 console.log('User ID:', (user as any)?.id);
+                console.log('Store user:', useAppStore.getState().user);
                 const newConv = {
                   id: finalConvId,
                   profile_id: (user as any)?.id || '',
@@ -311,6 +312,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 addConversation(newConv);
                 console.log('Successfully created conversation in store');
                 console.log('Store conversations after add:', useAppStore.getState().conversations);
+                console.log('Filtered conversations for user:', useAppStore.getState().conversations.filter(conv => conv.profile_id === useAppStore.getState().user?.id));
               } catch (e) {
                 console.warn('Failed to create conversation:', e);
               }
