@@ -213,6 +213,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           conversationHistory: conversationHistory // Send conversation context
         } as any;
 
+        console.log('Sending message with payload:', { 
+          stage: payload.stage, 
+          waitingForTopic, 
+          currentTopic, 
+          conversationId 
+        });
+
         const resp = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -267,6 +274,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               // AI has confirmed the topic - update UI and create conversation
               setCurrentTopic(data.topic_confirmed);
               setWaitingForTopic(false);
+              console.log('Set waitingForTopic to false, currentTopic to:', data.topic_confirmed);
 
               if (onTopicChange) {
                 onTopicChange(data.topic_confirmed);
