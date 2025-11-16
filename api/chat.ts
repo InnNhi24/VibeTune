@@ -370,22 +370,17 @@ TECHNICAL / SYSTEM NOTES
       const guessTopicFromReply = (text: string | null) => {
         if (!text) return null;
         const t = text.replace(/\n+/g, ' ').trim();
-        // common patterns: "topic ... is X", "our topic ... would be X", "let's talk about X"
-        const patterns = [
-          /(?:our )?topic(?: for today| for this (?:session|practice))? (?:would be|is|will be|:)?\s*([a-zA-Z0-9 &\-']{2,60})/i,
-          /let(?:'|)s talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
-          /talk about\s+([a-zA-Z0-9 &\-']{2,60})(?:[\.\?!\,]|$)/i,
-          /I(?:'|)d like to talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
-          /shall we talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
-          /(?:topic is|topic:)\s*([a-zA-Z0-9 &\-']{2,60})/i,
-          // Additional patterns for topic discovery responses
-          /so let(?:'|)s talk about\s+([a-zA-Z0-9 &\-']{2,60})/i,
+        
+        // Only detect topic from AI responses that are confirming user's topic choice
+        // Avoid detecting from generic AI questions like "What would you like to talk about today?"
+        const confirmationPatterns = [
+          /so let(?:'|)s talk about\s+([a-zA-Z0-9 &\-']{2,60})!/i,
           /(?:great|awesome|perfect)!?\s+(?:let(?:'|)s talk about|talking about)\s+([a-zA-Z0-9 &\-']{2,60})/i,
           /(?:i love|love) talking about\s+([a-zA-Z0-9 &\-']{2,60})/i,
-          /what(?:'|)s on your mind about\s+([a-zA-Z0-9 &\-']{2,60})/i
+          /(?:our )?topic (?:for today )?(?:would be|is|will be)\s+([a-zA-Z0-9 &\-']{2,60})/i
         ];
 
-        for (const re of patterns) {
+        for (const re of confirmationPatterns) {
           const m = t.match(re);
           if (m && m[1]) {
             // Clean candidate: trim, remove trailing punctuation, keep short phrase

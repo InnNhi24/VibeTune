@@ -502,17 +502,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const responses = {
       Beginner: [
         "That's great! I can hear you're working hard on your pronunciation. Let's practice some more basic patterns.",
-        "Nice try! Your rhythm is improving. Can you tell me about your favorite food?",
-        "Good effort! I noticed your word stress is getting better. What do you like to do on weekends?"
+        "Nice try! Your rhythm is improving. What would you like to practice next?",
+        "Good effort! I noticed your word stress is getting better. What interests you today?"
       ],
       Intermediate: [
         "Excellent work on your intonation! Your question patterns are much clearer now. Let's discuss something more complex.",
-        "I can hear improvement in your connected speech. How do you feel about technology in education?",
+        "I can hear improvement in your connected speech. What would you like to explore today?",
         "Your pronunciation has really developed! Let's practice with some more challenging vocabulary."
       ],
       Advanced: [
         "Your prosody shows sophisticated control! Let's explore some nuanced expressions and idioms.",
-        "Impressive fluency! Your stress patterns are very natural. What are your thoughts on current events?",
+        "Impressive fluency! Your stress patterns are very natural. What would you like to discuss?",
         "Your accent work is excellent! Let's discuss some abstract concepts to challenge your advanced skills."
       ]
     };
