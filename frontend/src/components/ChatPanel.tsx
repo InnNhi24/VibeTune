@@ -59,6 +59,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // Zustand store hooks
   const addMessageToStore = useAppStore(state => state.addMessage);
   const store = useAppStore();
+  const setActiveConversation = useAppStore(state => state.setActiveConversation);
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const storeMessages = useAppStore(state => state.messages);
 
@@ -98,7 +99,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     // Always reset topic and conversation state for new session
     setCurrentTopic("New Conversation");
     setConversationId(null);
-    store.setActiveConversation(null);
+    setActiveConversation(null);
   }, [safeLevel]);
 
   // Sync messages from global store when activeConversationId changes
@@ -288,7 +289,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               }
 
               // Set active conversation and update with confirmed topic
-              store.setActiveConversation(finalConvId);
+              setActiveConversation(finalConvId);
               
               // Create new conversation with confirmed topic
               try {
