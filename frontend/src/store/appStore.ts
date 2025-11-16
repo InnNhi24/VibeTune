@@ -483,6 +483,8 @@ export const useAppStore = create<AppStore>()(
           // Only persist essential data
           user: state.user,
           conversations: state.conversations,
+          messages: state.messages, // IMPORTANT: Persist messages so they survive reload
+          activeConversationId: state.activeConversationId, // Also persist active conversation
           placementTestProgress: state.placementTestProgress,
           retryQueue: state.retryQueue,
           currentTopic: state.currentTopic,

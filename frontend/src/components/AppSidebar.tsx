@@ -28,15 +28,10 @@ import {
 import { motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { Profile } from "../services/supabaseClient";
+import { Conversation } from "../store/appStore";
 
-interface Conversation {
-  id: string;
-  title?: string;
-  topic?: string;
-  timestamp: string;
-  messagesCount: number;
-  prosodyScore?: number;
-}
+// Use the Conversation type from store
+import { Conversation } from "../store/appStore";
 
 interface AppSidebarProps {
   user: Profile;
@@ -85,8 +80,8 @@ export function AppSidebar({
   
   // Sort topics by most recent conversation
   const sortedTopics = Object.keys(groupedConversations).sort((a, b) => {
-    const aLatest = Math.max(...groupedConversations[a].map(c => new Date(c.timestamp).getTime()));
-    const bLatest = Math.max(...groupedConversations[b].map(c => new Date(c.timestamp).getTime()));
+    const aLatest = Math.max(...groupedConversations[a].map(c => new Date(c.started_at || c.timestamp || Date.now()).getTime()));
+    const bLatest = Math.max(...groupedConversations[b].map(c => new Date(c.started_at || c.timestamp || Date.now()).getTime()));
     return bLatest - aLatest;
   });
 
@@ -241,8 +236,8 @@ export function AppSidebar({
                     const topicConversations = groupedConversations[topicName];
                     const TopicIcon = getTopicIcon(topicName);
                     const avgScore = topicConversations
-                      .filter(conv => conv.prosodyScore)
-                      .reduce((sum, conv, _, arr) => sum + (conv.prosodyScore || 0) / arr.length, 0);
+                      .filter(conv => conv.avg_prosody_score)
+                      .reduce((sum, conv, _, arr) => sum + (conv.avg_prosody_score || 0) / arr.length, 0);
 
                     return (
                       <div key={topicName} className="space-y-2 overflow-hidden">
@@ -264,7 +259,7 @@ export function AppSidebar({
                         {/* Conversations in Topic */}
                         <div className="space-y-1 ml-4 overflow-hidden">
                           {topicConversations
-                            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                            .sort((a, b) => new Date(b.started_at || Date.now()).getTime() - new Date(a.started_at || Date.now()).getTime())
                             .map((conversation) => {
                               const getScoreColor = (score: number) => {
                                 if (score >= 85) return "bg-success text-success-foreground";
@@ -279,7 +274,7 @@ export function AppSidebar({
                                 return { status: "Started", icon: MessageCircle, color: "text-secondary" };
                               };
 
-                              const completion = getCompletionStatus(conversation.messagesCount);
+                              const completion = getCompletionStatus(conversation.message_count || 0);
                               const StatusIcon = completion.icon;
 
                                 return (
@@ -299,9 +294,9 @@ export function AppSidebar({
                                           <h4 className="text-xs font-medium truncate text-sidebar-foreground flex-1 min-w-0">{conversation.title || 'New Conversation'}</h4>
                                           <div className="flex items-center gap-1">
                                             <StatusIcon className={`w-3 h-3 ${completion.color}`} />
-                                            {conversation.prosodyScore && (
-                                              <Badge className={`text-xs ${getScoreColor(conversation.prosodyScore)}`}>
-                                                {conversation.prosodyScore}%
+                                            {conversation.avg_prosody_score && (
+                                              <Badge className={`text-xs ${getScoreColor(conversation.avg_prosody_score)}`}>
+                                                {conversation.avg_prosody_score}%
                                               </Badge>
                                             )}
                                           </div>
@@ -311,13 +306,13 @@ export function AppSidebar({
                                         <div className="flex items-center justify-between min-w-0">
                                           <div className="flex items-center gap-2 text-xs text-sidebar-foreground/60 flex-1 min-w-0">
                                             <Clock className="w-2 h-2 flex-shrink-0" />
-                                            <span className="truncate">{conversation.timestamp}</span>
+                                            <span className="truncate">{new Date(conversation.started_at || Date.now()).toLocaleDateString()}</span>
                                           </div>
                                           <div className="flex items-center gap-1">
                                             <Badge variant="outline" className={`text-xs ${completion.color}`}>
                                               {completion.status}
                                             </Badge>
-                                            <span className="text-xs text-sidebar-foreground/60">{conversation.messagesCount}msg</span>
+                                            <span className="text-xs text-sidebar-foreground/60">{conversation.message_count || 0}msg</span>
                                           </div>
                                         </div>
                                       </div>

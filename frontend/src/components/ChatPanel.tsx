@@ -58,7 +58,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
   // Zustand store hooks
   const addMessageToStore = useAppStore(state => state.addMessage);
-  const store = useAppStore();
   const setActiveConversation = useAppStore(state => state.setActiveConversation);
   const addConversation = useAppStore(state => state.addConversation);
   const syncData = useAppStore(state => state.syncData);
@@ -110,6 +109,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       if (activeConversationId) {
         const msgs = storeMessages
           .filter(m => m.conversation_id === activeConversationId)
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
           .map(m => ({
             id: m.id,
             text: m.content,
@@ -121,12 +121,46 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         if (msgs.length > 0) {
           setMessages(msgs);
           setWaitingForTopic(false);
+          // Update conversation history for AI context
+          const historyEntries = msgs.map(msg => ({
+            role: msg.isUser ? 'user' as const : 'assistant' as const,
+            content: msg.text,
+            timestamp: new Date(msg.timestamp).toISOString()
+          }));
+          setConversationHistory(historyEntries);
+          
+          // Update current topic from the conversation
+          const conversations = useAppStore.getState().conversations;
+          const currentConv = conversations.find(c => c.id === activeConversationId);
+          if (currentConv && currentConv.topic) {
+            setCurrentTopic(currentConv.topic);
+          }
         }
+      } else {
+        // No active conversation - show welcome messages
+        const welcomeMessage: Message = {
+          id: '1',
+          text: `🎉 Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        const topicQuestion: Message = {
+          id: '2',
+          text: "What would you like to talk about today? I'll help you practice English conversation on any topic that interests you. Just tell me what's on your mind!",
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setMessages([welcomeMessage, topicQuestion]);
+        setConversationHistory([]);
+        setWaitingForTopic(true);
+        setCurrentTopic("New Conversation");
       }
     } catch (e) {
-      // ignore
+      console.warn('Failed to sync messages from store:', e);
     }
-  }, [activeConversationId, storeMessages]);
+  }, [activeConversationId, storeMessages, safeLevel]);
 
   // Auto-scroll to bottom when new messages arrive.
   // Use the last-message element scrollIntoView first (more robust),

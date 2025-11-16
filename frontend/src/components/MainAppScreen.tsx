@@ -9,16 +9,9 @@ import { Settings } from "./Settings";
 import { Menu, Mic, TrendingUp, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
-import { useAppStore, useConversations, useSync } from "../store/appStore";
+import { useAppStore, useConversations, useSync, Conversation } from "../store/appStore";
 
-interface Conversation {
-  id: string;
-  title?: string;
-  topic?: string;
-  timestamp: string;
-  messagesCount: number;
-  prosodyScore?: number;
-}
+
 
 interface MainAppScreenProps {
   user: Profile;
@@ -63,19 +56,20 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
 
   const handleConversationSelect = (conversation: Conversation) => {
     // Set topic from conversation if available, otherwise use title
-  const topicToSet = conversation.topic || conversation.title || 'New Conversation';
-  setCurrentTopic(topicToSet);
+    const topicToSet = conversation.topic || conversation.title || 'New Conversation';
+    setCurrentTopic(topicToSet);
     setActiveConversation(conversation.id);
     setIsSidebarOpen(false);
     trackEvent('conversation_selected', { 
       conversation_id: conversation.id,
       topic: topicToSet
     });
-    // Ensure we have latest messages for this conversation
+    
+    // Force sync to load messages for this conversation
     try {
       void syncData();
     } catch (e) {
-      // best-effort
+      console.warn('Failed to sync data when selecting conversation:', e);
     }
   };
 
