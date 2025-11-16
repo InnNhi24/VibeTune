@@ -136,7 +136,7 @@ export function AppSidebar({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 overflow-x-hidden">
+      <ScrollArea className="flex-1 overflow-x-hidden min-h-0">
         <div className="p-4 space-y-4">
           {/* Current Level Display Only - No Actions */}
           <Card>
@@ -227,7 +227,7 @@ export function AppSidebar({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="mt-2 space-y-3 max-h-64 overflow-y-auto overflow-x-hidden pr-1">
+              <div className="mt-2 space-y-3 max-h-48 overflow-y-auto overflow-x-hidden pr-1">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
