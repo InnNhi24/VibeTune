@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import openai from '../clients/openai';
-import openai from '../clients/openai';
 import { createServiceRoleClient } from '../clients/supabase';
 
 const chatRoute = async (req: Request, res: Response) => {
@@ -22,7 +21,7 @@ const chatRoute = async (req: Request, res: Response) => {
       const audioResponse = await fetch(audioUrl);
       const audioBuffer = await audioResponse.arrayBuffer();
       const transcription = await openai.audio.transcriptions.create({
-        file: new File([audioBuffer], 'audio.wav', { type: 'audio/wav' }),
+        file: new File([Buffer.from(audioBuffer)], 'audio.wav', { type: 'audio/wav' }),
         model: 'whisper-1'
       });
       

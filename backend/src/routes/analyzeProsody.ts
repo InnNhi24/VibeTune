@@ -89,19 +89,19 @@ const analyzeProsodyHandler = async (req: Request, res: Response) => {
     // If we have file.buffer (via multer)
     const audioBuffer = file.buffer as Buffer;
 
-    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-      model: 'nova-2',
-      smart_format: true,
-      language: 'en',
-      punctuate: true,
-      utterances: true,
+    // transcribe via OpenAI Whisper  
+    const transcription = await openai.audio.transcriptions.create({
+      file: new File([audioBuffer], 'audio.wav', { type: 'audio/wav' }),
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      timestamp_granularities: ['word']
     });
 
-    if (error) {
-      console.warn('Deepgram prosody transcription error', error);
-    }
-
-    const transcript = result?.results?.channels?.[0]?.alternatives?.[0];
+    const transcript = {
+      transcript: transcription.text,
+      confidence: 1.0, // OpenAI doesn't provide confidence scores
+      words: transcription.words || []
+    };
 
     // Use OpenAI to analyze if available
     const OPENAI_KEY = process.env.OPENAI_API_KEY;
