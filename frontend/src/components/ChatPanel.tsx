@@ -284,6 +284,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               
               // Create new conversation with confirmed topic
               try {
+                console.log('User object:', user);
+                console.log('User ID:', (user as any)?.id);
                 const newConv = {
                   id: finalConvId,
                   profile_id: (user as any)?.id || '',
@@ -297,6 +299,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 console.log('Creating new conversation:', newConv);
                 store.addConversation(newConv);
                 console.log('Successfully created conversation in store');
+                console.log('Store conversations after add:', store.getState().conversations);
               } catch (e) {
                 console.warn('Failed to create conversation:', e);
               }
