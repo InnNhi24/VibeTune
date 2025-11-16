@@ -60,6 +60,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const addMessageToStore = useAppStore(state => state.addMessage);
   const store = useAppStore();
   const setActiveConversation = useAppStore(state => state.setActiveConversation);
+  const addConversation = useAppStore(state => state.addConversation);
+  const syncData = useAppStore(state => state.syncData);
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const storeMessages = useAppStore(state => state.messages);
 
@@ -306,16 +308,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   avg_prosody_score: 0
                 };
                 console.log('Creating new conversation:', newConv);
-                store.addConversation(newConv);
+                addConversation(newConv);
                 console.log('Successfully created conversation in store');
-                console.log('Store conversations after add:', store.getState().conversations);
+                console.log('Store conversations after add:', useAppStore.getState().conversations);
               } catch (e) {
                 console.warn('Failed to create conversation:', e);
               }
               
               // Trigger a sync to refresh conversations list
               try { 
-                await store.syncData(); 
+                await syncData(); 
                 console.log('Sync completed after topic confirmation');
               } catch (e) { 
                 console.warn('Sync failed:', e);
