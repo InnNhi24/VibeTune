@@ -209,7 +209,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         const profile = store.user;
         const payload = {
           text: messageText.trim(),
-          stage: 'topic_discovery', // Let AI analyze and decide topic
+          stage: waitingForTopic ? 'topic_discovery' : 'practice', // Dynamic stage based on topic status
+          topic: waitingForTopic ? undefined : currentTopic, // Include topic for practice stage
+          conversationId: waitingForTopic ? null : conversationId, // Include conversationId for practice stage
           profileId: profile?.id || null,
           level: safeLevel,
           conversationHistory: conversationHistory // Send conversation context
