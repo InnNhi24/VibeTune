@@ -1,7 +1,7 @@
 /**
  * VibeTune Speech Service
  * 
- * Integrates Deepgram API for high-quality speech-to-text transcription
+ * Integrates OpenAI Whisper API for high-quality speech-to-text transcription
  * with prosody analysis capabilities for English learning
  */
 
@@ -35,7 +35,7 @@ export class SpeechService {
   
 
   /**
-   * Transcribe audio using Deepgram API
+   * Transcribe audio using OpenAI Whisper API
    */
   static async transcribeAudio(
     audioBlob: Blob,

@@ -36,9 +36,10 @@ jest.mock('../clients/openai', () => ({
   }
 }));
 
-jest.mock('../clients/deepgram', () => ({
-  listen: {
-    prerecorded: {
+// Deepgram removed - using OpenAI Whisper instead
+// jest.mock('../clients/deepgram', () => ({
+//   listen: {
+//     prerecorded: {
       transcribeUrl: jest.fn().mockResolvedValue({
         result: {
           results: {

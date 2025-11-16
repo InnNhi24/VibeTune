@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 const multer: any = require('multer'); // Use require for multer to avoid TypeScript resolution issues when types aren't installed in all envs
-import deepgram from '../clients/deepgram';
+import openai from '../clients/openai';
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -31,16 +31,19 @@ const analyzeProsodyHandler = async (req: Request, res: Response) => {
       }
       // convert base64
       const audioBuffer = Buffer.from(audioData, 'base64');
-      // transcribe via deepgram
-      const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
-        model: 'nova-2',
-        smart_format: true,
-        language: 'en',
-        punctuate: true,
-        utterances: true,
+      // transcribe via OpenAI Whisper
+      const transcription = await openai.audio.transcriptions.create({
+        file: new File([audioBuffer], 'audio.wav', { type: 'audio/wav' }),
+        model: 'whisper-1',
+        response_format: 'verbose_json',
+        timestamp_granularities: ['word']
       });
 
-      const transcript = result?.results?.channels?.[0]?.alternatives?.[0];
+      const transcript = {
+        transcript: transcription.text,
+        confidence: 1.0, // OpenAI doesn't provide confidence scores
+        words: transcription.words || []
+      };
 
       // If OpenAI configured, call it for analysis
       const OPENAI_KEY = process.env.OPENAI_API_KEY;

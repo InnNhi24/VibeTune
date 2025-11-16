@@ -219,7 +219,7 @@ export class ErrorHandler {
     if (message.includes('validation') || message.includes('invalid') || message.includes('required')) {
       return ErrorType.VALIDATION;
     }
-    if (message.includes('openai') || message.includes('deepgram') || message.includes('ai')) {
+    if (message.includes('openai') || message.includes('ai')) {
       return ErrorType.AI_SERVICE;
     }
     if (message.includes('audio') || message.includes('recording') || message.includes('microphone')) {

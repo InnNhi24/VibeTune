@@ -15,7 +15,7 @@ The app analyzes speech rhythm, intonation, pacing, and phrasing, providing real
 | Frontend (Mobile/Web) | React Native (mobile), Capacitor, Vite (web demo / PWA) |
 | Backend & Database  | Supabase (Auth, Postgres Database, RLS, Realtime)      |
 | AI Integration      | OpenAI (GPT-4 / GPT-3.5-Turbo) for conversational AI and language feedback |
-| Speech Recognition  | Deepgram (real-time speech-to-text transcription)      |
+| Speech Recognition  | OpenAI Whisper (high-quality speech-to-text transcription) |
 | Text-to-Speech (optional) | OpenAI TTS / ElevenLabs                                |
 | Edge Functions      | Supabase Edge Functions (Deno)                         |
 | CI/CD               | GitHub Actions                                         |

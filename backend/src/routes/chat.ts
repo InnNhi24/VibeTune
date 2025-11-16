@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import openai from '../clients/openai';
-import deepgram from '../clients/deepgram';
+import openai from '../clients/openai';
 import { createServiceRoleClient } from '../clients/supabase';
 
 const chatRoute = async (req: Request, res: Response) => {
@@ -18,17 +18,15 @@ const chatRoute = async (req: Request, res: Response) => {
   try {
     // 2. If audioUrl present => fetch audio => Deepgram STT => transcript => userText = transcript
     if (audioUrl) {
-      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(audioUrl, {
-        model: 'nova-2',
-        smart_format: true,
-        language: 'en',
+      // Download audio file and transcribe with OpenAI Whisper
+      const audioResponse = await fetch(audioUrl);
+      const audioBuffer = await audioResponse.arrayBuffer();
+      const transcription = await openai.audio.transcriptions.create({
+        file: new File([audioBuffer], 'audio.wav', { type: 'audio/wav' }),
+        model: 'whisper-1'
       });
-
-      if (error) {
-        console.error('Deepgram STT error:', error);
-        return res.status(502).json({ error: 'Deepgram STT failed', details: error.message });
-      }
-      userText = result.results?.channels[0]?.alternatives[0]?.transcript || "";
+      
+      userText = transcription.text || "";
     }
 
     // 3. Call OpenAI with system prompt and JSON response format
