@@ -27,21 +27,46 @@ export const debugStore = {
     console.log('LocalStorage cleared');
   },
 
-  // Add test conversation
-  addTestConversation: (userId: string) => {
-    const { addConversation } = useAppStore.getState();
-    const testConv = {
-      id: `test_${Date.now()}`,
-      profile_id: userId,
-      topic: 'Test Topic',
-      title: 'Test Conversation',
-      is_placement_test: false,
-      started_at: new Date().toISOString(),
-      message_count: 2,
-      avg_prosody_score: 85
-    };
-    addConversation(testConv);
-    console.log('Test conversation added:', testConv);
+  // Clean up test data
+  cleanupTestData: () => {
+    const { conversations, setConversations, messages } = useAppStore.getState();
+    const cleanConversations = conversations.filter(conv => 
+      !conv.topic?.includes('Test') && 
+      !conv.title?.includes('Test') &&
+      !conv.id.startsWith('test_')
+    );
+    
+    // Also clean up messages from test conversations
+    const testConvIds = conversations
+      .filter(conv => conv.topic?.includes('Test') || conv.title?.includes('Test') || conv.id.startsWith('test_'))
+      .map(conv => conv.id);
+    
+    const cleanMessages = messages.filter(msg => !testConvIds.includes(msg.conversation_id));
+    
+    setConversations(cleanConversations);
+    useAppStore.setState({ messages: cleanMessages });
+    
+    console.log('✅ Cleaned up test conversations and messages');
+  },
+
+  // Delete specific conversation by topic
+  deleteConversationByTopic: (topic: string) => {
+    const { conversations, setConversations, messages } = useAppStore.getState();
+    const targetConv = conversations.find(conv => conv.topic === topic);
+    
+    if (targetConv) {
+      const cleanConversations = conversations.filter(conv => conv.id !== targetConv.id);
+      const cleanMessages = messages.filter(msg => msg.conversation_id !== targetConv.id);
+      
+      setConversations(cleanConversations);
+      useAppStore.setState({ messages: cleanMessages });
+      
+      console.log('✅ Deleted conversation:', topic);
+      return true;
+    } else {
+      console.log('❌ Conversation not found:', topic);
+      return false;
+    }
   },
 
   // Check localStorage content
