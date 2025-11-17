@@ -90,9 +90,23 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize clean state for real conversation
+  // Initialize with welcome message
   useEffect(() => {
-    setMessages([]);
+    const welcomeMessage: Message = {
+      id: 'welcome_1',
+      text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const topicPrompt: Message = {
+      id: 'welcome_2', 
+      text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages([welcomeMessage, topicPrompt]);
     setConversationHistory([]);
     setFocusAreas(getFocusAreasForLevel(safeLevel));
     setWaitingForTopic(true);
@@ -165,8 +179,22 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           }
         }
         
-        // No active conversation - start clean
-        setMessages([]);
+        // No active conversation - show welcome messages
+        const welcomeMessage: Message = {
+          id: 'welcome_1',
+          text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        const topicPrompt: Message = {
+          id: 'welcome_2', 
+          text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        setMessages([welcomeMessage, topicPrompt]);
         setConversationHistory([]);
         setWaitingForTopic(true);
         setCurrentTopic("New Conversation");
@@ -788,7 +816,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     void sendTextFromInput();
                   }
                 }}
-                placeholder="What would you like to talk about? (e.g., music, travel, food, work...)"
+                placeholder="Type your message here..."
                 disabled={isLoading}
                 // Limit textarea growth so it doesn't push the chat area; allow internal scroll when large
                 className="flex-1 min-h-[80px] max-h-40 resize-y overflow-auto"
@@ -806,7 +834,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     void sendTextFromInput();
                   }
                 }}
-                placeholder="What would you like to talk about? (e.g., music, travel, food, work...)"
+                placeholder="Type your message here..."
                 disabled={isLoading}
                 className="flex-1"
               />
