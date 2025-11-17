@@ -3644,10 +3644,63 @@ html {
 /* Fix for chat scroll - ensure root elements take full viewport height */
 html, body {
   height: 100%;
-  overflow: hidden;
+  /* Only hide overflow when in main app, allow scroll for auth/onboarding pages */
 }
 
 #root {
   height: 100%;
+  /* Only hide overflow when in main app, allow scroll for auth/onboarding pages */
+}
+
+/* Hide overflow only for main app screen */
+.main-app-container {
+  height: 100vh;
   overflow: hidden;
+}
+
+/* Allow scroll for auth and onboarding pages */
+.auth-page-container,
+.onboarding-page-container {
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+/* Enhanced scroll support for auth and onboarding pages */
+.auth-page-container,
+.onboarding-page-container {
+  /* Ensure proper scrolling on all devices */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Fix for mobile viewport height issues */
+@supports (-webkit-touch-callout: none) {
+  .auth-page-container,
+  .onboarding-page-container {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Ensure ScrollArea works properly in sidebar */
+[data-slot="scroll-area-viewport"] {
+  overflow: auto !important;
+  scrollbar-width: thin;
+}
+
+[data-slot="scroll-area-viewport"]::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-slot="scroll-area-viewport"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-slot="scroll-area-viewport"]::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.3);
+  border-radius: 3px;
+}
+
+[data-slot="scroll-area-viewport"]::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.5);
 }

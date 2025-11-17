@@ -109,7 +109,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
 
   return (
   // Root: lock viewport height and prevent page scroll
-  <div className="flex h-screen bg-background overflow-hidden">
+  <div className="main-app-container flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
       <motion.div 
         className="hidden md:block h-full relative"

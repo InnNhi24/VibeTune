@@ -227,7 +227,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 py-4 overflow-y-auto">
+    <div className="auth-page-container min-h-screen bg-background p-4 py-4 overflow-y-auto">
       <div className="max-w-sm mx-auto w-full space-y-4 pb-8">
         {/* Header */}
         <motion.div

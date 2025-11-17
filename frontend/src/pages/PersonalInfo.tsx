@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase, Profile } from "../services/supabaseClient";
 import {
   Card,
@@ -8,20 +8,11 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { Popover, PopoverTrigger, PopoverContent } from "../components/ui/popover";
-import {
-  Command,
-  CommandInput,
-  CommandList,
-  CommandItem,
-  CommandEmpty,
-  CommandGroup,
-} from "../components/ui/command";
 import { Label } from "../components/ui/label";
 import CountryCombobox from "../components/CountryCombobox";
 import { Button } from "../components/ui/button";
 import { InlineAvatarCrop } from "../components/InlineAvatarCrop";
-import { Mic, Mail, User, MapPin, Globe, Book } from "lucide-react";
+import { Mic, User, MapPin, Globe, Book } from "lucide-react";
 
 type FormState = {
   full_name: string;
@@ -52,10 +43,6 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [countryOpen, setCountryOpen] = useState(false);
-  const commandInputRef = useRef<HTMLInputElement | null>(null);
-  const commandListRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -90,54 +77,9 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
     };
   }, []);
 
-  // Focus and scroll management for the country combobox
-  useEffect(() => {
-    if (!countryOpen) return;
 
-    // When opened, try to focus the command input and reset list scroll
-    const focusTimeout = setTimeout(() => {
-      const input = commandInputRef.current;
-      const list = commandListRef.current;
 
-      if (input) {
-        try {
-          input.focus({ preventScroll: true });
-        } catch (e) {
-          input.focus();
-        }
-      }
-
-      if (list) {
-        list.scrollTop = 0;
-      }
-
-      // when typing, keep the list scrolled to top so filtered results appear from the top
-      const onInput = () => {
-        if (list) list.scrollTop = 0;
-      };
-
-      input?.addEventListener("input", onInput);
-
-      // observe selection changes and scroll the selected item into view
-      const mo = new MutationObserver(() => {
-        if (!list) return;
-        const sel = list.querySelector('[data-selected="true"]') as HTMLElement | null;
-        if (sel) sel.scrollIntoView({ block: "nearest" });
-      });
-
-      if (list) mo.observe(list, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-selected"] });
-
-      return () => {
-        input?.removeEventListener("input", onInput);
-        mo.disconnect();
-      };
-    }, 0);
-
-    return () => clearTimeout(focusTimeout);
-  }, [countryOpen]);
-
-  const handleAvatarChange = (croppedImageUrl: string, croppedFile: File) => {
-    setAvatarFile(croppedFile);
+  const handleAvatarChange = (_croppedImageUrl: string, croppedFile: File) => {
     console.log('Avatar ready for upload:', croppedFile);
   };
 
@@ -205,7 +147,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
 
       const { data: upserted, error } = await supabase
         .from('profiles')
-        .upsert(payload, { onConflict: 'id', returning: 'representation' })
+        .upsert(payload, { onConflict: 'id' })
         .select()
         .maybeSingle();
 
@@ -228,7 +170,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
         return;
       }
 
-      // upsert returned representation when using returning: 'representation'
+      // upsert successful
       setSaving(false);
       onDone((upserted as Profile) || undefined);
     } catch (e: any) {
@@ -239,7 +181,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   };
 
   return (
-    <div className="bg-background min-h-screen p-4 py-6">
+    <div className="onboarding-page-container bg-background min-h-screen p-4 py-6 overflow-y-auto">
       <div className="max-w-sm mx-auto w-full space-y-4 pb-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
@@ -304,6 +246,9 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, username: e.target.value })}
                     />
                   </div>
+                  {usernameError && (
+                    <div className="text-sm text-red-600">{usernameError}</div>
+                  )}
               </div>
 
               <div className="space-y-2">

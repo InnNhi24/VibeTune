@@ -30,9 +30,6 @@ import { Trash2 } from "lucide-react";
 import { Profile } from "../services/supabaseClient";
 import { Conversation } from "../store/appStore";
 
-// Use the Conversation type from store
-import { Conversation } from "../store/appStore";
-
 interface AppSidebarProps {
   user: Profile;
   conversations: Conversation[];
@@ -227,7 +224,7 @@ export function AppSidebar({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 overflow-x-hidden min-h-0">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-4">
           {/* Current Level Display Only - No Actions */}
           <Card>
@@ -332,7 +329,8 @@ export function AppSidebar({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="mt-2 space-y-3 max-h-48 overflow-y-auto overflow-x-hidden pr-1">
+              <ScrollArea className="mt-2 max-h-48">
+                <div className="space-y-3 pr-1">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
@@ -476,7 +474,8 @@ export function AppSidebar({
                     );
                   })
                 )}
-              </div>
+                </div>
+              </ScrollArea>
             </CollapsibleContent>
           </Collapsible>
         </div>
