@@ -3704,3 +3704,27 @@ html, body {
 [data-slot="scroll-area-viewport"]::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.5);
 }
+/* Fix sidebar history scroll */
+.sidebar-history-scroll {
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Ensure proper flex layout for sidebar */
+.sidebar-flex-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.sidebar-fixed-section {
+  flex-shrink: 0;
+}
+
+.sidebar-scrollable-section {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}

@@ -207,9 +207,9 @@ export function AppSidebar({
   }
 
   return (
-    <div className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col">
+    <div className="sidebar-flex-container w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* User Profile */}
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="sidebar-fixed-section p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-sidebar-accent rounded-full flex items-center justify-center">
             <User className="w-5 h-5 text-sidebar-accent-foreground" />
@@ -224,8 +224,8 @@ export function AppSidebar({
         </div>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4 space-y-4">
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="sidebar-fixed-section p-4 space-y-4">
           {/* Current Level Display Only - No Actions */}
           <Card>
             <CardHeader className="pb-3">
@@ -315,7 +315,10 @@ export function AppSidebar({
             New Conversation
           </Button>
 
-          {/* Conversation History */}
+        </div>
+
+        {/* Conversation History - Scrollable Section */}
+        <div className={`sidebar-scrollable-section px-4 ${isHistoryOpen ? 'flex-1 min-h-0' : 'flex-shrink-0'}`}>
           <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
             <CollapsibleTrigger asChild>
               <Button variant="outline" className="w-full justify-between">
@@ -329,8 +332,9 @@ export function AppSidebar({
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <ScrollArea className="mt-2 max-h-48">
-                <div className="space-y-3 pr-1">
+              {isHistoryOpen && (
+                <ScrollArea className="sidebar-history-scroll mt-2 h-full">
+                  <div className="space-y-3 pr-1 pb-4">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
@@ -474,15 +478,16 @@ export function AppSidebar({
                     );
                   })
                 )}
-                </div>
-              </ScrollArea>
+                  </div>
+                </ScrollArea>
+              )}
             </CollapsibleContent>
           </Collapsible>
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Settings Footer */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
+      <div className="sidebar-fixed-section p-4 border-t border-sidebar-border space-y-2">
         <Button 
           variant="outline" 
           className="w-full justify-start"
