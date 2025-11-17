@@ -85,7 +85,7 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center p-4">
+    <div className="min-h-screen bg-background p-4 py-8 overflow-y-auto">
       <div className="max-w-sm mx-auto w-full space-y-6">
         {/* Header */}
         <div className="text-center">
