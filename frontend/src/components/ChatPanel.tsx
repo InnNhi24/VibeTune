@@ -281,14 +281,22 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             console.log('Topic confirmed:', data.topic_confirmed); // Debug log
             
             // Add AI response message
+            console.log('🔍 Setting setTimeout for AI response...');
             setTimeout(() => {
+              console.log('🔍 setTimeout executed - adding AI response message');
               const aiResponseMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 text: cleanText, // Show clean text without control tags
                 isUser: false,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               };
-              setMessages(prev => [...prev, aiResponseMessage]);
+              
+              console.log('🔍 AI response message created:', aiResponseMessage);
+              setMessages(prev => {
+                const newMessages = [...prev, aiResponseMessage];
+                console.log('🔍 Messages after adding AI response:', newMessages.length);
+                return newMessages;
+              });
               
               // Force scroll to bottom for new AI messages
               setTimeout(() => scrollToBottom(true), 100);
@@ -304,8 +312,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   created_at: new Date().toISOString(),
                   timestamp: aiResponseMessage.timestamp
                 });
+                console.log('🔍 AI message persisted to store');
               } catch (e) {
-                // ignore
+                console.warn('🔍 Failed to persist AI message:', e);
               }
             }, 800);
 
