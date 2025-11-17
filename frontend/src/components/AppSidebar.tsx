@@ -401,10 +401,12 @@ export function AppSidebar({
             if (typeof window !== 'undefined' && (window as any).debugStore) {
               (window as any).debugStore.logState();
               (window as any).debugStore.addTestConversation(user.id);
+              // Force refresh component
+              setTimeout(() => window.location.reload(), 1000);
             }
           }}
         >
-          🔧 Debug Store
+          🔧 Debug & Reload
         </Button>
       </div>
     </div>
