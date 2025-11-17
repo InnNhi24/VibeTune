@@ -10,6 +10,7 @@ import { Menu, Mic, TrendingUp, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { useAppStore, useConversations, useSync, Conversation } from "../store/appStore";
+import "../utils/debugStore"; // Import debug utilities
 
 
 
@@ -30,15 +31,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   const conversations = useConversations();
   const sync = useSync();
   
-  // Debug logging
-  useEffect(() => {
-    console.log('MainAppScreen - Debug Info:', {
-      user: user,
-      userId: user?.id,
-      conversationsCount: conversations.length,
-      conversations: conversations
-    });
-  }, [user, conversations]);
+
   const { 
     currentTopic, 
     setCurrentTopic, 
@@ -74,13 +67,6 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
       conversation_id: conversation.id,
       topic: topicToSet
     });
-    
-    // Force sync to load messages for this conversation
-    try {
-      void syncData();
-    } catch (e) {
-      console.warn('Failed to sync data when selecting conversation:', e);
-    }
   };
 
   const handleConversationDelete = (conversationId: string) => {

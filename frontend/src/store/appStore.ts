@@ -173,8 +173,6 @@ export const useAppStore = create<AppStore>()(
         setUser: (user) => set({ user }),
         clearUserData: () => set({
           user: null,
-          conversations: [],
-          messages: [],
           activeConversationId: null,
           currentTopic: 'General Conversation',
           placementTestProgress: {
@@ -186,6 +184,7 @@ export const useAppStore = create<AppStore>()(
             startedAt: null,
             completedAt: null
           }
+          // Keep conversations and messages - they are filtered by user ID anyway
         }),
         
         // Conversation state
@@ -228,15 +227,10 @@ export const useAppStore = create<AppStore>()(
         clearMessages: () => set({ messages: [] }),
         // Conversations management
         addConversation: (conversation) => {
-          console.log('Store: Adding conversation:', conversation);
-          set((state) => {
-            const newState = {
-              conversations: [conversation, ...state.conversations],
-              activeConversationId: conversation.id
-            };
-            console.log('Store: New conversations count:', newState.conversations.length);
-            return newState;
-          });
+          set((state) => ({
+            conversations: [conversation, ...state.conversations],
+            activeConversationId: conversation.id
+          }));
         },
         reconcileConversationId: (localId, serverId) => {
           // Replace conversation id and update any messages referencing the local id
@@ -516,18 +510,10 @@ export const useConversations = () => useAppStore((state) => {
   const user = state.user;
   // Filter conversations by current user to prevent data leakage
   if (!user) {
-    console.log('useConversations: No user found');
     return [];
   }
   
   const userConversations = conversations.filter(conv => conv.profile_id === user.id);
-  console.log('useConversations filter:', {
-    totalConversations: conversations.length,
-    userId: user.id,
-    userConversations: userConversations.length,
-    profileIds: conversations.map(c => c.profile_id)
-  });
-  
   return userConversations;
 });
 export const useMessages = () => useAppStore((state) => {

@@ -329,12 +329,20 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               
               // Create new conversation with confirmed topic
               try {
+                // Ensure user is set in store first
                 const storeUser = useAppStore.getState().user;
-                const userId = storeUser?.id || user?.id || '';
+                if (!storeUser && user) {
+                  useAppStore.getState().setUser(user);
+                }
+                
+                const finalUser = storeUser || user;
+                if (!finalUser?.id) {
+                  throw new Error('No valid user ID found');
+                }
                 
                 const newConv = {
                   id: finalConvId,
-                  profile_id: userId,
+                  profile_id: finalUser.id,
                   topic: data.topic_confirmed,
                   title: data.topic_confirmed,
                   is_placement_test: false,
