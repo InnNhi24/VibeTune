@@ -257,15 +257,19 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           conversationId 
         });
 
+        console.log('🔍 Sending to API:', { text: messageText.trim(), stage: payload.stage });
+        
         const resp = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
+        console.log('🔍 API Response status:', resp.status);
+        
         if (resp.ok) {
           const data = await resp.json();
-          console.log('Topic discovery response:', data); // Debug log
+          console.log('🔍 API Response data:', data);
           if (data) {
             // Always show AI response, but clean control tags from display
             let aiResponseText = data.replyText || data.text_response || "I'm thinking...";
@@ -410,7 +414,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       isProcessing: isAudio && aiReady
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    console.log('🔍 Adding user message:', userMessage);
+    setMessages(prev => {
+      const newMessages = [...prev, userMessage];
+      console.log('🔍 Messages after adding user message:', newMessages.length);
+      return newMessages;
+    });
 
     // Persist user message to global store so it survives reload
     try {
