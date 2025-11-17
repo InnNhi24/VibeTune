@@ -88,14 +88,22 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
 
         let errorMessage = result.error.message || 'An error occurred during authentication';
         
-        if (errorMessage.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else if (errorMessage.includes('User already registered')) {
-          errorMessage = 'An account with this email already exists. Try signing in instead.';
-        } else if (errorMessage.includes('Email not confirmed')) {
-          errorMessage = 'Please check your email and click the confirmation link before signing in.';
-        } else if (errorMessage.includes('Too many requests')) {
-          errorMessage = 'Too many attempts. Please wait a moment and try again.';
+        if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('invalid_credentials')) {
+          errorMessage = 'Invalid email or password';
+        } else if (errorMessage.includes('User not found') || errorMessage.includes('user_not_found') || errorMessage.includes('Email not found')) {
+          errorMessage = 'Account not found. Please sign up first';
+        } else if (errorMessage.includes('User already registered') || errorMessage.includes('already_registered')) {
+          errorMessage = 'Account already exists. Try signing in instead';
+        } else if (errorMessage.includes('Email not confirmed') || errorMessage.includes('email_not_confirmed')) {
+          errorMessage = 'Please confirm your email first';
+        } else if (errorMessage.includes('Too many requests') || errorMessage.includes('rate_limit')) {
+          errorMessage = 'Too many attempts. Try again later';
+        } else if (errorMessage.includes('Invalid email') || errorMessage.includes('invalid_email')) {
+          errorMessage = 'Invalid email format';
+        } else if (errorMessage.includes('Password') && errorMessage.includes('weak')) {
+          errorMessage = 'Password too weak. Use at least 6 characters';
+        } else if (errorMessage.includes('Network') || errorMessage.includes('network')) {
+          errorMessage = 'Connection error. Check your internet';
         }
         
         throw new Error(errorMessage);

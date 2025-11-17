@@ -41,7 +41,7 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
           setUser(profile);
           onAuthComplete();
         } else {
-          setError("Sign in failed. Please check your credentials.");
+          setError("Invalid email or password");
         }
       } else {
         const { user, profile } = await SimpleAuthService.signUp(formData.email, formData.password, formData.username);
@@ -49,7 +49,7 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
           setUser(profile);
           onAuthComplete();
         } else {
-          setError("Sign up failed. Please try again.");
+          setError("Sign up failed");
         }
       }
     } catch (err: any) {

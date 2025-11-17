@@ -169,13 +169,13 @@ export class ErrorHandler {
    */
   getUserMessage(error: AppError): string {
     const messages = {
-      [ErrorType.NETWORK]: 'Connection problem. Please check your internet and try again.',
-      [ErrorType.AUTHENTICATION]: 'Please sign in to continue.',
-      [ErrorType.VALIDATION]: 'Please check your input and try again.',
-      [ErrorType.AI_SERVICE]: 'AI service is temporarily unavailable. Please try again later.',
-      [ErrorType.AUDIO_PROCESSING]: 'Audio processing failed. Please try recording again.',
-      [ErrorType.DATABASE]: 'Data service is temporarily unavailable.',
-      [ErrorType.UNKNOWN]: 'Something went wrong. Please try again.'
+      [ErrorType.NETWORK]: 'Connection error',
+      [ErrorType.AUTHENTICATION]: 'Please sign in',
+      [ErrorType.VALIDATION]: 'Invalid input',
+      [ErrorType.AI_SERVICE]: 'AI service unavailable',
+      [ErrorType.AUDIO_PROCESSING]: 'Audio processing failed',
+      [ErrorType.DATABASE]: 'Database error',
+      [ErrorType.UNKNOWN]: 'Something went wrong'
     };
 
     return messages[error.type] || messages[ErrorType.UNKNOWN];
