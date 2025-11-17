@@ -6,7 +6,7 @@ import { ChatPanel } from "./ChatPanel";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { AIConnectionStatus } from "./AIConnectionStatus";
 import { Settings } from "./Settings";
-import { Menu, Mic, TrendingUp, Zap } from "lucide-react";
+import { Menu, Mic, TrendingUp, Zap, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { useAppStore, useConversations, useSync, Conversation } from "../store/appStore";
@@ -26,6 +26,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   const currentLevel = user.level || "Beginner";
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   // Get state from Zustand store
   const conversations = useConversations();
@@ -103,7 +104,17 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   // Root: lock viewport height and prevent page scroll
   <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-80 h-full">
+      <motion.div 
+        className="hidden md:block h-full relative"
+        initial={false}
+        animate={{ 
+          width: isSidebarCollapsed ? 60 : 320 
+        }}
+        transition={{ 
+          duration: 0.3, 
+          ease: "easeInOut" 
+        }}
+      >
         <AppSidebar
           user={user}
           conversations={conversations}
@@ -111,8 +122,24 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           onConversationDelete={handleConversationDelete}
           onLogout={onLogout}
           onSettings={() => setShowSettings(true)}
+          isCollapsed={isSidebarCollapsed}
         />
-      </div>
+        
+        {/* Collapse Toggle Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute top-4 -right-3 z-10 bg-background border border-border shadow-md hover:shadow-lg transition-shadow"
+          title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isSidebarCollapsed ? (
+            <PanelLeftOpen className="w-4 h-4" />
+          ) : (
+            <PanelLeftClose className="w-4 h-4" />
+          )}
+        </Button>
+      </motion.div>
 
     {/* Main Content */}
   <div className="flex-1 flex flex-col">

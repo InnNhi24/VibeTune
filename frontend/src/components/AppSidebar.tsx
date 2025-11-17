@@ -40,6 +40,7 @@ interface AppSidebarProps {
   onConversationDelete?: (conversationId: string) => void;
   onLogout: () => void;
   onSettings?: () => void;
+  isCollapsed?: boolean;
 }
 
 export function AppSidebar({
@@ -48,7 +49,8 @@ export function AppSidebar({
   onConversationSelect,
   onConversationDelete,
   onLogout,
-  onSettings
+  onSettings,
+  isCollapsed = false
 }: AppSidebarProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   
@@ -126,6 +128,46 @@ export function AppSidebar({
     
     return descriptions[user.level as keyof typeof descriptions] || "Custom learning level.";
   };
+
+  if (isCollapsed) {
+    return (
+      <div className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4">
+        {/* Collapsed User Avatar */}
+        <div className="w-10 h-10 bg-sidebar-accent rounded-full flex items-center justify-center mb-4">
+          <User className="w-5 h-5 text-sidebar-accent-foreground" />
+        </div>
+        
+        {/* Collapsed Level Badge */}
+        <div className="w-10 h-10 bg-sidebar-primary rounded-full flex items-center justify-center mb-4">
+          {isLevelFromTest ? (
+            <Award className="w-5 h-5 text-sidebar-primary-foreground" />
+          ) : (
+            <BookOpen className="w-5 h-5 text-sidebar-primary-foreground" />
+          )}
+        </div>
+        
+        {/* Collapsed Conversation Count */}
+        <div className="flex-1 flex flex-col items-center justify-center space-y-2">
+          <div className="w-8 h-8 bg-sidebar-accent/20 rounded-full flex items-center justify-center">
+            <MessageCircle className="w-4 h-4 text-sidebar-foreground" />
+          </div>
+          <span className="text-xs text-sidebar-foreground/70">{conversations.length}</span>
+        </div>
+        
+        {/* Collapsed Actions */}
+        <div className="space-y-2">
+          {onSettings && (
+            <Button variant="ghost" size="icon" onClick={onSettings} title="Settings">
+              <Settings className="w-4 h-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={onLogout} title="Logout">
+            <LogOut className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col">
