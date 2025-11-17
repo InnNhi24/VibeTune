@@ -365,35 +365,18 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               
               // Persist AI message to global store
               try {
-                addMessageToStore({
+                const aiMessageData = {
                   id: aiResponseMessage.id,
                   conversation_id: convId || '',
-                  sender: 'ai',
-                  type: 'text',
+                  sender: 'ai' as const,
+                  type: 'text' as const,
                   content: cleanText,
                   created_at: new Date().toISOString(),
                   timestamp: aiResponseMessage.timestamp
-                });
-                console.log('✅ AI message persisted to store:', aiResponseMessage.id);
-                
-                // Force immediate localStorage save
-                const currentState = useAppStore.getState();
-                const storeData = {
-                  user: currentState.user,
-                  conversations: currentState.conversations,
-                  messages: currentState.messages,
-                  activeConversationId: currentState.activeConversationId,
-                  placementTestProgress: currentState.placementTestProgress,
-                  retryQueue: currentState.retryQueue,
-                  currentTopic: currentState.currentTopic,
-                  sync: {
-                    ...currentState.sync,
-                    syncing: false,
-                    hasOfflineChanges: true
-                  }
                 };
-                localStorage.setItem('vibetune-app-store', JSON.stringify({ state: storeData, version: 0 }));
-                console.log('✅ Forced localStorage save after AI message');
+                
+                addMessageToStore(aiMessageData);
+                console.log('✅ AI message persisted to store:', aiResponseMessage.id, 'for conversation:', convId);
               } catch (e) {
                 console.error('❌ Failed to persist AI message:', e);
               }
@@ -401,29 +384,25 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
             // AI will return topic_confirmed when it's confident about the topic
             if (data.topic_confirmed) {
-              console.log('Topic confirmed! Setting topic to:', data.topic_confirmed);
-              // AI has confirmed the topic - update UI and create conversation
+              console.log('✅ Topic confirmed! Creating conversation for:', data.topic_confirmed);
+              
+              // Update UI state
               setCurrentTopic(data.topic_confirmed);
               setWaitingForTopic(false);
-              console.log('Set waitingForTopic to false, currentTopic to:', data.topic_confirmed);
-
+              
               if (onTopicChange) {
                 onTopicChange(data.topic_confirmed);
               }
 
-              // Ensure we have a conversation to attach messages to
+              // Create conversation ID
               let finalConvId = data.conversationId || convId;
               if (!finalConvId) {
                 finalConvId = `topic_${Date.now()}`;
                 setConversationId(finalConvId);
               }
 
-              // Set active conversation and update with confirmed topic
-              setActiveConversation(finalConvId);
-              
-              // Create new conversation with confirmed topic
+              // Create and save conversation immediately
               try {
-                // Ensure user is set in store first
                 const storeUser = useAppStore.getState().user;
                 if (!storeUser && user) {
                   useAppStore.getState().setUser(user);
@@ -431,53 +410,59 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 
                 const finalUser = storeUser || user;
                 if (!finalUser?.id) {
-                  throw new Error('No valid user ID found');
+                  console.error('❌ No valid user ID found');
+                  return;
                 }
                 
-                const newConv = {
-                  id: finalConvId,
-                  profile_id: finalUser.id,
-                  topic: data.topic_confirmed,
-                  title: data.topic_confirmed,
-                  is_placement_test: false,
-                  started_at: new Date().toISOString(),
-                  message_count: messages.length + 1, // +1 for current user message
-                  avg_prosody_score: 0
-                };
-                
-                addConversation(newConv);
-                
-                // Force immediate persistence
-                try {
-                  const currentState = useAppStore.getState();
-                  const storeData = {
-                    user: currentState.user,
-                    conversations: currentState.conversations,
-                    messages: currentState.messages,
-                    activeConversationId: currentState.activeConversationId,
-                    placementTestProgress: currentState.placementTestProgress,
-                    retryQueue: currentState.retryQueue,
-                    currentTopic: currentState.currentTopic,
-                    sync: {
-                      ...currentState.sync,
-                      syncing: false
-                    }
+                // Check if conversation already exists
+                const existingConv = useAppStore.getState().conversations.find(c => c.id === finalConvId);
+                if (!existingConv) {
+                  const newConv = {
+                    id: finalConvId,
+                    profile_id: finalUser.id,
+                    topic: data.topic_confirmed,
+                    title: data.topic_confirmed, // This shows in sidebar
+                    is_placement_test: false,
+                    started_at: new Date().toISOString(),
+                    message_count: 0,
+                    avg_prosody_score: 0
                   };
-                  localStorage.setItem('vibetune-app-store', JSON.stringify({ state: storeData, version: 0 }));
-                  console.log('🔍 Force persisted conversation to localStorage');
-                } catch (e) {
-                  console.warn('Failed to force persist:', e);
+                  
+                  console.log('✅ Adding conversation to store:', newConv);
+                  addConversation(newConv);
+                  
+                  // Immediately save to localStorage
+                  setTimeout(() => {
+                    try {
+                      const currentState = useAppStore.getState();
+                      const storeData = {
+                        user: currentState.user,
+                        conversations: currentState.conversations,
+                        messages: currentState.messages,
+                        activeConversationId: finalConvId,
+                        placementTestProgress: currentState.placementTestProgress,
+                        retryQueue: currentState.retryQueue,
+                        currentTopic: data.topic_confirmed,
+                        sync: {
+                          ...currentState.sync,
+                          hasOfflineChanges: true
+                        }
+                      };
+                      localStorage.setItem('vibetune-app-store', JSON.stringify({ state: storeData, version: 0 }));
+                      console.log('✅ Conversation saved to localStorage');
+                    } catch (e) {
+                      console.error('❌ Failed to save conversation:', e);
+                    }
+                  }, 100);
                 }
+                
+                // Set as active conversation
+                setActiveConversation(finalConvId);
+                
+                console.log('✅ Conversation setup complete:', finalConvId);
+                
               } catch (e) {
-                console.warn('Failed to create conversation:', e);
-              }
-              
-              // Trigger a sync to refresh conversations list
-              try { 
-                await syncData(); 
-                console.log('Sync completed after topic confirmation');
-              } catch (e) { 
-                console.warn('Sync failed:', e);
+                console.error('❌ Failed to create conversation:', e);
               }
             }
             // If no topic_confirmed, AI is still asking questions to clarify topic
@@ -513,16 +498,18 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
     // Persist user message to global store so it survives reload
     try {
-      addMessageToStore({
+      const messageData = {
         id: messageId,
         conversation_id: convId || '',
-        sender: 'user',
-        type: isAudio ? 'audio' : 'text',
+        sender: 'user' as const,
+        type: (isAudio ? 'audio' : 'text') as const,
         content: messageText.trim(),
         created_at: new Date().toISOString(),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      });
-      console.log('✅ User message persisted to store:', messageId);
+      };
+      
+      addMessageToStore(messageData);
+      console.log('✅ User message persisted to store:', messageId, 'for conversation:', convId);
     } catch (e) {
       console.error('❌ Failed to persist user message:', e);
     }
