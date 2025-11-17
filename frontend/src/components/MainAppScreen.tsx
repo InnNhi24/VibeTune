@@ -125,20 +125,23 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           isCollapsed={isSidebarCollapsed}
         />
         
-        {/* Collapse Toggle Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute top-4 -right-3 z-10 bg-background border border-border shadow-md hover:shadow-lg transition-shadow"
-          title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {isSidebarCollapsed ? (
-            <PanelLeftOpen className="w-4 h-4" />
-          ) : (
-            <PanelLeftClose className="w-4 h-4" />
-          )}
-        </Button>
+        {/* Elegant Collapse Toggle */}
+        <div className="absolute top-1/2 -translate-y-1/2 -right-2 z-20">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="h-8 w-8 p-0 rounded-full bg-background/95 backdrop-blur-sm border-2 border-border/50 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 group"
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <motion.div
+              animate={{ rotate: isSidebarCollapsed ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <PanelLeftClose className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+            </motion.div>
+          </Button>
+        </div>
       </motion.div>
 
     {/* Main Content */}

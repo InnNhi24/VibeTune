@@ -131,38 +131,62 @@ export function AppSidebar({
 
   if (isCollapsed) {
     return (
-      <div className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4">
+      <div className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col items-center py-6">
         {/* Collapsed User Avatar */}
-        <div className="w-10 h-10 bg-sidebar-accent rounded-full flex items-center justify-center mb-4">
-          <User className="w-5 h-5 text-sidebar-accent-foreground" />
-        </div>
+        <motion.div 
+          className="w-12 h-12 bg-gradient-to-br from-sidebar-accent to-sidebar-accent/80 rounded-full flex items-center justify-center mb-6 shadow-lg"
+          whileHover={{ scale: 1.1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        >
+          <User className="w-6 h-6 text-sidebar-accent-foreground" />
+        </motion.div>
         
         {/* Collapsed Level Badge */}
-        <div className="w-10 h-10 bg-sidebar-primary rounded-full flex items-center justify-center mb-4">
+        <motion.div 
+          className="w-10 h-10 bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80 rounded-full flex items-center justify-center mb-6 shadow-md"
+          whileHover={{ scale: 1.1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        >
           {isLevelFromTest ? (
             <Award className="w-5 h-5 text-sidebar-primary-foreground" />
           ) : (
             <BookOpen className="w-5 h-5 text-sidebar-primary-foreground" />
           )}
-        </div>
+        </motion.div>
         
         {/* Collapsed Conversation Count */}
-        <div className="flex-1 flex flex-col items-center justify-center space-y-2">
-          <div className="w-8 h-8 bg-sidebar-accent/20 rounded-full flex items-center justify-center">
-            <MessageCircle className="w-4 h-4 text-sidebar-foreground" />
-          </div>
-          <span className="text-xs text-sidebar-foreground/70">{conversations.length}</span>
+        <div className="flex-1 flex flex-col items-center justify-center space-y-3">
+          <motion.div 
+            className="w-10 h-10 bg-sidebar-accent/20 border border-sidebar-accent/30 rounded-full flex items-center justify-center"
+            whileHover={{ scale: 1.1 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          >
+            <MessageCircle className="w-5 h-5 text-sidebar-foreground" />
+          </motion.div>
+          <span className="text-xs font-medium text-sidebar-foreground/70">{conversations.length}</span>
         </div>
         
         {/* Collapsed Actions */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           {onSettings && (
-            <Button variant="ghost" size="icon" onClick={onSettings} title="Settings">
-              <Settings className="w-4 h-4" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onSettings} 
+              title="Settings"
+              className="w-10 h-10 rounded-full hover:bg-sidebar-accent/20 transition-colors"
+            >
+              <Settings className="w-5 h-5" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" onClick={onLogout} title="Logout">
-            <LogOut className="w-4 h-4" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onLogout} 
+            title="Logout"
+            className="w-10 h-10 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
           </Button>
         </div>
       </div>
@@ -346,11 +370,19 @@ export function AppSidebar({
                                 return (
                                 <motion.div
                                   key={conversation.id}
-                                  whileHover={{ scale: 1.01 }}
-                                  whileTap={{ scale: 0.99 }}
+                                  whileHover={{ 
+                                    scale: 1.02,
+                                    y: -2
+                                  }}
+                                  whileTap={{ scale: 0.98 }}
+                                  transition={{ 
+                                    type: "spring", 
+                                    stiffness: 400, 
+                                    damping: 25 
+                                  }}
                                 >
                                   <Card 
-                                      className="group cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm w-full min-w-0 relative overflow-hidden"
+                                      className="group cursor-pointer hover:bg-sidebar-accent/20 transition-all duration-300 border border-border/50 hover:border-sidebar-primary/50 hover:shadow-md hover:shadow-sidebar-primary/10 w-full min-w-0 relative overflow-hidden rounded-lg"
                                       onClick={() => onConversationSelect(conversation)}
                                     >
                                     <CardContent className="p-2 relative overflow-hidden">
@@ -393,7 +425,7 @@ export function AppSidebar({
                                       </div>
                                     </CardContent>
                                     {typeof onConversationDelete === 'function' && (
-                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -401,9 +433,9 @@ export function AppSidebar({
                                             e.stopPropagation();
                                             onConversationDelete(conversation.id);
                                           }}
-                                          className="h-6 w-6 p-0 bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
+                                          className="h-7 w-7 p-0 rounded-full bg-background/90 backdrop-blur-sm border border-border/30 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 shadow-sm hover:shadow-md"
                                         >
-                                          <Trash2 className="w-3 h-3" />
+                                          <Trash2 className="w-3.5 h-3.5" />
                                         </Button>
                                       </div>
                                     )}
