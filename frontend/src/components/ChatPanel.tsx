@@ -39,6 +39,19 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // Handle null/undefined level gracefully
   const safeLevel = (level || "Beginner") as 'Beginner' | 'Intermediate' | 'Advanced';
   const [messages, setMessages] = useState<Message[]>([]);
+  
+  // Debug: Track all messages state changes
+  useEffect(() => {
+    console.log('🔍 MESSAGES STATE CHANGED:', {
+      count: messages.length,
+      messages: messages.map(m => ({
+        id: m.id,
+        text: m.text.substring(0, 30) + '...',
+        isUser: m.isUser,
+        timestamp: m.timestamp
+      }))
+    });
+  }, [messages]);
   const [textInput, setTextInput] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const sendingRef = useRef(false);
@@ -688,7 +701,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         className="flex-1 overflow-y-auto overflow-x-hidden bg-background min-h-0 relative"
       >
         <div className="p-4 space-y-4">
-          {messages.map((message, index) => (
+          {console.log('🔍 RENDERING MESSAGES:', messages.length, 'messages')}
+          {messages.map((message, index) => {
+            console.log('🔍 RENDERING MESSAGE:', index, message.text.substring(0, 30), message.isUser ? 'USER' : 'AI');
+            return (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
               <MessageBubble
@@ -711,7 +727,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 onRetry={() => handleRetryRecording(message.id)}
               />
             </div>
-          ))}
+            );
+          })}
 
           {/* Loading indicator */}
           {isLoading && (
