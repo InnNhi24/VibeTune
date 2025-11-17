@@ -158,25 +158,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             setActiveConversation(newConvId);
             setWaitingForTopic(false);
             
-            // Add a welcome message for the topic
-            const welcomeMsg = {
-              id: `welcome_${Date.now()}`,
-              conversation_id: newConvId,
-              sender: 'ai' as const,
-              type: 'text' as const,
-              content: `Great! Let's talk about ${currentTopic}. What would you like to discuss about it?`,
-              created_at: new Date().toISOString(),
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            
-            addMessageToStore(welcomeMsg);
-            
-            setMessages([{
-              id: welcomeMsg.id,
-              text: welcomeMsg.content,
-              isUser: false,
-              timestamp: welcomeMsg.timestamp
-            }]);
+            // Start with empty messages - user speaks first
+            setMessages([]);
             
             return; // Exit early since we created the conversation
           }
