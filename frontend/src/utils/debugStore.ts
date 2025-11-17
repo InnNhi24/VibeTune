@@ -131,6 +131,17 @@ export const debugStore = {
     }
   },
 
+  // Debug sidebar layout
+  debugSidebar: () => {
+    console.log('=== SIDEBAR DEBUG ===');
+    const deleteButtons = document.querySelectorAll('[class*="absolute"][class*="top-1"][class*="right-1"]');
+    console.log('Delete buttons found:', deleteButtons.length);
+    deleteButtons.forEach((btn, i) => {
+      console.log(`Button ${i}:`, btn, btn.getBoundingClientRect());
+    });
+    console.log('==================');
+  },
+
   // Force save current state
   forceSave: () => {
     try {

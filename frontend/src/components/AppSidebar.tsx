@@ -308,7 +308,7 @@ export function AppSidebar({
                                   whileTap={{ scale: 0.99 }}
                                 >
                                   <Card 
-                                      className="group cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm w-full min-w-0"
+                                      className="group cursor-pointer hover:bg-sidebar-accent/30 transition-all duration-200 border-l-2 border-l-sidebar-primary/30 hover:border-l-sidebar-primary hover:shadow-sm w-full min-w-0 relative overflow-hidden"
                                       onClick={() => onConversationSelect(conversation)}
                                     >
                                     <CardContent className="p-2 relative overflow-hidden">
@@ -351,7 +351,7 @@ export function AppSidebar({
                                       </div>
                                     </CardContent>
                                     {typeof onConversationDelete === 'function' && (
-                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -359,7 +359,7 @@ export function AppSidebar({
                                             e.stopPropagation();
                                             onConversationDelete(conversation.id);
                                           }}
-                                          className="h-6 w-6 p-0"
+                                          className="h-6 w-6 p-0 bg-background/80 hover:bg-destructive hover:text-destructive-foreground"
                                         >
                                           <Trash2 className="w-3 h-3" />
                                         </Button>
