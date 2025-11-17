@@ -201,11 +201,24 @@ export const useAppStore = create<AppStore>()(
             messages: [...state.messages, message]
           }));
           
-          // Mark as having offline changes if we're offline
-          if (!get().sync.online) {
-            set((state) => ({
-              sync: { ...state.sync, hasOfflineChanges: true }
-            }));
+          // Always mark as having offline changes to ensure persistence
+          set((state) => ({
+            sync: { ...state.sync, hasOfflineChanges: true }
+          }));
+          
+          // Force immediate localStorage backup
+          try {
+            const currentState = get();
+            const backupData = {
+              messages: currentState.messages,
+              conversations: currentState.conversations,
+              activeConversationId: currentState.activeConversationId,
+              timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('vibetune-messages-backup', JSON.stringify(backupData));
+            console.log('✅ Message backup saved to localStorage');
+          } catch (e) {
+            console.error('❌ Failed to backup message:', e);
           }
         },
         
@@ -364,6 +377,29 @@ export const useAppStore = create<AppStore>()(
           // Initialize app state
           const { user } = get();
           if (user) {
+            // Check for backup data and restore if main store is empty
+            try {
+              const currentMessages = get().messages;
+              const currentConversations = get().conversations;
+              
+              if (currentMessages.length === 0 && currentConversations.length === 0) {
+                const backup = localStorage.getItem('vibetune-messages-backup');
+                if (backup) {
+                  const parsed = JSON.parse(backup);
+                  if (parsed.messages && parsed.messages.length > 0) {
+                    console.log('🔄 Restoring from backup:', parsed.messages.length, 'messages');
+                    set({ 
+                      messages: parsed.messages,
+                      conversations: parsed.conversations || [],
+                      activeConversationId: parsed.activeConversationId || null
+                    });
+                  }
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to restore from backup:', error);
+            }
+            
             // Load conversations and recent messages
             try {
               await get().syncData();
@@ -375,66 +411,51 @@ export const useAppStore = create<AppStore>()(
         
         syncData: async () => {
           const { user, sync } = get();
-          if (!user || !sync.online) return;
+          if (!user) return;
           
           set((state) => ({
             sync: { ...state.sync, syncing: true }
           }));
           
           try {
-            const { SimpleAuthService } = await import('../services/authServiceSimple');
-            const session = await SimpleAuthService.getCurrentSession();
+            // First, try to save any pending messages
+            const currentMessages = get().messages;
+            const retryQueue = get().retryQueue;
             
-            const token2 = (session as any)?.data?.session?.access_token || (session as any)?.access_token || null;
-            if (!token2) {
-              throw new Error('No valid session for sync');
-            }
-            
-            // Get history from server with timeout
-            // NOTE: earlier code used `session.access_token` directly which can be undefined
-            // because `SimpleAuthService.getCurrentSession()` returns a wrapper object.
-            // We computed `token2` above and must use it here.
-            const fetchPromise = fetch(`/api/get-history`, {
-              headers: {
-                'Authorization': `Bearer ${token2}`,
-              }
-            });
-            
-            const timeoutPromise = new Promise<Response>((_, reject) => 
-              setTimeout(() => reject(new Error('Sync timeout')), 5000)
-            );
-            
-            const response = await Promise.race([fetchPromise, timeoutPromise]);
-            
-            if (response.ok) {
-              const data = await response.json();
+            if (sync.online && (currentMessages.length > 0 || retryQueue.length > 0)) {
+              const { SimpleAuthService } = await import('../services/authServiceSimple');
+              const session = await SimpleAuthService.getCurrentSession();
               
-              // Update conversations
-              if (data.conversations) {
-                set({ conversations: data.conversations });
-              }
-              
-              // Update messages for active conversation
-              if (data.messages && get().activeConversationId) {
-                const conversationMessages = data.messages.filter(
-                  (msg: Message) => msg.conversation_id === get().activeConversationId
-                );
-                set({ messages: conversationMessages });
-              }
-              
-              // Clear offline changes flag
-              set((state) => ({
-                sync: { 
-                  ...state.sync, 
-                  lastSync: new Date(), 
-                  hasOfflineChanges: false,
-                  syncing: false
+              const token2 = (session as any)?.data?.session?.access_token || (session as any)?.access_token || null;
+              if (token2) {
+                // Save recent messages that might not be persisted
+                const recentMessages = currentMessages.filter(msg => {
+                  const msgTime = new Date(msg.created_at).getTime();
+                  const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+                  return msgTime > fiveMinutesAgo;
+                });
+                
+                for (const message of recentMessages) {
+                  try {
+                    await fetch(`/api/save-message`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token2}`,
+                      },
+                      body: JSON.stringify(message)
+                    });
+                    console.log('✅ Synced message:', message.id);
+                  } catch (error) {
+                    console.warn('❌ Failed to sync message:', message.id, error);
+                    // Add to retry queue if not already there
+                    if (!retryQueue.find(m => m.id === message.id)) {
+                      get().addToRetryQueue(message);
+                    }
+                  }
                 }
-              }));
-              
-              // Process retry queue
-              const retryQueue = get().retryQueue;
-              if (retryQueue.length > 0) {
+                
+                // Process retry queue
                 for (const message of retryQueue) {
                   try {
                     await fetch(`/api/save-message`, {
@@ -447,13 +468,83 @@ export const useAppStore = create<AppStore>()(
                     });
                     
                     get().removeFromRetryQueue(message.id);
+                    console.log('✅ Retry message synced:', message.id);
                   } catch (error) {
-                    (await import('../utils/logger')).logger.warn('Failed to sync retry message:', message.id, error);
+                    console.warn('❌ Failed to sync retry message:', message.id, error);
                   }
                 }
               }
             }
+            
+            // Then fetch latest data from server
+            if (sync.online) {
+              const { SimpleAuthService } = await import('../services/authServiceSimple');
+              const session = await SimpleAuthService.getCurrentSession();
+              
+              const token2 = (session as any)?.data?.session?.access_token || (session as any)?.access_token || null;
+              if (token2) {
+                const fetchPromise = fetch(`/api/get-history`, {
+                  headers: {
+                    'Authorization': `Bearer ${token2}`,
+                  }
+                });
+                
+                const timeoutPromise = new Promise<Response>((_, reject) => 
+                  setTimeout(() => reject(new Error('Sync timeout')), 8000)
+                );
+                
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  
+                  // Merge server data with local data
+                  if (data.conversations && data.conversations.length > 0) {
+                    const localConversations = get().conversations;
+                    const mergedConversations = [...data.conversations];
+                    
+                    // Add any local conversations not on server
+                    localConversations.forEach(localConv => {
+                      if (!mergedConversations.find(c => c.id === localConv.id)) {
+                        mergedConversations.push(localConv);
+                      }
+                    });
+                    
+                    set({ conversations: mergedConversations });
+                  }
+                  
+                  // Merge messages
+                  if (data.messages && data.messages.length > 0) {
+                    const localMessages = get().messages;
+                    const mergedMessages = [...data.messages];
+                    
+                    // Add any local messages not on server
+                    localMessages.forEach(localMsg => {
+                      if (!mergedMessages.find(m => m.id === localMsg.id)) {
+                        mergedMessages.push(localMsg);
+                      }
+                    });
+                    
+                    set({ messages: mergedMessages });
+                  }
+                  
+                  console.log('✅ Sync completed successfully');
+                }
+              }
+            }
+            
+            // Update sync status
+            set((state) => ({
+              sync: { 
+                ...state.sync, 
+                lastSync: new Date(), 
+                hasOfflineChanges: false,
+                syncing: false
+              }
+            }));
+            
           } catch (error) {
+            console.error('❌ Sync failed:', error);
             (await import('../utils/logger')).logger.error('Sync failed:', error);
           } finally {
             set((state) => ({

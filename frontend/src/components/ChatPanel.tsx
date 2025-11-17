@@ -150,6 +150,53 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           }
         }
       } else {
+        // Check if we have a current topic but no active conversation - create one
+        if (currentTopic && currentTopic !== "New Conversation" && currentTopic !== "General Conversation") {
+          const store = useAppStore.getState();
+          const existingConv = store.conversations.find(c => c.topic === currentTopic);
+          
+          if (!existingConv && store.user) {
+            console.log('🔧 Creating missing conversation for topic:', currentTopic);
+            const newConvId = `topic_${Date.now()}`;
+            const newConv = {
+              id: newConvId,
+              profile_id: store.user.id,
+              topic: currentTopic,
+              title: currentTopic,
+              is_placement_test: false,
+              started_at: new Date().toISOString(),
+              message_count: 0,
+              avg_prosody_score: 0
+            };
+            
+            addConversation(newConv);
+            setActiveConversation(newConvId);
+            setWaitingForTopic(false);
+            
+            // Add a welcome message for the topic
+            const welcomeMsg = {
+              id: `welcome_${Date.now()}`,
+              conversation_id: newConvId,
+              sender: 'ai' as const,
+              type: 'text' as const,
+              content: `Great! Let's talk about ${currentTopic}. What would you like to discuss about it?`,
+              created_at: new Date().toISOString(),
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            addMessageToStore(welcomeMsg);
+            
+            setMessages([{
+              id: welcomeMsg.id,
+              text: welcomeMsg.content,
+              isUser: false,
+              timestamp: welcomeMsg.timestamp
+            }]);
+            
+            return; // Exit early since we created the conversation
+          }
+        }
+        
         // No active conversation - show welcome messages
         const welcomeMessage: Message = {
           id: '1',
@@ -173,7 +220,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     } catch (e) {
       console.warn('Failed to sync messages from store:', e);
     }
-  }, [activeConversationId, storeMessages, safeLevel]);
+  }, [activeConversationId, storeMessages, safeLevel, currentTopic, addConversation, setActiveConversation, addMessageToStore]);
 
   // Auto-scroll to bottom when new messages arrive.
   // Use the last-message element scrollIntoView first (more robust),
@@ -327,9 +374,28 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   created_at: new Date().toISOString(),
                   timestamp: aiResponseMessage.timestamp
                 });
-                console.log('🔍 AI message persisted to store');
+                console.log('✅ AI message persisted to store:', aiResponseMessage.id);
+                
+                // Force immediate localStorage save
+                const currentState = useAppStore.getState();
+                const storeData = {
+                  user: currentState.user,
+                  conversations: currentState.conversations,
+                  messages: currentState.messages,
+                  activeConversationId: currentState.activeConversationId,
+                  placementTestProgress: currentState.placementTestProgress,
+                  retryQueue: currentState.retryQueue,
+                  currentTopic: currentState.currentTopic,
+                  sync: {
+                    ...currentState.sync,
+                    syncing: false,
+                    hasOfflineChanges: true
+                  }
+                };
+                localStorage.setItem('vibetune-app-store', JSON.stringify({ state: storeData, version: 0 }));
+                console.log('✅ Forced localStorage save after AI message');
               } catch (e) {
-                console.warn('🔍 Failed to persist AI message:', e);
+                console.error('❌ Failed to persist AI message:', e);
               }
             }, 800);
 
@@ -449,15 +515,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     try {
       addMessageToStore({
         id: messageId,
-        conversation_id: convId,
+        conversation_id: convId || '',
         sender: 'user',
         type: isAudio ? 'audio' : 'text',
         content: messageText.trim(),
         created_at: new Date().toISOString(),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
+      console.log('✅ User message persisted to store:', messageId);
     } catch (e) {
-      // ignore
+      console.error('❌ Failed to persist user message:', e);
     }
     setTextInput("");
     setIsLoading(true);
@@ -576,8 +643,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             created_at: new Date().toISOString(),
             timestamp: aiResponseMessage.timestamp
           });
+          console.log('✅ AI response message persisted to store:', aiResponseMessage.id);
         } catch (e) {
-          // ignore
+          console.error('❌ Failed to persist AI response message:', e);
         }
         setIsLoading(false);
 
