@@ -20,7 +20,7 @@ import {
 import { Label } from "../components/ui/label";
 import CountryCombobox from "../components/CountryCombobox";
 import { Button } from "../components/ui/button";
-import { AvatarCrop } from "../components/AvatarCrop";
+import { InlineAvatarCrop } from "../components/InlineAvatarCrop";
 import { Mic, Mail, User, MapPin, Globe, Book } from "lucide-react";
 
 type FormState = {
@@ -52,11 +52,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [avatarFileName, setAvatarFileName] = useState<string | null>(null);
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [showCropDialog, setShowCropDialog] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [countryOpen, setCountryOpen] = useState(false);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
   const commandListRef = useRef<HTMLElement | null>(null);
@@ -140,20 +136,9 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
     return () => clearTimeout(focusTimeout);
   }, [countryOpen]);
 
-  const handleCropComplete = (croppedImageUrl: string, croppedFile: File) => {
-    setAvatarPreview(croppedImageUrl);
-    setShowCropDialog(false);
-    // You can store croppedFile for upload later
-    console.log('Cropped file ready for upload:', croppedFile);
-  };
-
-  const handleCropCancel = () => {
-    setShowCropDialog(false);
-    setSelectedImageFile(null);
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const handleAvatarChange = (croppedImageUrl: string, croppedFile: File) => {
+    setAvatarFile(croppedFile);
+    console.log('Avatar ready for upload:', croppedFile);
   };
 
   const save = async () => {
@@ -254,8 +239,8 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 py-8 overflow-y-auto">
-      <div className="max-w-sm mx-auto w-full space-y-6">
+    <div className="min-h-screen bg-background p-4 py-4 overflow-y-auto">
+      <div className="max-w-sm mx-auto w-full space-y-4">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Mic className="w-8 h-8 text-accent" />
@@ -277,47 +262,17 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
               </div>
             )}
 
-            {/* Avatar upload hint */}
-            <div className="mb-4 text-center">
-              <div className="mx-auto w-20 h-20 rounded-full bg-muted-light flex items-center justify-center mb-2 overflow-hidden">
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="avatar preview" className="w-full h-full object-cover" />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-7 2-7 4v1h14v-1c0-2-3-4-7-4z" />
-                  </svg>
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground mb-2">Upload a photo (optional)</div>
-              <div className="flex items-center justify-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const f = e.target.files && e.target.files[0];
-                    if (f) {
-                      // Check if it's an image
-                      if (f.type.startsWith('image/')) {
-                        setSelectedImageFile(f);
-                        setAvatarFileName(f.name);
-                        setShowCropDialog(true);
-                      } else {
-                        setErr('Please select an image file');
-                      }
-                    }
-                  }}
-                />
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                  Choose photo
-                </Button>
-                <div className="text-sm text-muted-foreground">{avatarFileName || "No file chosen"}</div>
-              </div>
+            {/* Inline Avatar Crop */}
+            <div className="mb-6 text-center">
+              <InlineAvatarCrop 
+                onImageChange={handleAvatarChange}
+                size={100}
+              />
+              <div className="text-sm text-muted-foreground mt-2">Upload a photo (optional)</div>
             </div>
 
             <form
-              className="space-y-4"
+              className="space-y-3"
               onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
                 e.preventDefault();
                 save();
@@ -413,15 +368,7 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
           </CardContent>
         </Card>
 
-        {/* Avatar Crop Dialog */}
-        {selectedImageFile && (
-          <AvatarCrop
-            imageFile={selectedImageFile}
-            onCropComplete={handleCropComplete}
-            onCancel={handleCropCancel}
-            isOpen={showCropDialog}
-          />
-        )}
+
       </div>
     </div>
   );
