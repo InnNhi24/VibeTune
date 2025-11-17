@@ -10,6 +10,7 @@ import { Profile } from "../../services/supabaseClient";
 import { motion } from "framer-motion";
 import { validateEmail, validatePassword } from "../../utils/helpers";
 import { logger } from "../../utils/logger";
+import { PasswordStrengthIndicator } from "../PasswordStrengthIndicator";
 
 interface AuthProps {
   onAuthComplete: (user: Profile) => void;
@@ -23,6 +24,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -346,6 +348,14 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
+                  
+                  {/* Password Strength Indicator - only show for sign up */}
+                  {!isLogin && (
+                    <PasswordStrengthIndicator 
+                      password={formData.password}
+                      onValidityChange={setIsPasswordValid}
+                    />
+                  )}
                 </div>
 
                 {!isLogin && (
@@ -374,7 +384,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                 <Button 
                   type="submit" 
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                  disabled={isLoading}
+                  disabled={isLoading || (!isLogin && !isPasswordValid)}
                 >
                   {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   {isLogin ? "Sign In" : "Create Account"}
