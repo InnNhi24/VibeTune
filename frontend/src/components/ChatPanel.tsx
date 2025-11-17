@@ -352,6 +352,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 };
                 
                 addConversation(newConv);
+                
+                // Debug: Check if conversation was actually added
+                setTimeout(() => {
+                  const allConversations = useAppStore.getState().conversations;
+                  const userConversations = allConversations.filter(c => c.profile_id === finalUser.id);
+                  console.log('🔍 DEBUG: After adding conversation:');
+                  console.log('- Total conversations:', allConversations.length);
+                  console.log('- User conversations:', userConversations.length);
+                  console.log('- User ID:', finalUser.id);
+                  console.log('- New conversation:', newConv);
+                }, 100);
               } catch (e) {
                 console.warn('Failed to create conversation:', e);
               }

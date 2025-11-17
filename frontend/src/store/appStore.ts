@@ -510,10 +510,21 @@ export const useConversations = () => useAppStore((state) => {
   const user = state.user;
   // Filter conversations by current user to prevent data leakage
   if (!user) {
+    console.log('🔍 useConversations: No user found');
     return [];
   }
   
   const userConversations = conversations.filter(conv => conv.profile_id === user.id);
+  
+  // Debug log only when there's a mismatch
+  if (conversations.length > 0 && userConversations.length === 0) {
+    console.log('🔍 useConversations: Filtering issue detected');
+    console.log('- Total conversations:', conversations.length);
+    console.log('- User ID:', user.id);
+    console.log('- Profile IDs in conversations:', conversations.map(c => c.profile_id));
+    console.log('- User conversations after filter:', userConversations.length);
+  }
+  
   return userConversations;
 });
 export const useMessages = () => useAppStore((state) => {

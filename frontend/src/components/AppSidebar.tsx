@@ -381,7 +381,7 @@ export function AppSidebar({
       </ScrollArea>
 
       {/* Settings Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
         <Button 
           variant="outline" 
           className="w-full justify-start"
@@ -390,6 +390,21 @@ export function AppSidebar({
         >
           <Settings className="w-4 h-4 mr-2" />
           Settings
+        </Button>
+        
+        {/* Debug Button - Remove in production */}
+        <Button 
+          variant="outline" 
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => {
+            if (typeof window !== 'undefined' && (window as any).debugStore) {
+              (window as any).debugStore.logState();
+              (window as any).debugStore.addTestConversation(user.id);
+            }
+          }}
+        >
+          🔧 Debug Store
         </Button>
       </div>
     </div>
