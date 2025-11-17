@@ -84,9 +84,15 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   };
 
   const handleNewConversation = () => {
-    // Clear active conversation and reset to new conversation state
+    // Clear active conversation and reset to completely new session
     setActiveConversation(null);
     setCurrentTopic('New Conversation');
+    
+    // Force ChatPanel to reset completely by clearing any cached state
+    // This ensures we start fresh topic discovery for new session
+    const store = useAppStore.getState();
+    store.clearActiveSession(); // Will implement this method
+    
     trackEvent('new_conversation_started', { user_level: currentLevel });
   };
 

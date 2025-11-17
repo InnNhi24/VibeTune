@@ -72,6 +72,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setCurrentTopic(topic);
       // If topic is already established, don't wait for topic confirmation
       setWaitingForTopic(false);
+    } else if (topic === "New Conversation" && currentTopic !== "New Conversation") {
+      // New session started - reset everything
+      setCurrentTopic("New Conversation");
+      setWaitingForTopic(true);
+      setMessages([]);
+      setConversationHistory([]);
+      setConversationId(null);
     }
   }, [topic, currentTopic]);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
@@ -388,18 +395,20 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             if (data.topic_confirmed) {
               console.log('✅ Topic confirmed! Creating conversation for:', data.topic_confirmed);
               
-              // Update UI state
+              // Update UI state - topic is now LOCKED for this session
               setCurrentTopic(data.topic_confirmed);
               setWaitingForTopic(false);
               
+              // Update store topic to ensure consistency
               if (onTopicChange) {
                 onTopicChange(data.topic_confirmed);
               }
 
-              // Create conversation ID
+              // Create unique conversation ID for this session
               let finalConvId = data.conversationId || convId;
               if (!finalConvId) {
-                finalConvId = `topic_${Date.now()}`;
+                // Generate unique ID with topic and timestamp to avoid conflicts
+                finalConvId = `${data.topic_confirmed.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
                 setConversationId(finalConvId);
               }
 

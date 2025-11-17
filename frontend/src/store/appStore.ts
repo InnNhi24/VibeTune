@@ -136,6 +136,7 @@ interface AppStore {
   initializeApp: () => Promise<void>;
   syncData: () => Promise<void>;
   resetStore: () => void;
+  clearActiveSession: () => void;
 }
 
 // Default values
@@ -176,7 +177,7 @@ export const useAppStore = create<AppStore>()(
           activeConversationId: null,
           currentTopic: 'General Conversation',
           placementTestProgress: {
-            currentQuestionIndex: 0,
+            currentQuestion: 0,
             answers: [],
             score: 0,
             level: null,
@@ -564,6 +565,16 @@ export const useAppStore = create<AppStore>()(
             sync: defaultSyncStatus,
             retryQueue: []
           });
+        },
+
+        clearActiveSession: () => {
+          // Clear current session state but keep user and conversations history
+          set(() => ({
+            activeConversationId: null,
+            messages: [], // Clear current session messages
+            currentTopic: 'New Conversation',
+            // Keep user, conversations, and other persistent data
+          }));
         }
       }),
       {
