@@ -283,6 +283,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         if (resp.ok) {
           const data = await resp.json();
           console.log('🔍 API Response data:', data);
+          console.log('🔍 Topic from API:', data.topic_confirmed);
+          console.log('🔍 Will create conversation?', !!data.topic_confirmed);
           if (data) {
             // Always show AI response, but clean control tags from display
             let aiResponseText = data.replyText || data.text_response || "I'm thinking...";
