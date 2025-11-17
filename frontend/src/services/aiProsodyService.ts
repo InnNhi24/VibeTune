@@ -53,6 +53,7 @@ export interface ConversationContext {
 export interface AIResponse {
   text_response: string;
   prosody_analysis?: ProsodyAnalysis;
+  topic_confirmed?: string | null;
   conversation_flow: {
     next_topic_suggestions: string[];
     difficulty_adjustment: 'maintain' | 'increase' | 'decrease';
@@ -550,10 +551,14 @@ class AIProsodyService {
 
   // Convert backend API response to AIResponse format
   private convertBackendResponseToAIResponse(data: any, context: ConversationContext): AIResponse {
+    // Check if backend confirmed a topic
+    const topicConfirmed = data.topic_confirmed || null;
+    
     return {
       text_response: data.replyText || "Thank you for your message!",
+      topic_confirmed: topicConfirmed,
       conversation_flow: {
-        next_topic_suggestions: this.generateTopicSuggestions(context.topic),
+        next_topic_suggestions: this.generateTopicSuggestions(context.topic, context.user_level),
         difficulty_adjustment: 'maintain',
         engagement_level: 0.8
       },
@@ -584,7 +589,7 @@ class AIProsodyService {
         improvements: prosody.notes ? [prosody.notes] : ['Continue practicing'],
         specific_issues: []
       },
-      word_level_analysis: this.generateWordAnalysis(text),
+      word_level_analysis: this.generateWordLevelAnalysis(text),
       suggestions: feedback.guidance ? [feedback.guidance] : ['Keep up the good work!'],
       next_focus_areas: context.focus_areas.slice(0, 2)
     };

@@ -65,6 +65,15 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Handle topic prop changes (when user selects conversation from sidebar)
+  useEffect(() => {
+    if (topic && topic !== "New Conversation" && topic !== currentTopic) {
+      setCurrentTopic(topic);
+      // If topic is already established, don't wait for topic confirmation
+      setWaitingForTopic(false);
+    }
+  }, [topic, currentTopic]);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
   // Removed scroll button - not needed
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -135,7 +144,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           setWaitingForTopic(false);
           // Update conversation history for AI context
           const historyEntries = msgs.map(msg => ({
-            role: msg.isUser ? 'user' as const : 'assistant' as const,
+            role: (msg.isUser ? 'user' : 'assistant') as 'user' | 'assistant',
             content: msg.text,
             timestamp: new Date().toISOString() // Use current time since msg.timestamp is just time format
           }));
@@ -146,6 +155,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           const currentConv = conversations.find(c => c.id === activeConversationId);
           if (currentConv && currentConv.topic) {
             setCurrentTopic(currentConv.topic);
+            // Topic is already established for existing conversations
+            setWaitingForTopic(false);
           }
         }
       } else {
@@ -179,25 +190,34 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           }
         }
         
-        // No active conversation - show welcome messages
-        const welcomeMessage: Message = {
-          id: 'welcome_1',
-          text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
+        // No active conversation - check if we have a topic from props
+        if (topic && topic !== "New Conversation") {
+          // Topic already selected, don't show topic prompt
+          setMessages([]);
+          setConversationHistory([]);
+          setWaitingForTopic(false);
+          setCurrentTopic(topic);
+        } else {
+          // Show welcome messages for new conversation
+          const welcomeMessage: Message = {
+            id: 'welcome_1',
+            text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
 
-        const topicPrompt: Message = {
-          id: 'welcome_2', 
-          text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
+          const topicPrompt: Message = {
+            id: 'welcome_2', 
+            text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
+            isUser: false,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
 
-        setMessages([welcomeMessage, topicPrompt]);
-        setConversationHistory([]);
-        setWaitingForTopic(true);
-        setCurrentTopic("New Conversation");
+          setMessages([welcomeMessage, topicPrompt]);
+          setConversationHistory([]);
+          setWaitingForTopic(true);
+          setCurrentTopic("New Conversation");
+        }
       }
     } catch (e) {
       console.warn('Failed to sync messages from store:', e);
@@ -350,8 +370,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 const aiMessageData = {
                   id: aiResponseMessage.id,
                   conversation_id: convId || '',
-                  sender: 'ai' as const,
-                  type: 'text' as const,
+                  sender: 'ai' as 'ai',
+                  type: 'text' as 'text',
                   content: cleanText,
                   created_at: new Date().toISOString(),
                   timestamp: aiResponseMessage.timestamp
@@ -483,8 +503,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       const messageData = {
         id: messageId,
         conversation_id: convId || '',
-        sender: 'user' as const,
-        type: (isAudio ? 'audio' : 'text') as const,
+        sender: 'user' as 'user',
+        type: (isAudio ? 'audio' : 'text') as 'audio' | 'text',
         content: messageText.trim(),
         created_at: new Date().toISOString(),
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -500,7 +520,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
     // Update conversation history
     const newHistoryEntry = {
-      role: 'user' as const,
+      role: 'user' as 'user',
       content: messageText.trim(),
       timestamp: new Date().toISOString()
     };
@@ -620,7 +640,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
         // Update conversation history
         const responseHistoryEntry = {
-          role: 'assistant' as const,
+          role: 'assistant' as 'assistant',
           content: aiResponse.text_response,
           timestamp: new Date().toISOString()
         };
@@ -740,9 +760,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         className="flex-1 overflow-y-auto overflow-x-hidden bg-background min-h-0 relative"
       >
         <div className="p-4 space-y-4">
-          {console.log('🔍 RENDERING MESSAGES:', messages.length, 'messages')}
+          {/* Debug: Rendering messages */}
           {messages.map((message, index) => {
-            console.log('🔍 RENDERING MESSAGE:', index, message.text.substring(0, 30), message.isUser ? 'USER' : 'AI');
+            // Debug: Rendering individual message
             return (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
@@ -755,7 +775,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   score: message.prosodyAnalysis.overall_score,
                   highlights: message.prosodyAnalysis.detailed_feedback.specific_issues.map(issue => ({
                     text: issue.word,
-                    type: issue.severity === 'high' ? 'error' as const : 'suggestion' as const,
+                    type: issue.severity === 'high' ? 'error' : 'suggestion',
                     feedback: issue.feedback
                   })),
                   suggestions: message.prosodyAnalysis.suggestions
