@@ -88,8 +88,38 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
 
         let errorMessage = result.error.message || 'An error occurred during authentication';
         
-        if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('invalid_credentials')) {
-          errorMessage = 'Invalid email or password';
+        // Check error code first, then message
+        const errorCode = result.error?.code || '';
+        
+        // Additional check: if login failed and no user data, likely user doesn't exist
+        const isLoginAttempt = isLogin;
+        const hasUserData = !!(result as any)?.data?.user;
+        
+        if (errorCode === 'email_not_confirmed') {
+          errorMessage = 'Please confirm your email first';
+        } else if (errorCode === 'too_many_requests') {
+          errorMessage = 'Too many attempts. Try again later';
+        } else if (errorCode === 'signup_disabled') {
+          errorMessage = 'Sign up is currently disabled';
+        } else if (errorCode === 'user_not_found') {
+          errorMessage = 'Account not found. Please sign up first';
+        } else if (errorMessage.includes('Invalid login credentials') || errorMessage.includes('invalid_credentials')) {
+          // For Supabase, we need to distinguish between wrong email vs wrong password
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          const isValidEmailFormat = emailRegex.test(formData.email || '');
+          
+          if (!isValidEmailFormat) {
+            errorMessage = 'Invalid email format';
+          } else if (isLoginAttempt && !hasUserData) {
+            // Login failed with no user data - likely account doesn't exist
+            errorMessage = 'Account not found. Please sign up first';
+          } else if (isLoginAttempt) {
+            // Login failed but user exists - likely wrong password
+            errorMessage = 'Invalid password';
+          } else {
+            // Sign up failed - likely duplicate email
+            errorMessage = 'Account already exists. Try signing in instead';
+          }
         } else if (errorMessage.includes('User not found') || errorMessage.includes('user_not_found') || errorMessage.includes('Email not found')) {
           errorMessage = 'Account not found. Please sign up first';
         } else if (errorMessage.includes('User already registered') || errorMessage.includes('already_registered')) {

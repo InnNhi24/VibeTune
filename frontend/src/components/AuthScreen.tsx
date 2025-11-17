@@ -54,7 +54,15 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
           setUser(profile);
           onAuthComplete();
         } else {
-          setError("Invalid email or password");
+          // Check if email format is valid
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          const isValidEmailFormat = emailRegex.test(formData.email);
+          
+          if (!isValidEmailFormat) {
+            setError("Invalid email format");
+          } else {
+            setError("Account not found. Please sign up first");
+          }
         }
       } else {
         const { user, profile } = await SimpleAuthService.signUp(formData.email, formData.password, formData.username);
