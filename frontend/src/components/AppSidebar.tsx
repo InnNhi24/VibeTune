@@ -382,10 +382,10 @@ export function AppSidebar({
                                   }}
                                 >
                                   <Card 
-                                      className="group cursor-pointer hover:bg-sidebar-accent/20 transition-all duration-300 border border-border/50 hover:border-sidebar-primary/50 hover:shadow-md hover:shadow-sidebar-primary/10 w-full min-w-0 relative overflow-hidden rounded-lg"
+                                      className="group cursor-pointer hover:bg-sidebar-accent/20 transition-all duration-300 border border-border/50 hover:border-sidebar-primary/50 hover:shadow-md hover:shadow-sidebar-primary/10 w-full min-w-0 rounded-lg"
                                       onClick={() => onConversationSelect(conversation)}
                                     >
-                                    <CardContent className="p-2 relative overflow-hidden">
+                                    <CardContent className="p-3">
                                       <div className="space-y-2">
                                         {/* Header */}
                                         <div className="flex items-start justify-between gap-2 min-w-0">
@@ -419,26 +419,24 @@ export function AppSidebar({
                                             <Badge variant="outline" className={`text-xs ${completion.color}`}>
                                               {completion.status}
                                             </Badge>
-                                            <span className="text-xs text-sidebar-foreground/60">{conversation.message_count || 0}msg</span>
+                                            {typeof onConversationDelete === 'function' && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  onConversationDelete(conversation.id);
+                                                }}
+                                                className="h-5 w-5 p-0 rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors opacity-60 hover:opacity-100"
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </Button>
+                                            )}
                                           </div>
                                         </div>
                                       </div>
                                     </CardContent>
-                                    {typeof onConversationDelete === 'function' && (
-                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            onConversationDelete(conversation.id);
-                                          }}
-                                          className="h-7 w-7 p-0 rounded-full bg-background/90 backdrop-blur-sm border border-border/30 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive transition-all duration-200 shadow-sm hover:shadow-md"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
-                                      </div>
-                                    )}
+
                                   </Card>
                                 </motion.div>
                               );
