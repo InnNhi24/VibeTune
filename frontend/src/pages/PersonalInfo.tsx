@@ -20,6 +20,7 @@ import {
 import { Label } from "../components/ui/label";
 import CountryCombobox from "../components/CountryCombobox";
 import { Button } from "../components/ui/button";
+import { AvatarCrop } from "../components/AvatarCrop";
 import { Mic, Mail, User, MapPin, Globe, Book } from "lucide-react";
 
 type FormState = {
@@ -53,6 +54,8 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFileName, setAvatarFileName] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [showCropDialog, setShowCropDialog] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [countryOpen, setCountryOpen] = useState(false);
   const commandInputRef = useRef<HTMLInputElement | null>(null);
@@ -136,6 +139,22 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
 
     return () => clearTimeout(focusTimeout);
   }, [countryOpen]);
+
+  const handleCropComplete = (croppedImageUrl: string, croppedFile: File) => {
+    setAvatarPreview(croppedImageUrl);
+    setShowCropDialog(false);
+    // You can store croppedFile for upload later
+    console.log('Cropped file ready for upload:', croppedFile);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropDialog(false);
+    setSelectedImageFile(null);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const save = async () => {
     setErr(null);
@@ -279,9 +298,14 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const f = e.target.files && e.target.files[0];
                     if (f) {
-                      setAvatarFileName(f.name);
-                      const url = URL.createObjectURL(f);
-                      setAvatarPreview(url);
+                      // Check if it's an image
+                      if (f.type.startsWith('image/')) {
+                        setSelectedImageFile(f);
+                        setAvatarFileName(f.name);
+                        setShowCropDialog(true);
+                      } else {
+                        setErr('Please select an image file');
+                      }
                     }
                   }}
                 />
@@ -388,6 +412,16 @@ export default function PersonalInfo({ onDone, onBack }: Props) {
             </form>
           </CardContent>
         </Card>
+
+        {/* Avatar Crop Dialog */}
+        {selectedImageFile && (
+          <AvatarCrop
+            imageFile={selectedImageFile}
+            onCropComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+            isOpen={showCropDialog}
+          />
+        )}
       </div>
     </div>
   );
