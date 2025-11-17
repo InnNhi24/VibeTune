@@ -106,6 +106,7 @@ interface AppStore {
   setCurrentTopic: (topic: string) => void;
   clearMessages: () => void;
   addConversation: (conversation: Conversation) => void;
+  deleteConversation: (conversationId: string) => void;
   // Reconcile a locally-created conversation id (local_<ts>) with the server canonical id
   reconcileConversationId: (localId: string, serverId: string) => void;
   endConversation: (conversationId: string, updates: Partial<Conversation>) => void;
@@ -178,12 +179,10 @@ export const useAppStore = create<AppStore>()(
           currentTopic: 'General Conversation',
           placementTestProgress: {
             currentQuestion: 0,
+            totalQuestions: 10,
             answers: [],
-            score: 0,
-            level: null,
-            completed: false,
-            startedAt: null,
-            completedAt: null
+            topic_scores: {},
+            overall_progress: 0
           }
           // Keep conversations and messages - they are filtered by user ID anyway
         }),
@@ -245,6 +244,28 @@ export const useAppStore = create<AppStore>()(
             conversations: [conversation, ...state.conversations],
             activeConversationId: conversation.id
           }));
+        },
+        
+        deleteConversation: (conversationId) => {
+          set((state) => {
+            // Remove conversation
+            const conversations = state.conversations.filter(c => c.id !== conversationId);
+            
+            // Remove all messages for this conversation
+            const messages = state.messages.filter(m => m.conversation_id !== conversationId);
+            
+            // Clear active conversation if it's the one being deleted
+            const activeConversationId = state.activeConversationId === conversationId 
+              ? null 
+              : state.activeConversationId;
+            
+            return {
+              conversations,
+              messages,
+              activeConversationId,
+              currentTopic: activeConversationId ? state.currentTopic : 'New Conversation'
+            };
+          });
         },
         reconcileConversationId: (localId, serverId) => {
           // Replace conversation id and update any messages referencing the local id

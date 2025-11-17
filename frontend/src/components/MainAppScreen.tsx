@@ -71,16 +71,29 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   };
 
   const handleConversationDelete = (conversationId: string) => {
-    // Remove locally and trigger sync. Caller should confirm deletion in UI.
     const store = useAppStore.getState();
-    const remaining = store.conversations.filter(c => c.id !== conversationId);
-    try {
-      store.setConversations(remaining);
-      // attempt server-side deletion as best-effort (backend route optional)
-      void fetch(`/api/delete-conversation/${conversationId}`, { method: 'DELETE' }).catch(() => {});
-    } catch (e) {
-      // ignore
+    
+    // Check if deleting the currently active conversation
+    const isActiveConversation = store.activeConversationId === conversationId;
+    
+    // Use store method to delete conversation and all its messages
+    store.deleteConversation(conversationId);
+    
+    // If deleting active conversation, update UI to show new conversation state
+    if (isActiveConversation) {
+      setCurrentTopic('New Conversation');
     }
+    
+    // Attempt server-side deletion
+    fetch(`/api/delete-conversation?id=${conversationId}`, { method: 'DELETE' })
+      .then(response => {
+        if (response.ok) {
+          console.log('✅ Conversation deleted from server:', conversationId);
+        }
+      })
+      .catch(error => {
+        console.warn('⚠️ Failed to delete from server:', error);
+      });
   };
 
   const handleNewConversation = () => {
