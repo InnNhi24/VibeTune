@@ -38,6 +38,7 @@ interface AppSidebarProps {
   conversations: Conversation[];
   onConversationSelect: (conversation: Conversation) => void;
   onConversationDelete?: (conversationId: string) => void;
+  onNewConversation?: () => void;
   onLogout: () => void;
   onSettings?: () => void;
   isCollapsed?: boolean;
@@ -48,6 +49,7 @@ export function AppSidebar({
   conversations,
   onConversationSelect,
   onConversationDelete,
+  onNewConversation,
   onLogout,
   onSettings,
   isCollapsed = false
@@ -154,16 +156,30 @@ export function AppSidebar({
           )}
         </motion.div>
         
-        {/* Collapsed Conversation Count */}
-        <div className="flex-1 flex flex-col items-center justify-center space-y-3">
-          <motion.div 
-            className="w-10 h-10 bg-sidebar-accent/20 border border-sidebar-accent/30 rounded-full flex items-center justify-center"
-            whileHover={{ scale: 1.1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        {/* Collapsed New Conversation & Count */}
+        <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+          <Button
+            onClick={() => {
+              if (onNewConversation) {
+                onNewConversation();
+              }
+            }}
+            className="w-12 h-12 p-0 rounded-full bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground shadow-lg hover:shadow-xl transition-all"
+            title="New Conversation"
           >
-            <MessageCircle className="w-5 h-5 text-sidebar-foreground" />
-          </motion.div>
-          <span className="text-xs font-medium text-sidebar-foreground/70">{conversations.length}</span>
+            <MessageCircle className="w-6 h-6" />
+          </Button>
+          
+          <div className="text-center">
+            <motion.div 
+              className="w-8 h-8 bg-sidebar-accent/20 border border-sidebar-accent/30 rounded-full flex items-center justify-center mx-auto mb-1"
+              whileHover={{ scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              <span className="text-xs font-bold text-sidebar-foreground">{conversations.length}</span>
+            </motion.div>
+            <span className="text-xs text-sidebar-foreground/70">chats</span>
+          </div>
         </div>
         
         {/* Collapsed Actions */}
@@ -287,6 +303,20 @@ export function AppSidebar({
               )}
             </CardContent>
           </Card>
+
+          {/* New Conversation Button */}
+          <Button
+            onClick={() => {
+              if (onNewConversation) {
+                onNewConversation();
+              }
+            }}
+            className="w-full bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground shadow-md hover:shadow-lg transition-all duration-200 group"
+            size="default"
+          >
+            <MessageCircle className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+            New Conversation
+          </Button>
 
           {/* Conversation History */}
           <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>

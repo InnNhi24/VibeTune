@@ -6,7 +6,7 @@ import { ChatPanel } from "./ChatPanel";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { AIConnectionStatus } from "./AIConnectionStatus";
 import { Settings } from "./Settings";
-import { Menu, Mic, TrendingUp, Zap, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Menu, Mic, TrendingUp, Zap, PanelLeftClose } from "lucide-react";
 import { motion } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { useAppStore, useConversations, useSync, Conversation } from "../store/appStore";
@@ -83,6 +83,13 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
     }
   };
 
+  const handleNewConversation = () => {
+    // Clear active conversation and reset to new conversation state
+    setActiveConversation(null);
+    setCurrentTopic('New Conversation');
+    trackEvent('new_conversation_started', { user_level: currentLevel });
+  };
+
   // Determine placement test button text based on user status
   const getPlacementTestButtonText = () => {
     if (user.placement_test_completed) {
@@ -120,6 +127,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           conversations={conversations}
           onConversationSelect={handleConversationSelect}
           onConversationDelete={handleConversationDelete}
+          onNewConversation={handleNewConversation}
           onLogout={onLogout}
           onSettings={() => setShowSettings(true)}
           isCollapsed={isSidebarCollapsed}
@@ -167,6 +175,11 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
                   user={user}
                   conversations={conversations}
                   onConversationSelect={handleConversationSelect}
+                  onConversationDelete={handleConversationDelete}
+                  onNewConversation={() => {
+                    handleNewConversation();
+                    setIsSidebarOpen(false);
+                  }}
                   onLogout={onLogout}
                   onSettings={() => {
                     setShowSettings(true);
