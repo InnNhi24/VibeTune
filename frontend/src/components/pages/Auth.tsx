@@ -227,8 +227,8 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 py-8 overflow-y-auto">
-      <div className="max-w-sm mx-auto w-full space-y-6">
+    <div className="min-h-screen bg-background p-4 py-4 overflow-y-auto">
+      <div className="max-w-sm mx-auto w-full space-y-4 pb-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -286,8 +286,8 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-1">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -308,7 +308,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-2"
+                    className="space-y-1"
                   >
                     <Label htmlFor="username">Username</Label>
                     <Input
@@ -323,7 +323,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                   </motion.div>
                 )}
 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -362,7 +362,7 @@ export function Auth({ onAuthComplete, onBack, mode = 'signin' }: AuthProps) {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-2"
+                    className="space-y-1"
                   >
                     <Label htmlFor="confirmPassword">Confirm Password</Label>
                     <div className="relative">
