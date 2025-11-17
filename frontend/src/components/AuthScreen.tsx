@@ -8,6 +8,7 @@ import { Mic, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { SimpleAuthService } from "../services/authServiceSimple";
 import { useAppStore } from "../store/appStore";
 import { logger } from "../utils/logger";
+import { PasswordStrengthIndicator, validatePassword } from "./PasswordStrengthIndicator";
 
 interface AuthScreenProps {
   onAuthComplete: () => void;
@@ -16,6 +17,8 @@ interface AuthScreenProps {
 export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isPasswordValid, setIsPasswordValid] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -28,10 +31,20 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
     if (!isLogin && formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      setError("Passwords do not match");
       return;
+    }
+
+    // Validate password strength for sign up
+    if (!isLogin) {
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.isValid) {
+        setError("Password does not meet requirements");
+        return;
+      }
     }
 
     try {
@@ -55,6 +68,8 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
     } catch (err: any) {
       logger.error("Auth error:", err);
       setError(err.message || "An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -148,6 +163,14 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+                
+                {/* Password Strength Indicator - only show for sign up */}
+                {!isLogin && (
+                  <PasswordStrengthIndicator 
+                    password={formData.password}
+                    onValidityChange={setIsPasswordValid}
+                  />
+                )}
               </div>
 
               {!isLogin && (
@@ -173,8 +196,9 @@ export function AuthScreen({ onAuthComplete }: AuthScreenProps) {
               <Button 
                 type="submit" 
                 className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                disabled={isLoading || (!isLogin && !isPasswordValid)}
               >
-                {isLogin ? "Sign In" : "Create Account"}
+                {isLoading ? "Loading..." : (isLogin ? "Sign In" : "Create Account")}
               </Button>
             </form>
 
