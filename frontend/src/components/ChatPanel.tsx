@@ -90,27 +90,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize with welcome message and topic request
+  // Initialize clean state for real conversation
   useEffect(() => {
-    const welcomeMessage: Message = {
-      id: '1',
-      text: `🎉 Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    const topicQuestion: Message = {
-      id: '2',
-      text: "What would you like to talk about today? I'll help you practice English conversation on any topic that interests you. Just tell me what's on your mind!",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    
-    setMessages([welcomeMessage, topicQuestion]);
+    setMessages([]);
     setConversationHistory([]);
     setFocusAreas(getFocusAreasForLevel(safeLevel));
     setWaitingForTopic(true);
-    // Always reset topic and conversation state for new session
     setCurrentTopic("New Conversation");
     setConversationId(null);
     setActiveConversation(null);
@@ -197,22 +182,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           }
         }
         
-        // No active conversation - show welcome messages
-        const welcomeMessage: Message = {
-          id: '1',
-          text: `🎉 Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        const topicQuestion: Message = {
-          id: '2',
-          text: "What would you like to talk about today? I'll help you practice English conversation on any topic that interests you. Just tell me what's on your mind!",
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        
-        setMessages([welcomeMessage, topicQuestion]);
+        // No active conversation - start clean
+        setMessages([]);
         setConversationHistory([]);
         setWaitingForTopic(true);
         setCurrentTopic("New Conversation");
@@ -295,16 +266,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setConversationId(convId);
     }
     
-    // Always send message to AI for topic analysis (AI will decide when topic is confirmed)
+    // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
       try {
         const store = useAppStore.getState();
         const profile = store.user;
         const payload = {
           text: messageText.trim(),
-          stage: waitingForTopic ? 'topic_discovery' : 'practice', // Dynamic stage based on topic status
-          topic: waitingForTopic ? undefined : currentTopic, // Include topic for practice stage
-          conversationId: waitingForTopic ? null : conversationId, // Include conversationId for practice stage
+          stage: waitingForTopic ? 'topic_discovery' : 'practice', // Only topic discovery when waiting
+          topic: waitingForTopic ? undefined : currentTopic, // Use current topic for practice
+          conversationId: waitingForTopic ? null : conversationId, // Use existing conversation for practice
           profileId: profile?.id || null,
           level: safeLevel,
           conversationHistory: conversationHistory // Send conversation context
@@ -834,7 +805,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     void sendTextFromInput();
                   }
                 }}
-                placeholder={waitingForTopic ? "Tell me what you'd like to discuss..." : "Continue the conversation..."}
+                placeholder="What would you like to talk about? (e.g., music, travel, food, work...)"
                 disabled={isLoading}
                 // Limit textarea growth so it doesn't push the chat area; allow internal scroll when large
                 className="flex-1 min-h-[80px] max-h-40 resize-y overflow-auto"
@@ -852,7 +823,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     void sendTextFromInput();
                   }
                 }}
-                placeholder={waitingForTopic ? "Tell me what you'd like to discuss..." : "Continue the conversation..."}
+                placeholder="What would you like to talk about? (e.g., music, travel, food, work...)"
                 disabled={isLoading}
                 className="flex-1"
               />

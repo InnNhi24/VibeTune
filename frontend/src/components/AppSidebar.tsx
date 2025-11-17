@@ -392,22 +392,7 @@ export function AppSidebar({
           Settings
         </Button>
         
-        {/* Debug Button - Remove in production */}
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="w-full text-xs"
-          onClick={() => {
-            if (typeof window !== 'undefined' && (window as any).debugStore) {
-              (window as any).debugStore.logState();
-              (window as any).debugStore.addTestConversation(user.id);
-              // Force refresh component
-              setTimeout(() => window.location.reload(), 1000);
-            }
-          }}
-        >
-          🔧 Debug & Reload
-        </Button>
+
       </div>
     </div>
   );
