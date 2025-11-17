@@ -61,7 +61,7 @@ export function SyncStatusIndicator({
       text: "Synced",
       color: "success",
       description: lastSync 
-        ? `Last synced ${lastSync.toLocaleTimeString()}` 
+        ? `Last synced ${new Date(lastSync).toLocaleTimeString()}` 
         : "All changes are saved to VibeTune cloud.",
       bgColor: "bg-success/10",
       textColor: "text-success-foreground"

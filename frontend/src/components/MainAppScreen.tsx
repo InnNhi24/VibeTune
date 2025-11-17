@@ -29,6 +29,16 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   // Get state from Zustand store
   const conversations = useConversations();
   const sync = useSync();
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('MainAppScreen - Debug Info:', {
+      user: user,
+      userId: user?.id,
+      conversationsCount: conversations.length,
+      conversations: conversations
+    });
+  }, [user, conversations]);
   const { 
     currentTopic, 
     setCurrentTopic, 

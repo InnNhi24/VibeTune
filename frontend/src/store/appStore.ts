@@ -228,10 +228,15 @@ export const useAppStore = create<AppStore>()(
         clearMessages: () => set({ messages: [] }),
         // Conversations management
         addConversation: (conversation) => {
-          set((state) => ({
-            conversations: [conversation, ...state.conversations],
-            activeConversationId: conversation.id
-          }));
+          console.log('Store: Adding conversation:', conversation);
+          set((state) => {
+            const newState = {
+              conversations: [conversation, ...state.conversations],
+              activeConversationId: conversation.id
+            };
+            console.log('Store: New conversations count:', newState.conversations.length);
+            return newState;
+          });
         },
         reconcileConversationId: (localId, serverId) => {
           // Replace conversation id and update any messages referencing the local id
@@ -511,10 +516,17 @@ export const useConversations = () => useAppStore((state) => {
   const user = state.user;
   // Filter conversations by current user to prevent data leakage
   if (!user) {
+    console.log('useConversations: No user found');
     return [];
   }
   
   const userConversations = conversations.filter(conv => conv.profile_id === user.id);
+  console.log('useConversations filter:', {
+    totalConversations: conversations.length,
+    userId: user.id,
+    userConversations: userConversations.length,
+    profileIds: conversations.map(c => c.profile_id)
+  });
   
   return userConversations;
 });

@@ -80,8 +80,22 @@ export function AppSidebar({
   
   // Sort topics by most recent conversation
   const sortedTopics = Object.keys(groupedConversations).sort((a, b) => {
-    const aLatest = Math.max(...groupedConversations[a].map(c => new Date(c.started_at || c.timestamp || Date.now()).getTime()));
-    const bLatest = Math.max(...groupedConversations[b].map(c => new Date(c.started_at || c.timestamp || Date.now()).getTime()));
+    const aLatest = Math.max(...groupedConversations[a].map(c => {
+      try {
+        const date = new Date(c.started_at || c.timestamp || Date.now());
+        return isNaN(date.getTime()) ? Date.now() : date.getTime();
+      } catch (e) {
+        return Date.now();
+      }
+    }));
+    const bLatest = Math.max(...groupedConversations[b].map(c => {
+      try {
+        const date = new Date(c.started_at || c.timestamp || Date.now());
+        return isNaN(date.getTime()) ? Date.now() : date.getTime();
+      } catch (e) {
+        return Date.now();
+      }
+    }));
     return bLatest - aLatest;
   });
 
@@ -259,7 +273,17 @@ export function AppSidebar({
                         {/* Conversations in Topic */}
                         <div className="space-y-1 ml-4 overflow-hidden">
                           {topicConversations
-                            .sort((a, b) => new Date(b.started_at || Date.now()).getTime() - new Date(a.started_at || Date.now()).getTime())
+                            .sort((a, b) => {
+                              try {
+                                const dateA = new Date(a.started_at || Date.now());
+                                const dateB = new Date(b.started_at || Date.now());
+                                const timeA = isNaN(dateA.getTime()) ? Date.now() : dateA.getTime();
+                                const timeB = isNaN(dateB.getTime()) ? Date.now() : dateB.getTime();
+                                return timeB - timeA;
+                              } catch (e) {
+                                return 0;
+                              }
+                            })
                             .map((conversation) => {
                               const getScoreColor = (score: number) => {
                                 if (score >= 85) return "bg-success text-success-foreground";
@@ -306,7 +330,16 @@ export function AppSidebar({
                                         <div className="flex items-center justify-between min-w-0">
                                           <div className="flex items-center gap-2 text-xs text-sidebar-foreground/60 flex-1 min-w-0">
                                             <Clock className="w-2 h-2 flex-shrink-0" />
-                                            <span className="truncate">{new Date(conversation.started_at || Date.now()).toLocaleDateString()}</span>
+                                            <span className="truncate">{
+                                              (() => {
+                                                try {
+                                                  const date = new Date(conversation.started_at || Date.now());
+                                                  return isNaN(date.getTime()) ? 'Today' : date.toLocaleDateString();
+                                                } catch (e) {
+                                                  return 'Today';
+                                                }
+                                              })()
+                                            }</span>
                                           </div>
                                           <div className="flex items-center gap-1">
                                             <Badge variant="outline" className={`text-xs ${completion.color}`}>

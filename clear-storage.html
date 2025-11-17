@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear VibeTune Storage</title>
+</head>
+<body>
+    <h1>Clear VibeTune Storage</h1>
+    <button onclick="clearStorage()">Clear All Storage</button>
+    <div id="result"></div>
+    
+    <script>
+        function clearStorage() {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Clear IndexedDB (if any)
+            if ('indexedDB' in window) {
+                indexedDB.deleteDatabase('vibetune-app-store');
+            }
+            
+            document.getElementById('result').innerHTML = 
+                '<p style="color: green;">Storage cleared! Please refresh the VibeTune app.</p>';
+        }
+        
+        // Show current storage info
+        window.onload = function() {
+            const keys = Object.keys(localStorage);
+            const vibetuneKeys = keys.filter(key => key.includes('vibetune'));
+            
+            if (vibetuneKeys.length > 0) {
+                document.getElementById('result').innerHTML = 
+                    '<p>Found VibeTune storage keys: ' + vibetuneKeys.join(', ') + '</p>';
+            } else {
+                document.getElementById('result').innerHTML = 
+                    '<p>No VibeTune storage found.</p>';
+            }
+        };
+    </script>
+</body>
+</html>
