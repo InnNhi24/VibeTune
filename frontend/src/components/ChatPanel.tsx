@@ -135,6 +135,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   useEffect(() => {
     try {
       if (activeConversationId) {
+        console.log('🔍 [ChatPanel] Loading conversation:', activeConversationId);
+        console.log('🔍 [ChatPanel] Store has', storeMessages.length, 'total messages');
+        
         const msgs = storeMessages
           .filter(m => m.conversation_id === activeConversationId)
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
@@ -146,6 +149,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           } as Message));
 
+        console.log('🔍 [ChatPanel] Found', msgs.length, 'messages for this conversation');
+        
         if (msgs.length > 0) {
           setMessages(msgs);
           setWaitingForTopic(false);
