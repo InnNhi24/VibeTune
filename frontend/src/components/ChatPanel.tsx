@@ -202,34 +202,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           }
         }
         
-        // No active conversation - check if we have a topic from props
-        if (topic && topic !== "New Conversation") {
-          // Topic already selected, don't show topic prompt
-          setMessages([]);
-          setConversationHistory([]);
-          setWaitingForTopic(false);
-          setCurrentTopic(topic);
-        } else {
-          // Show welcome messages for new conversation
-          const welcomeMessage: Message = {
-            id: 'welcome_1',
-            text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          };
-
-          const topicPrompt: Message = {
-            id: 'welcome_2', 
-            text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
-            isUser: false,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          };
-
-          setMessages([welcomeMessage, topicPrompt]);
-          setConversationHistory([]);
-          setWaitingForTopic(true);
-          setCurrentTopic("New Conversation");
-        }
+        // No active conversation - welcome messages will be shown by the other useEffect
+        // Don't clear or set messages here to avoid conflicts
       }
     } catch (e) {
       console.warn('Failed to sync messages from store:', e);
