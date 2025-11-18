@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -36,6 +37,8 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ topic = "New Conversation", level, onTopicChange, user }: ChatPanelProps) {
+  const navigate = useNavigate();
+  
   // Handle null/undefined level gracefully
   const safeLevel = (level || "Beginner") as 'Beginner' | 'Intermediate' | 'Advanced';
   const [messages, setMessages] = useState<Message[]>([]);
@@ -106,30 +109,31 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize with welcome message
+  // Initialize with welcome message ONLY on first mount when no active conversation
   useEffect(() => {
-    const welcomeMessage: Message = {
-      id: 'welcome_1',
-      text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+    // Only run once on mount, and only if there's no active conversation
+    if (!activeConversationId && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: 'welcome_1',
+        text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
 
-    const topicPrompt: Message = {
-      id: 'welcome_2', 
-      text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
-      isUser: false,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+      const topicPrompt: Message = {
+        id: 'welcome_2', 
+        text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
 
-    setMessages([welcomeMessage, topicPrompt]);
-    setConversationHistory([]);
-    setFocusAreas(getFocusAreasForLevel(safeLevel));
-    setWaitingForTopic(true);
-    setCurrentTopic("New Conversation");
-    setConversationId(null);
-    setActiveConversation(null);
-  }, [safeLevel]);
+      setMessages([welcomeMessage, topicPrompt]);
+      setConversationHistory([]);
+      setFocusAreas(getFocusAreasForLevel(safeLevel));
+      setWaitingForTopic(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Sync messages from global store when activeConversationId changes
   useEffect(() => {
@@ -457,10 +461,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   }, 100);
                 }
                 
-                // Set as active conversation
+                // Set as active conversation and update topic in store
                 setActiveConversation(finalConvId);
+                setCurrentTopic(data.topic_confirmed);
                 
-                console.log('✅ Conversation setup complete:', finalConvId);
+                // Navigate to conversation URL
+                navigate(`/chat/${finalConvId}`);
+                
+                console.log('✅ Conversation setup complete:', finalConvId, 'Topic:', data.topic_confirmed);
                 
               } catch (e) {
                 console.error('❌ Failed to create conversation:', e);
