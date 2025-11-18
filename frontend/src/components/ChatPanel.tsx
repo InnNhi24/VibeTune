@@ -276,12 +276,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = Date.now().toString();
     
-    // Ensure there is a conversation in the store
+    // Get conversation ID - don't create one yet if we're still discovering topic
     let convId = conversationId || activeConversationId || null;
-    if (!convId) {
-      convId = `local_${Date.now()}`;
-      setConversationId(convId);
-    }
     
     // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
@@ -420,6 +416,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   
                   console.log('✅ Adding conversation to store:', newConv);
                   addConversation(newConv);
+                  
+                  // Save conversation to database
+                  fetch('/api/save-conversation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newConv)
+                  }).then(response => {
+                    if (response.ok) {
+                      console.log('✅ Conversation saved to database');
+                    } else {
+                      console.error('❌ Failed to save conversation to database');
+                    }
+                  }).catch(error => {
+                    console.error('❌ Error saving conversation:', error);
+                  });
                   
                   // Immediately save to localStorage
                   setTimeout(() => {
