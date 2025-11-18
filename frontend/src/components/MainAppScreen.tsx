@@ -85,14 +85,18 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
     }
     
     // Attempt server-side deletion
+    console.log('🗑️ Deleting conversation from server:', conversationId);
     fetch(`/api/delete-conversation?id=${conversationId}`, { method: 'DELETE' })
-      .then(response => {
+      .then(async response => {
+        const data = await response.json();
         if (response.ok) {
-          console.log('✅ Conversation deleted from server:', conversationId);
+          console.log('✅ Conversation deleted from server:', conversationId, data);
+        } else {
+          console.error('❌ Failed to delete from server:', response.status, data);
         }
       })
       .catch(error => {
-        console.warn('⚠️ Failed to delete from server:', error);
+        console.error('❌ Delete request failed:', error);
       });
   };
 

@@ -27,37 +27,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    console.log('🗑️ Attempting to delete conversation:', conversationId);
+    
     // Create Supabase client with service role key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Delete all messages associated with this conversation first
-    const { error: messagesError } = await supabase
+    const { data: deletedMessages, error: messagesError } = await supabase
       .from('messages')
       .delete()
-      .eq('conversation_id', conversationId);
+      .eq('conversation_id', conversationId)
+      .select();
 
     if (messagesError) {
-      console.error('Error deleting messages:', messagesError);
+      console.error('❌ Error deleting messages:', messagesError);
       // Continue anyway to try deleting the conversation
+    } else {
+      console.log(`✅ Deleted ${deletedMessages?.length || 0} messages`);
     }
 
     // Delete the conversation
-    const { error: conversationError } = await supabase
+    const { data: deletedConv, error: conversationError } = await supabase
       .from('conversations')
       .delete()
-      .eq('id', conversationId);
+      .eq('id', conversationId)
+      .select();
 
     if (conversationError) {
-      console.error('Error deleting conversation:', conversationError);
+      console.error('❌ Error deleting conversation:', conversationError);
       return res.status(500).json({ 
         error: 'Failed to delete conversation',
         detail: conversationError.message 
       });
     }
 
+    console.log('✅ Conversation deleted:', deletedConv);
+    
     return res.status(200).json({ 
       ok: true, 
-      message: 'Conversation deleted successfully' 
+      message: 'Conversation deleted successfully',
+      deleted: deletedConv
     });
 
   } catch (error: any) {
