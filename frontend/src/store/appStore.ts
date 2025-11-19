@@ -520,6 +520,31 @@ export const useAppStore = create<AppStore>()(
                 if (response.ok) {
                   const data = await response.json();
                   
+                  // Fetch messages from database
+                  try {
+                    const messagesResponse = await fetch(`/api/get-messages?profile_id=${user.id}`, {
+                      headers: {
+                        'Authorization': `Bearer ${token2}`,
+                      }
+                    });
+                    
+                    if (messagesResponse.ok) {
+                      const messagesData = await messagesResponse.json();
+                      if (messagesData.messages && messagesData.messages.length > 0) {
+                        console.log(`✅ Loaded ${messagesData.messages.length} messages from database`);
+                        
+                        // Merge with local messages (avoid duplicates)
+                        const localMessages = get().messages;
+                        const serverMessageIds = new Set(messagesData.messages.map((m: any) => m.id));
+                        const localOnlyMessages = localMessages.filter(m => !serverMessageIds.has(m.id));
+                        
+                        set({ messages: [...messagesData.messages, ...localOnlyMessages] });
+                      }
+                    }
+                  } catch (error) {
+                    console.warn('⚠️ Failed to load messages from database:', error);
+                  }
+                  
                   // Merge server data with local data
                   if (data.conversations && data.conversations.length > 0) {
                     const localConversations = get().conversations;
