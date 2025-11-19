@@ -292,7 +292,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     if (!messageText.trim()) return;
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const messageId = Date.now().toString();
+    const messageId = crypto.randomUUID(); // Use UUID instead of timestamp
     
     // Get or create conversation ID - needed for saving messages
     let convId = conversationId || activeConversationId;
@@ -302,6 +302,24 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setConversationId(convId);
       console.log('🆔 Created new conversation ID:', convId);
     }
+    
+    // Add user message to UI IMMEDIATELY (before AI processing)
+    const userMessage: Message = {
+      id: messageId,
+      text: messageText.trim(),
+      isUser: true,
+      isAudio,
+      audioBlob,
+      timestamp,
+      isProcessing: isAudio
+    };
+
+    console.log('🔍 Adding user message:', userMessage);
+    setMessages(prev => {
+      const newMessages = [...prev, userMessage];
+      console.log('🔍 Messages after adding user message:', newMessages.length);
+      return newMessages;
+    });
     
     // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
@@ -355,7 +373,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             setTimeout(() => {
               console.log('🔍 setTimeout executed - adding AI response message');
               const aiResponseMessage: Message = {
-                id: (Date.now() + 1).toString(),
+                id: crypto.randomUUID(),
                 text: cleanText, // Show clean text without control tags
                 isUser: false,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -555,24 +573,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       }
     }
     
-    // Add user message immediately
-    const userMessage: Message = {
-      id: messageId,
-      text: messageText.trim(),
-      isUser: true,
-      isAudio,
-      audioBlob,
-      timestamp,
-      isProcessing: isAudio && aiReady
-    };
-
-    console.log('🔍 Adding user message:', userMessage);
-    setMessages(prev => {
-      const newMessages = [...prev, userMessage];
-      console.log('🔍 Messages after adding user message:', newMessages.length);
-      return newMessages;
-    });
-
     // Persist user message to BOTH local store AND database simultaneously
     // Use store user to ensure consistency with conversation profile_id
     const storeUser = useAppStore.getState().user || user;
@@ -729,7 +729,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       // Add AI response message
       setTimeout(() => {
         const aiResponseMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: crypto.randomUUID(),
           text: aiResponse.text_response,
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -772,7 +772,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         
         // Add error message
         const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: crypto.randomUUID(),
           text: "I'm having trouble processing your message right now. Let's try again!",
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
