@@ -192,7 +192,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           
           if (!existingConv && store.user) {
             console.log('🔧 Creating missing conversation for topic:', currentTopic);
-            const newConvId = `topic_${Date.now()}`;
+            const newConvId = crypto.randomUUID(); // Use UUID for database compatibility
             const newConv = {
               id: newConvId,
               profile_id: store.user.id,
