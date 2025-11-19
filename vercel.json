@@ -9,7 +9,10 @@
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
-    "api/chat.ts": { "maxDuration": 10 }
+    "api/chat.ts": { "maxDuration": 10 },
+    "api/transcribe.ts": { "maxDuration": 10 },
+    "api/prosody-analysis.ts": { "maxDuration": 10 },
+    "api/data.ts": { "maxDuration": 10 }
   }
 }
 

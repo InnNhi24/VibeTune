@@ -144,7 +144,7 @@ class AIProsodyService {
     }
   }
 
-  // Analyze audio for prosody features
+  // Analyze audio for prosody features using REAL Whisper API
   async analyzeAudio(
     audioBlob: Blob, 
     text: string, 
@@ -154,45 +154,61 @@ class AIProsodyService {
       throw new Error('AI service not configured');
     }
 
-  logger.debug('🤖 VibeTune AI: Analyzing speech with backend AI service');
+    logger.debug('🎤 VibeTune AI: Starting REAL prosody analysis with Whisper API');
     
     try {
-      // Convert audio blob to URL for backend processing
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      // Call backend API for audio analysis
-      const response = await fetch('/api/chat', {
+      // Call real prosody analysis API with audio blob
+      const response = await fetch('/api/prosody-analysis', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': audioBlob.type || 'audio/webm'
         },
-        body: JSON.stringify({
-          conversationId: 'audio-analysis-temp',
-          profileId: 'temp-user',
-          text: text,
-          audioUrl: audioUrl,
-          deviceId: localStorage.getItem('device_id') || undefined
-        })
+        body: audioBlob
       });
 
       if (!response.ok) {
-        throw new Error('Backend audio analysis failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Prosody analysis failed: ${response.status}`);
       }
 
-      const data = await response.json();
+      const result = await response.json();
       
-      // Convert backend response to ProsodyAnalysis format
-      const analysis = this.convertBackendResponseToAnalysis(data, text, context);
-      
-      logger.info('✅ VibeTune AI: Backend prosody analysis complete');
+      if (!result.success) {
+        throw new Error(result.message || 'Prosody analysis failed');
+      }
+
+      // Convert API response to ProsodyAnalysis format
+      const analysis: ProsodyAnalysis = {
+        overall_score: result.prosody_analysis.overall_score * 100, // Convert to percentage
+        pronunciation_score: result.prosody_analysis.pronunciation_score * 100,
+        rhythm_score: result.prosody_analysis.rhythm_score * 100,
+        intonation_score: result.prosody_analysis.intonation_score * 100,
+        fluency_score: result.prosody_analysis.fluency_score * 100,
+        detailed_feedback: {
+          strengths: result.prosody_analysis.detailed_feedback.strengths || [],
+          improvements: result.prosody_analysis.detailed_feedback.improvements || [],
+          specific_issues: []
+        },
+        word_level_analysis: this.generateWordLevelAnalysis(result.transcription),
+        suggestions: result.prosody_analysis.detailed_feedback.improvements || [],
+        next_focus_areas: this.generateNextFocusAreas(context, result.prosody_analysis.overall_score * 100)
+      };
+
+      logger.info('✅ VibeTune AI: REAL prosody analysis complete', {
+        transcription: result.transcription.substring(0, 50) + '...',
+        overall_score: analysis.overall_score,
+        speaking_rate: result.prosody_analysis.speaking_rate
+      });
+
       return analysis;
       
     } catch (error) {
-      logger.warn('Backend audio analysis failed, using built-in analysis:', error);
+      logger.error('❌ Real prosody analysis failed:', error);
+      logger.warn('Falling back to mock analysis');
       
-      // Fallback to built-in analysis
+      // Fallback to mock analysis if API fails
       const analysis = await this.generateAdvancedAnalysis(text, context);
-      logger.info('✅ VibeTune AI: Built-in prosody analysis complete');
+      logger.info('⚠️ Using fallback mock analysis');
       return analysis;
     }
   }
