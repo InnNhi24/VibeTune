@@ -140,8 +140,19 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         console.log('🔍 [ChatPanel] Loading conversation:', activeConversationId);
         console.log('🔍 [ChatPanel] Store has', storeMessages.length, 'total messages');
         
+        // Debug: Log all conversation IDs in store
+        const allConvIds = [...new Set(storeMessages.map(m => m.conversation_id))];
+        console.log('🔍 [ChatPanel] All conversation IDs in store:', allConvIds);
+        console.log('🔍 [ChatPanel] Looking for conversation ID:', activeConversationId);
+        
         const msgs = storeMessages
-          .filter(m => m.conversation_id === activeConversationId)
+          .filter(m => {
+            const matches = m.conversation_id === activeConversationId;
+            if (!matches && storeMessages.length < 20) {
+              console.log('🔍 [ChatPanel] Message', m.id, 'has conversation_id:', m.conversation_id);
+            }
+            return matches;
+          })
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
           .map(m => ({
             id: m.id,
