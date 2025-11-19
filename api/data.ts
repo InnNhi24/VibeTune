@@ -116,6 +116,24 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+      // Check if conversation exists, if not, skip saving message
+      if (message.conversation_id && message.profile_id) {
+        const { data: convExists } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('id', message.conversation_id)
+          .single();
+
+        if (!convExists) {
+          console.warn('⚠️ Conversation does not exist yet, skipping message save:', message.conversation_id);
+          return res.status(200).json({ 
+            success: true, 
+            message: 'Message saved locally (conversation not in database yet)',
+            skipped: true
+          });
+        }
+      }
+
       const messageData = {
         id: message.id,
         conversation_id: message.conversation_id,

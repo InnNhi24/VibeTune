@@ -454,14 +454,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   console.log('✅ Adding conversation to store:', newConv);
                   addConversation(newConv);
                   
-                  // Save conversation to database (non-blocking, best effort)
-                  fetch('/api/data?action=save-conversation', {
+                  // Save conversation to database FIRST (blocking) before saving messages
+                  await fetch('/api/data?action=save-conversation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newConv)
                   }).then(async response => {
                     if (response.ok) {
-                      console.log('✅ Conversation saved to database');
+                      console.log('✅ Conversation saved to database - messages can now be saved');
                     } else {
                       const errorData = await response.json().catch(() => ({}));
                       console.warn('⚠️ Failed to save conversation to database:', response.status, errorData);
