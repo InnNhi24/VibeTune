@@ -40,6 +40,14 @@ function AppContent() {
 
     const initializeApp = async () => {
       try {
+        // Run migration for old conversation IDs
+        try {
+          const { migrateOldConversationIds } = await import('./utils/migrationHelper');
+          migrateOldConversationIds();
+        } catch (migrationError) {
+          logger.warn('⚠️ Migration failed:', migrationError);
+        }
+        
         if (typeof navigator !== "undefined") {
           dispatch(appActions.setOffline(!navigator.onLine));
         }
