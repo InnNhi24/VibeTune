@@ -116,21 +116,41 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Check if conversation exists, if not, skip saving message
+      // Check if conversation exists, if not, create a placeholder
       if (message.conversation_id && message.profile_id) {
-        const { data: convExists } = await supabase
+        const { data: convExists, error: convCheckError } = await supabase
           .from('conversations')
           .select('id')
           .eq('id', message.conversation_id)
-          .single();
+          .maybeSingle();
 
-        if (!convExists) {
-          console.warn('⚠️ Conversation does not exist yet, skipping message save:', message.conversation_id);
-          return res.status(200).json({ 
-            success: true, 
-            message: 'Message saved locally (conversation not in database yet)',
-            skipped: true
-          });
+        if (!convExists && !convCheckError) {
+          console.log('📝 Conversation does not exist, creating placeholder:', message.conversation_id);
+          
+          // Create a placeholder conversation
+          const { error: convCreateError } = await supabase
+            .from('conversations')
+            .insert({
+              id: message.conversation_id,
+              profile_id: message.profile_id,
+              topic: 'New Conversation',
+              title: 'New Conversation',
+              is_placement_test: false,
+              started_at: new Date().toISOString(),
+              message_count: 0,
+              avg_prosody_score: 0
+            });
+
+          if (convCreateError) {
+            console.error('❌ Failed to create placeholder conversation:', convCreateError);
+            return res.status(200).json({ 
+              success: true, 
+              message: 'Message saved locally (failed to create conversation)',
+              error: convCreateError.message
+            });
+          }
+          
+          console.log('✅ Placeholder conversation created');
         }
       }
 
