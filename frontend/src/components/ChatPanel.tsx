@@ -164,8 +164,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
         console.log('🔍 [ChatPanel] Found', msgs.length, 'messages for this conversation');
         
+        // Always update messages, even if empty (to clear deleted conversations)
+        setMessages(msgs);
+        
         if (msgs.length > 0) {
-          setMessages(msgs);
           setWaitingForTopic(false);
           // Update conversation history for AI context
           const historyEntries = msgs.map(msg => ({
@@ -183,6 +185,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             // Topic is already established for existing conversations
             setWaitingForTopic(false);
           }
+        } else {
+          // No messages found - clear conversation history
+          console.log('🔍 [ChatPanel] No messages found, clearing conversation history');
+          setConversationHistory([]);
         }
       } else {
         // No active conversation - clear messages if they exist
