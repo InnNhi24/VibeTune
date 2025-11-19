@@ -373,10 +373,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               
               // Persist AI message to global store AND database
               try {
+                // Use store user to ensure consistency with conversation profile_id
+                const storeUser = useAppStore.getState().user || user;
                 const aiMessageData = {
                   id: aiResponseMessage.id,
                   conversation_id: convId || '',
-                  profile_id: user?.id || null,
+                  profile_id: storeUser?.id || null,
                   sender: 'ai' as 'ai',
                   type: 'text' as 'text',
                   content: cleanText,
@@ -395,11 +397,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(aiMessageData)
                   }).then(async response => {
+                    const result = await response.json();
                     if (response.ok) {
-                      console.log('✅ AI message saved to database:', aiResponseMessage.id);
-                      return true;
+                      if (result.supabase_error) {
+                        console.error('❌ AI message saved locally but database sync failed:', result.supabase_error);
+                      } else {
+                        console.log('✅ AI message saved to database:', aiResponseMessage.id, result);
+                      }
+                      return !result.supabase_error;
                     } else {
-                      console.warn('⚠️ Failed to save AI message to database:', response.status);
+                      console.warn('⚠️ Failed to save AI message to database:', response.status, result);
                       return false;
                     }
                   })
@@ -439,10 +446,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               try {
                 const storeUser = useAppStore.getState().user;
                 if (!storeUser && user) {
+                  console.log('📝 Setting user in store from prop:', user?.id);
                   useAppStore.getState().setUser(user);
                 }
                 
                 const finalUser = storeUser || user;
+                
+                // Debug: Check for profile_id mismatch
+                if (storeUser?.id && user?.id && storeUser.id !== user.id) {
+                  console.error('❌ CRITICAL: Store user ID !== Prop user ID!', {
+                    storeUserId: storeUser.id,
+                    propUserId: user.id,
+                    usingForConversation: finalUser.id
+                  });
+                }
+                
                 if (!finalUser?.id) {
                   console.error('❌ No valid user ID found');
                   return;
@@ -556,10 +574,22 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     });
 
     // Persist user message to BOTH local store AND database simultaneously
+    // Use store user to ensure consistency with conversation profile_id
+    const storeUser = useAppStore.getState().user || user;
+    
+    // Debug: Check for profile_id mismatch
+    if (storeUser?.id !== user?.id) {
+      console.warn('⚠️ Profile ID mismatch!', {
+        storeUserId: storeUser?.id,
+        propUserId: user?.id,
+        using: storeUser?.id
+      });
+    }
+    
     const messageData = {
       id: messageId,
       conversation_id: convId || '',
-      profile_id: user?.id || null,
+      profile_id: storeUser?.id || null,
       sender: 'user' as 'user',
       type: (isAudio ? 'audio' : 'text') as 'audio' | 'text',
       content: messageText.trim(),
@@ -582,13 +612,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           audio_url: null // Don't send Blob to API, will be handled separately
         })
       }).then(async response => {
+        const result = await response.json();
         if (response.ok) {
-          const result = await response.json();
-          console.log('✅ User message saved to database:', messageId, result);
-          return true;
+          if (result.supabase_error) {
+            console.error('❌ User message saved locally but database sync failed:', result.supabase_error);
+          } else {
+            console.log('✅ User message saved to database:', messageId, result);
+          }
+          return !result.supabase_error;
         } else {
-          const error = await response.json().catch(() => ({}));
-          console.warn('⚠️ Failed to save user message to database:', response.status, error);
+          console.warn('⚠️ Failed to save user message to database:', response.status, result);
           return false;
         }
       })
@@ -705,10 +738,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         setMessages(prev => [...prev, aiResponseMessage]);
         // Persist AI message to global store
         try {
+          // Use store user to ensure consistency with conversation profile_id
+          const storeUser = useAppStore.getState().user || user;
           addMessageToStore({
             id: aiResponseMessage.id,
             conversation_id: convId || activeConversationId || '',
-            profile_id: user?.id || null,
+            profile_id: storeUser?.id || null,
             sender: 'ai',
             type: 'text',
             content: aiResponseMessage.text,
