@@ -560,7 +560,15 @@ export const useAppStore = create<AppStore>()(
                   // Use server data as source of truth
                   // Don't merge local conversations - if deleted on server, should stay deleted
                   if (data.conversations) {
-                    set({ conversations: data.conversations });
+                    set({ 
+                      conversations: data.conversations,
+                      // Reset topic if no conversations
+                      currentTopic: data.conversations.length === 0 ? 'New Conversation' : get().currentTopic,
+                      // Clear active conversation if it doesn't exist anymore
+                      activeConversationId: data.conversations.find((c: any) => c.id === get().activeConversationId) 
+                        ? get().activeConversationId 
+                        : null
+                    });
                     console.log('✅ Conversations synced from server:', data.conversations.length);
                   }
                   
