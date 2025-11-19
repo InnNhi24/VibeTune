@@ -378,7 +378,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   Promise.resolve(addMessageToStore(aiMessageData)),
                   
                   // 2. Save to database (async)
-                  fetch('/api/save-message', {
+                  fetch('/api/data?action=save-message', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(aiMessageData)
@@ -454,7 +454,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   addConversation(newConv);
                   
                   // Save conversation to database (non-blocking, best effort)
-                  fetch('/api/save-conversation', {
+                  fetch('/api/data?action=save-conversation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newConv)
@@ -563,7 +563,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       Promise.resolve(addMessageToStore(messageData)),
       
       // 2. Save to database (async)
-      fetch('/api/save-message', {
+      fetch('/api/data?action=save-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(messageData)

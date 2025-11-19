@@ -30,7 +30,7 @@ export async function saveTurn({ conversationId, role, text }: { conversationId?
 }
 
 export async function fetchHistory() {
-  const res = await fetch('/api/get-history');
+  const res = await fetch('/api/data?action=get-history');
   if (!res.ok) return null;
   return res.json();
 }

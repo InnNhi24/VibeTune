@@ -88,7 +88,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
     
     // Attempt server-side deletion (non-blocking)
     console.log('🗑️ Deleting conversation from server:', conversationId);
-    fetch(`/api/delete-conversation?id=${conversationId}`, { method: 'DELETE' })
+    fetch(`/api/data?action=delete-conversation&id=${conversationId}`, { method: 'DELETE' })
       .then(async response => {
         const data = await response.json();
         if (response.ok) {

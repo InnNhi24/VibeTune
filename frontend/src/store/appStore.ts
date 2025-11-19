@@ -459,7 +459,7 @@ export const useAppStore = create<AppStore>()(
                 
                 for (const message of recentMessages) {
                   try {
-                    await fetch(`/api/save-message`, {
+                    await fetch(`/api/data?action=save-message`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -480,7 +480,7 @@ export const useAppStore = create<AppStore>()(
                 // Process retry queue
                 for (const message of retryQueue) {
                   try {
-                    await fetch(`/api/save-message`, {
+                    await fetch(`/api/data?action=save-message`, {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/json',
@@ -505,7 +505,7 @@ export const useAppStore = create<AppStore>()(
               
               const token2 = (session as any)?.data?.session?.access_token || (session as any)?.access_token || null;
               if (token2) {
-                const fetchPromise = fetch(`/api/get-history`, {
+                const fetchPromise = fetch(`/api/data?action=get-history`, {
                   headers: {
                     'Authorization': `Bearer ${token2}`,
                   }
@@ -522,7 +522,7 @@ export const useAppStore = create<AppStore>()(
                   
                   // Fetch messages from database
                   try {
-                    const messagesResponse = await fetch(`/api/get-messages?profile_id=${user.id}`, {
+                    const messagesResponse = await fetch(`/api/data?action=get-messages&profile_id=${user.id}`, {
                       headers: {
                         'Authorization': `Bearer ${token2}`,
                       }
