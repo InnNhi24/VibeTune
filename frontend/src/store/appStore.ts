@@ -557,34 +557,18 @@ export const useAppStore = create<AppStore>()(
                     console.warn('⚠️ Failed to load messages from database:', error);
                   }
                   
-                  // Merge server data with local data
-                  if (data.conversations && data.conversations.length > 0) {
-                    const localConversations = get().conversations;
-                    const mergedConversations = [...data.conversations];
-                    
-                    // Add any local conversations not on server
-                    localConversations.forEach(localConv => {
-                      if (!mergedConversations.find(c => c.id === localConv.id)) {
-                        mergedConversations.push(localConv);
-                      }
-                    });
-                    
-                    set({ conversations: mergedConversations });
+                  // Use server data as source of truth
+                  // Don't merge local conversations - if deleted on server, should stay deleted
+                  if (data.conversations) {
+                    set({ conversations: data.conversations });
+                    console.log('✅ Conversations synced from server:', data.conversations.length);
                   }
                   
-                  // Merge messages
-                  if (data.messages && data.messages.length > 0) {
-                    const localMessages = get().messages;
-                    const mergedMessages = [...data.messages];
-                    
-                    // Add any local messages not on server
-                    localMessages.forEach(localMsg => {
-                      if (!mergedMessages.find(m => m.id === localMsg.id)) {
-                        mergedMessages.push(localMsg);
-                      }
-                    });
-                    
-                    set({ messages: mergedMessages });
+                  // Use server messages as source of truth (from get-history)
+                  // Don't merge local messages - server is authoritative
+                  if (data.messages) {
+                    set({ messages: data.messages });
+                    console.log('✅ Messages synced from server (get-history):', data.messages.length);
                   }
                   
                   console.log('✅ Sync completed successfully');
