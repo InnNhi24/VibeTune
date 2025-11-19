@@ -185,6 +185,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           }
         }
       } else {
+        // No active conversation - clear messages if they exist
+        if (messages.length > 0) {
+          console.log('🔍 [ChatPanel] No active conversation, clearing messages');
+          setMessages([]);
+          setConversationHistory([]);
+        }
+        
         // Check if we have a current topic but no active conversation - create one
         if (currentTopic && currentTopic !== "New Conversation" && currentTopic !== "General Conversation") {
           const store = useAppStore.getState();
@@ -287,8 +294,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = Date.now().toString();
     
-    // Get conversation ID - don't create one yet if we're still discovering topic
-    let convId = conversationId || activeConversationId || null;
+    // Get or create conversation ID - needed for saving messages
+    let convId = conversationId || activeConversationId;
+    if (!convId) {
+      // Create conversation ID immediately, even during topic discovery
+      convId = crypto.randomUUID();
+      setConversationId(convId);
+      console.log('🆔 Created new conversation ID:', convId);
+    }
     
     // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
