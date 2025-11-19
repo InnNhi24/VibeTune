@@ -36,11 +36,13 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   const { 
     currentTopic, 
     setCurrentTopic, 
-    setActiveConversation, 
+    setActiveConversation,
+    activeConversationId,
     initializeApp,
     syncData,
     trackEvent,
-    setUser
+    setUser,
+    deleteConversation
   } = useAppStore();
 
   // Initialize app when component mounts
@@ -71,20 +73,20 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
   };
 
   const handleConversationDelete = (conversationId: string) => {
-    const store = useAppStore.getState();
-    
     // Check if deleting the currently active conversation
-    const isActiveConversation = store.activeConversationId === conversationId;
+    const isActiveConversation = activeConversationId === conversationId;
     
     // Use store method to delete conversation and all its messages
-    store.deleteConversation(conversationId);
+    // This will trigger re-render because we're using the hook
+    deleteConversation(conversationId);
     
     // If deleting active conversation, update UI to show new conversation state
     if (isActiveConversation) {
       setCurrentTopic('New Conversation');
+      setActiveConversation(null);
     }
     
-    // Attempt server-side deletion
+    // Attempt server-side deletion (non-blocking)
     console.log('🗑️ Deleting conversation from server:', conversationId);
     fetch(`/api/delete-conversation?id=${conversationId}`, { method: 'DELETE' })
       .then(async response => {
