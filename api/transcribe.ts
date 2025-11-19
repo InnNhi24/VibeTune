@@ -27,7 +27,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Node's global Blob supports constructing from Buffer
     const blob = new Blob([buf], { type: contentType });
     form.append('file', blob, 'speech.webm');
-    form.append('model', 'gpt-4o-mini-transcribe');
+    form.append('model', 'whisper-1');
+    form.append('language', 'en'); // Force English transcription only
 
     const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',

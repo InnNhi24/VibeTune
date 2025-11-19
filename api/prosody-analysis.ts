@@ -86,6 +86,7 @@ async function transcribeAudio(audioBuffer: Buffer, contentType: string) {
     const blob = new Blob([new Uint8Array(audioBuffer)], { type: contentType || 'audio/webm' });
     formData.append('file', blob, 'audio.webm');
     formData.append('model', 'whisper-1');
+    formData.append('language', 'en'); // Force English transcription only
     formData.append('response_format', 'verbose_json');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
