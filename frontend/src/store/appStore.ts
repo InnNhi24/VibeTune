@@ -11,7 +11,7 @@ export interface Message {
   sender: 'user' | 'ai';
   type: 'text' | 'audio';
   content: string;
-  audio_url?: string;
+  audio_url?: string | Blob | null;
   prosody_feedback?: ProsodyFeedback;
   vocab_suggestions?: VocabSuggestion[];
   guidance?: string;

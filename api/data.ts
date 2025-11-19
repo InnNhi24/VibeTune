@@ -150,6 +150,7 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
         }
       }
 
+      // Don't save audio_url if it's a Blob object (can't serialize)
       const messageData = {
         id: message.id,
         conversation_id: message.conversation_id,
@@ -157,7 +158,7 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
         sender: message.sender,
         type: message.type || 'text',
         content: message.content,
-        audio_url: message.audio_url || null,
+        audio_url: (typeof message.audio_url === 'string' ? message.audio_url : null),
         prosody_feedback: message.prosody_feedback || null,
         vocab_suggestions: message.vocab_suggestions || null,
         guidance: message.guidance || null,
@@ -166,6 +167,14 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
         created_at: message.created_at || new Date().toISOString()
       };
 
+      console.log('💾 Saving message to database:', {
+        id: messageData.id,
+        conversation_id: messageData.conversation_id,
+        profile_id: messageData.profile_id,
+        sender: messageData.sender,
+        content: messageData.content.substring(0, 50) + '...'
+      });
+
       const { data, error } = await supabase
         .from('messages')
         .upsert(messageData, { onConflict: 'id' })
@@ -173,7 +182,8 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (error) {
-        console.error('❌ Supabase save failed:', error);
+        console.error('❌ Supabase message save failed:', error);
+        console.error('❌ Message data that failed:', messageData);
         // Don't fail the request, just log the error
         return res.status(200).json({ 
           success: true, 

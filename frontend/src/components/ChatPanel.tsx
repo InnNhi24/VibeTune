@@ -573,17 +573,22 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       // 1. Save to local store (instant, synchronous)
       Promise.resolve(addMessageToStore(messageData)),
       
-      // 2. Save to database (async)
+      // 2. Save to database (async) - exclude Blob from JSON
       fetch('/api/data?action=save-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(messageData)
+        body: JSON.stringify({
+          ...messageData,
+          audio_url: null // Don't send Blob to API, will be handled separately
+        })
       }).then(async response => {
         if (response.ok) {
-          console.log('✅ User message saved to database:', messageId);
+          const result = await response.json();
+          console.log('✅ User message saved to database:', messageId, result);
           return true;
         } else {
-          console.warn('⚠️ Failed to save user message to database:', response.status);
+          const error = await response.json().catch(() => ({}));
+          console.warn('⚠️ Failed to save user message to database:', response.status, error);
           return false;
         }
       })
