@@ -365,6 +365,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 const aiMessageData = {
                   id: aiResponseMessage.id,
                   conversation_id: convId || '',
+                  profile_id: user?.id || null,
                   sender: 'ai' as 'ai',
                   type: 'text' as 'text',
                   content: cleanText,
@@ -549,6 +550,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const messageData = {
       id: messageId,
       conversation_id: convId || '',
+      profile_id: user?.id || null,
       sender: 'user' as 'user',
       type: (isAudio ? 'audio' : 'text') as 'audio' | 'text',
       content: messageText.trim(),
@@ -692,6 +694,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           addMessageToStore({
             id: aiResponseMessage.id,
             conversation_id: convId || activeConversationId || '',
+            profile_id: user?.id || null,
             sender: 'ai',
             type: 'text',
             content: aiResponseMessage.text,

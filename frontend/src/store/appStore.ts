@@ -7,6 +7,7 @@ import { Profile } from '../services/supabaseClient';
 export interface Message {
   id: string;
   conversation_id: string;
+  profile_id?: string | null;
   sender: 'user' | 'ai';
   type: 'text' | 'audio';
   content: string;
