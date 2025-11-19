@@ -58,12 +58,10 @@ async function handleSaveConversation(req: VercelRequest, res: VercelResponse) {
       const conversationData = {
         id: conversation.id,
         profile_id: conversation.profile_id,
-        topic: conversation.topic || null,
+        topic: conversation.topic || 'New Conversation',
         title: conversation.title || conversation.topic || 'New Conversation',
         is_placement_test: conversation.is_placement_test || false,
-        started_at: conversation.started_at || new Date().toISOString(),
-        message_count: conversation.message_count || 0,
-        avg_prosody_score: conversation.avg_prosody_score || 0
+        started_at: conversation.started_at || new Date().toISOString()
       };
 
       const { data, error } = await supabase
@@ -136,9 +134,7 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
               topic: 'New Conversation',
               title: 'New Conversation',
               is_placement_test: false,
-              started_at: new Date().toISOString(),
-              message_count: 0,
-              avg_prosody_score: 0
+              started_at: new Date().toISOString()
             });
 
           if (convCreateError) {

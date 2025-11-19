@@ -199,9 +199,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               topic: currentTopic,
               title: currentTopic,
               is_placement_test: false,
-              started_at: new Date().toISOString(),
-              message_count: 0,
-              avg_prosody_score: 0
+              started_at: new Date().toISOString()
             };
             
             addConversation(newConv);
@@ -446,9 +444,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     topic: data.topic_confirmed,
                     title: data.topic_confirmed, // This shows in sidebar
                     is_placement_test: false,
-                    started_at: new Date().toISOString(),
-                    message_count: 0,
-                    avg_prosody_score: 0
+                    started_at: new Date().toISOString()
                   };
                   
                   console.log('✅ Adding conversation to store:', newConv);
