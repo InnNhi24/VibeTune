@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -37,8 +36,6 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ topic = "New Conversation", level, onTopicChange, user }: ChatPanelProps) {
-  const navigate = useNavigate();
-  
   // Handle null/undefined level gracefully
   const safeLevel = (level || "Beginner") as 'Beginner' | 'Intermediate' | 'Advanced';
   const [messages, setMessages] = useState<Message[]>([]);
@@ -465,8 +462,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 setActiveConversation(finalConvId);
                 setCurrentTopic(data.topic_confirmed);
                 
-                // Navigate to conversation URL
-                navigate(`/chat/${finalConvId}`);
+                // Update URL without navigation (optional - for browser history)
+                if (window.history && window.history.pushState) {
+                  window.history.pushState(null, '', `/chat/${finalConvId}`);
+                }
                 
                 console.log('✅ Conversation setup complete:', finalConvId, 'Topic:', data.topic_confirmed);
                 
