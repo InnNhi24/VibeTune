@@ -299,6 +299,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = crypto.randomUUID(); // Use UUID instead of timestamp
+    const userMessageCreatedAt = new Date().toISOString(); // Save timestamp for ordering
     
     // Get or create conversation ID - needed for saving messages
     let convId = conversationId || activeConversationId;
@@ -378,6 +379,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             console.log('🔍 Setting setTimeout for AI response...');
             setTimeout(() => {
               console.log('🔍 setTimeout executed - adding AI response message');
+              
+              // Ensure AI message timestamp is AFTER user message (add 10ms buffer)
+              const aiMessageCreatedAt = new Date(new Date(userMessageCreatedAt).getTime() + 10).toISOString();
+              
               const aiResponseMessage: Message = {
                 id: crypto.randomUUID(),
                 text: cleanText, // Show clean text without control tags
@@ -406,7 +411,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   sender: 'ai' as 'ai',
                   type: 'text' as 'text',
                   content: cleanText,
-                  created_at: new Date().toISOString(),
+                  created_at: aiMessageCreatedAt, // Use timestamp AFTER user message
                   timestamp: aiResponseMessage.timestamp
                 };
                 
@@ -600,7 +605,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       type: (isAudio ? 'audio' : 'text') as 'audio' | 'text',
       content: messageText.trim(),
       audio_url: isAudio ? audioBlob : null,
-      created_at: new Date().toISOString(),
+      created_at: userMessageCreatedAt, // Use saved timestamp for consistent ordering
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     
@@ -734,6 +739,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
       // Add AI response message
       setTimeout(() => {
+        // Ensure AI message timestamp is AFTER user message (add 10ms buffer)
+        const aiMessageCreatedAt = new Date(new Date(userMessageCreatedAt).getTime() + 10).toISOString();
+        
         const aiResponseMessage: Message = {
           id: crypto.randomUUID(),
           text: aiResponse.text_response,
@@ -753,7 +761,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             sender: 'ai',
             type: 'text',
             content: aiResponseMessage.text,
-            created_at: new Date().toISOString(),
+            created_at: aiMessageCreatedAt, // Use timestamp AFTER user message
             timestamp: aiResponseMessage.timestamp
           });
           console.log('✅ AI response message persisted to store:', aiResponseMessage.id);
