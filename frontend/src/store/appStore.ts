@@ -264,12 +264,27 @@ export const useAppStore = create<AppStore>()(
               ? null 
               : state.activeConversationId;
             
-            return {
+            const newState = {
               conversations,
               messages,
               activeConversationId,
               currentTopic: activeConversationId ? state.currentTopic : 'New Conversation'
             };
+            
+            // Immediately update backup in localStorage to prevent flash on reload
+            try {
+              const backup = {
+                messages: newState.messages,
+                conversations: newState.conversations,
+                activeConversationId: newState.activeConversationId
+              };
+              localStorage.setItem('vibetune-messages-backup', JSON.stringify(backup));
+              console.log('💾 Backup updated after delete');
+            } catch (error) {
+              console.warn('Failed to update backup:', error);
+            }
+            
+            return newState;
           });
         },
         reconcileConversationId: (localId, serverId) => {
