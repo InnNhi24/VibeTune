@@ -372,23 +372,29 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   timestamp: aiResponseMessage.timestamp
                 };
                 
-                // Save to local store first (instant)
-                addMessageToStore(aiMessageData);
-                console.log('✅ AI message persisted to store:', aiResponseMessage.id, 'for conversation:', convId);
-                
-                // Save to database (async, non-blocking)
-                fetch('/api/save-message', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(aiMessageData)
-                }).then(async response => {
-                  if (response.ok) {
-                    console.log('✅ AI message saved to database:', aiResponseMessage.id);
-                  } else {
-                    console.warn('⚠️ Failed to save AI message to database:', response.status);
-                  }
+                // Save to both local and database in parallel
+                Promise.all([
+                  // 1. Save to local store (instant)
+                  Promise.resolve(addMessageToStore(aiMessageData)),
+                  
+                  // 2. Save to database (async)
+                  fetch('/api/save-message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(aiMessageData)
+                  }).then(async response => {
+                    if (response.ok) {
+                      console.log('✅ AI message saved to database:', aiResponseMessage.id);
+                      return true;
+                    } else {
+                      console.warn('⚠️ Failed to save AI message to database:', response.status);
+                      return false;
+                    }
+                  })
+                ]).then(([localSaved, dbSaved]) => {
+                  console.log('✅ AI message persisted:', { local: true, database: dbSaved, id: aiResponseMessage.id });
                 }).catch(error => {
-                  console.warn('⚠️ Error saving AI message to database:', error.message);
+                  console.warn('⚠️ Error saving AI message:', error.message);
                 });
                 
               } catch (e) {
@@ -539,24 +545,24 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       return newMessages;
     });
 
-    // Persist user message to global store AND database
-    try {
-      const messageData = {
-        id: messageId,
-        conversation_id: convId || '',
-        sender: 'user' as 'user',
-        type: (isAudio ? 'audio' : 'text') as 'audio' | 'text',
-        content: messageText.trim(),
-        audio_url: isAudio ? audioBlob : null,
-        created_at: new Date().toISOString(),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+    // Persist user message to BOTH local store AND database simultaneously
+    const messageData = {
+      id: messageId,
+      conversation_id: convId || '',
+      sender: 'user' as 'user',
+      type: (isAudio ? 'audio' : 'text') as 'audio' | 'text',
+      content: messageText.trim(),
+      audio_url: isAudio ? audioBlob : null,
+      created_at: new Date().toISOString(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    // Save to both local and database in parallel (don't wait, non-blocking)
+    Promise.all([
+      // 1. Save to local store (instant, synchronous)
+      Promise.resolve(addMessageToStore(messageData)),
       
-      // Save to local store first (instant)
-      addMessageToStore(messageData);
-      console.log('✅ User message persisted to store:', messageId, 'for conversation:', convId);
-      
-      // Save to database (async, non-blocking)
+      // 2. Save to database (async)
       fetch('/api/save-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -564,16 +570,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       }).then(async response => {
         if (response.ok) {
           console.log('✅ User message saved to database:', messageId);
+          return true;
         } else {
           console.warn('⚠️ Failed to save user message to database:', response.status);
+          return false;
         }
-      }).catch(error => {
-        console.warn('⚠️ Error saving user message to database:', error.message);
-      });
-      
-    } catch (e) {
-      console.error('❌ Failed to persist user message:', e);
-    }
+      })
+    ]).then(([localSaved, dbSaved]) => {
+      console.log('✅ User message persisted:', { local: true, database: dbSaved, id: messageId });
+    }).catch(error => {
+      console.warn('⚠️ Error saving user message:', error.message);
+    });
     setTextInput("");
     setIsLoading(true);
 
