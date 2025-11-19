@@ -106,19 +106,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize with welcome message ONLY on first mount when no active conversation
+  // Initialize with welcome message when starting new conversation
   useEffect(() => {
-    // Only run once on mount, and only if there's no active conversation
-    if (!activeConversationId && messages.length === 0) {
+    // Show welcome message when no active conversation and no messages
+    if (!activeConversationId && messages.length === 0 && topic === "New Conversation") {
+      console.log('🎉 [ChatPanel] Showing welcome message for new conversation');
+      
       const welcomeMessage: Message = {
-        id: 'welcome_1',
+        id: `welcome_${Date.now()}_1`,
         text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       const topicPrompt: Message = {
-        id: 'welcome_2', 
+        id: `welcome_${Date.now()}_2`, 
         text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -129,8 +131,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setFocusAreas(getFocusAreasForLevel(safeLevel));
       setWaitingForTopic(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [activeConversationId, topic, messages.length, safeLevel]); // Re-run when these change
 
   // Sync messages from global store when activeConversationId changes
   useEffect(() => {
@@ -430,7 +431,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                       const errorData = await response.json().catch(() => ({}));
                       console.warn('⚠️ Failed to save conversation to database:', response.status, errorData);
                       // In development, this is expected if API server is not running
-                      if (import.meta.env.DEV) {
+                      if (process.env.NODE_ENV !== 'production') {
                         console.log('💡 Tip: Run "vercel dev" to test API functions locally');
                       }
                     }
