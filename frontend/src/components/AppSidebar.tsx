@@ -53,6 +53,14 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   
+  // Helper function to capitalize first letter of each word
+  const capitalizeTitle = (title: string) => {
+    return title
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+  
   // Group conversations by topic
   const getTopicIcon = (topic: string) => {
     const topicIcons: Record<string, any> = {
@@ -421,7 +429,7 @@ export function AppSidebar({
                                       <div className="space-y-2">
                                         {/* Header */}
                                         <div className="flex items-start justify-between gap-2 min-w-0">
-                                          <h4 className="text-xs font-medium truncate text-sidebar-foreground flex-1 min-w-0">{conversation.title || 'New Conversation'}</h4>
+                                          <h4 className="text-xs font-medium truncate text-sidebar-foreground flex-1 min-w-0">{capitalizeTitle(conversation.title || 'New Conversation')}</h4>
                                           <div className="flex items-center gap-1">
                                             <StatusIcon className={`w-3 h-3 ${completion.color}`} />
                                             {conversation.avg_prosody_score && (
