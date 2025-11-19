@@ -150,7 +150,15 @@ class AIProsodyService {
     text: string, 
     context: ConversationContext
   ): Promise<ProsodyAnalysis> {
+    console.log('🎤 [PROSODY] analyzeAudio called!', {
+      audioBlobSize: audioBlob.size,
+      audioBlobType: audioBlob.type,
+      textLength: text.length,
+      isConfigured: this.isConfigured
+    });
+
     if (!this.isConfigured) {
+      console.error('❌ [PROSODY] AI service not configured');
       throw new Error('AI service not configured');
     }
 
@@ -162,7 +170,9 @@ class AIProsodyService {
     
     try {
       // Call real prosody analysis API with audio blob
+      console.log('📡 [PROSODY] Calling /api/prosody-analysis endpoint...');
       logger.debug('Calling /api/prosody-analysis endpoint...');
+      
       const response = await fetch('/api/prosody-analysis', {
         method: 'POST',
         headers: {
@@ -171,14 +181,21 @@ class AIProsodyService {
         body: audioBlob
       });
       
+      console.log('📡 [PROSODY] API response status:', response.status);
       logger.debug('Prosody API response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ [PROSODY] API returned error:', response.status, errorData);
         throw new Error(errorData.message || `Prosody analysis failed: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log('✅ [PROSODY] API response received:', {
+        success: result.success,
+        hasTranscription: !!result.transcription,
+        hasAnalysis: !!result.prosody_analysis
+      });
       
       if (!result.success) {
         throw new Error(result.message || 'Prosody analysis failed');
@@ -201,6 +218,12 @@ class AIProsodyService {
         next_focus_areas: this.generateNextFocusAreas(context, result.prosody_analysis.overall_score * 100)
       };
 
+      console.log('✅ [PROSODY] REAL analysis complete!', {
+        transcription: result.transcription.substring(0, 50) + '...',
+        overall_score: analysis.overall_score,
+        speaking_rate: result.prosody_analysis.speaking_rate
+      });
+      
       logger.info('✅ VibeTune AI: REAL prosody analysis complete', {
         transcription: result.transcription.substring(0, 50) + '...',
         overall_score: analysis.overall_score,
@@ -210,6 +233,12 @@ class AIProsodyService {
       return analysis;
       
     } catch (error) {
+      console.error('❌ [PROSODY] Real analysis FAILED:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      console.warn('⚠️ [PROSODY] Falling back to MOCK/FAKE data');
+      
       logger.error('❌ Real prosody analysis failed:', {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
@@ -218,6 +247,9 @@ class AIProsodyService {
       
       // Fallback to mock analysis if API fails
       const analysis = await this.generateAdvancedAnalysis(text, context);
+      console.log('⚠️ [PROSODY] Using FAKE/MOCK data:', {
+        overall_score: analysis.overall_score
+      });
       logger.info('✅ Using fallback mock analysis (API unavailable)');
       return analysis;
     }
