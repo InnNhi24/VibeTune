@@ -404,34 +404,34 @@ export const useAppStore = create<AppStore>()(
           // Initialize app state
           const { user } = get();
           if (user) {
-            // Check for backup data and restore if main store is empty
-            try {
-              const currentMessages = get().messages;
-              const currentConversations = get().conversations;
-              
-              if (currentMessages.length === 0 && currentConversations.length === 0) {
-                const backup = localStorage.getItem('vibetune-messages-backup');
-                if (backup) {
-                  const parsed = JSON.parse(backup);
-                  if (parsed.messages && parsed.messages.length > 0) {
-                    console.log('🔄 Restoring from backup:', parsed.messages.length, 'messages');
-                    set({ 
-                      messages: parsed.messages,
-                      conversations: parsed.conversations || [],
-                      activeConversationId: parsed.activeConversationId || null
-                    });
-                  }
-                }
-              }
-            } catch (error) {
-              console.warn('Failed to restore from backup:', error);
-            }
-            
-            // Load conversations and recent messages
+            // Sync from server FIRST to get latest data
             try {
               await get().syncData();
             } catch (error) {
               (await import('../utils/logger')).logger.warn('Failed to sync data on app init:', error);
+              
+              // Only restore from backup if sync failed
+              try {
+                const currentMessages = get().messages;
+                const currentConversations = get().conversations;
+                
+                if (currentMessages.length === 0 && currentConversations.length === 0) {
+                  const backup = localStorage.getItem('vibetune-messages-backup');
+                  if (backup) {
+                    const parsed = JSON.parse(backup);
+                    if (parsed.messages && parsed.messages.length > 0) {
+                      console.log('🔄 Restoring from backup (sync failed):', parsed.messages.length, 'messages');
+                      set({ 
+                        messages: parsed.messages,
+                        conversations: parsed.conversations || [],
+                        activeConversationId: parsed.activeConversationId || null
+                      });
+                    }
+                  }
+                }
+              } catch (backupError) {
+                console.warn('Failed to restore from backup:', backupError);
+              }
             }
           }
         },
