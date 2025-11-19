@@ -384,8 +384,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               // Create unique conversation ID for this session
               let finalConvId = data.conversationId || convId;
               if (!finalConvId) {
-                // Generate unique ID with topic and timestamp to avoid conflicts
-                finalConvId = `${data.topic_confirmed.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+                // Generate UUID v4 compatible ID for database compatibility
+                finalConvId = crypto.randomUUID();
                 setConversationId(finalConvId);
               }
 

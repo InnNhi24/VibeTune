@@ -29,6 +29,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     console.log('🗑️ Attempting to delete conversation:', conversationId);
     
+    // Validate UUID format - if not UUID, it's a local-only conversation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(conversationId)) {
+      console.log('⚠️ Non-UUID conversation ID detected (local only):', conversationId);
+      return res.status(200).json({ 
+        ok: true, 
+        message: 'Local conversation deleted (not in database)',
+        localOnly: true
+      });
+    }
+    
     // Create Supabase client with service role key
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
