@@ -53,12 +53,7 @@ async function handleSaveConversation(req: VercelRequest, res: VercelResponse) {
 
   if (SUPABASE_URL && SUPABASE_KEY) {
     try {
-      const supabaseHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'apikey': SUPABASE_KEY,
-        'Prefer': 'return=representation'
-      };
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const conversationData = {
         id: conversation.id,
@@ -71,25 +66,26 @@ async function handleSaveConversation(req: VercelRequest, res: VercelResponse) {
         avg_prosody_score: conversation.avg_prosody_score || 0
       };
 
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/conversations`, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify(conversationData)
-      });
+      const { data, error } = await supabase
+        .from('conversations')
+        .upsert(conversationData, { onConflict: 'id' })
+        .select()
+        .single();
 
-      if (response.ok) {
-        const savedConversation = await response.json();
-        console.log('✅ Conversation saved:', conversation.id);
-        return res.status(200).json({ 
-          success: true, 
-          message: 'Conversation saved successfully',
-          data: savedConversation
+      if (error) {
+        console.error('❌ Supabase save failed:', error);
+        return res.status(500).json({ 
+          error: 'Failed to save conversation to database',
+          details: error.message
         });
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Supabase save failed:', response.status, errorText);
-        throw new Error(`Supabase error: ${response.status}`);
       }
+
+      console.log('✅ Conversation saved:', conversation.id);
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Conversation saved successfully',
+        data
+      });
     } catch (error) {
       console.error('❌ Failed to save conversation:', error);
       return res.status(500).json({ 
@@ -118,16 +114,12 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
 
   if (SUPABASE_URL && SUPABASE_KEY) {
     try {
-      const supabaseHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'apikey': SUPABASE_KEY,
-        'Prefer': 'return=representation'
-      };
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const messageData = {
         id: message.id,
         conversation_id: message.conversation_id,
+        profile_id: message.profile_id || null,
         sender: message.sender,
         type: message.type || 'text',
         content: message.content,
@@ -140,24 +132,28 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
         created_at: message.created_at || new Date().toISOString()
       };
 
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify([messageData])
-      });
+      const { data, error } = await supabase
+        .from('messages')
+        .upsert(messageData, { onConflict: 'id' })
+        .select()
+        .single();
 
-      if (response.ok) {
-        const savedMessage = await response.json();
-        console.log('✅ Message saved:', message.id);
+      if (error) {
+        console.error('❌ Supabase save failed:', error);
+        // Don't fail the request, just log the error
         return res.status(200).json({ 
           success: true, 
-          message: 'Message saved successfully',
-          data: savedMessage[0]
+          message: 'Message saved locally (database sync failed)',
+          supabase_error: error.message
         });
-      } else {
-        const errorText = await response.text();
-        console.error('❌ Supabase save failed:', response.status, errorText);
       }
+
+      console.log('✅ Message saved:', message.id);
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Message saved successfully',
+        data
+      });
     } catch (error) {
       console.error('❌ Failed to save message:', error);
     }
@@ -310,28 +306,35 @@ async function handleGetHistory(req: VercelRequest, res: VercelResponse) {
   
   if (SUPABASE_URL && SUPABASE_KEY && userId) {
     try {
-      const supabaseHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'apikey': SUPABASE_KEY
-      };
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      const convResponse = await fetch(`${SUPABASE_URL}/rest/v1/conversations?profile_id=eq.${userId}&order=started_at.desc&limit=50`, {
-        headers: supabaseHeaders
-      });
-      
-      if (convResponse.ok) {
-        conversations = await convResponse.json();
+      const { data: convData, error: convError } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('profile_id', userId)
+        .order('started_at', { ascending: false })
+        .limit(50);
+
+      if (convError) {
+        console.error('Error fetching conversations:', convError);
+      } else {
+        conversations = convData || [];
       }
 
       if (conversations.length > 0) {
-        const conversationIds = conversations.slice(0, 10).map((c: any) => c.id).join(',');
-        const msgResponse = await fetch(`${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${conversationIds})&order=created_at.asc&limit=1000`, {
-          headers: supabaseHeaders
-        });
+        const conversationIds = conversations.slice(0, 10).map((c: any) => c.id);
         
-        if (msgResponse.ok) {
-          messages = await msgResponse.json();
+        const { data: msgData, error: msgError } = await supabase
+          .from('messages')
+          .select('*')
+          .in('conversation_id', conversationIds)
+          .order('created_at', { ascending: true })
+          .limit(1000);
+
+        if (msgError) {
+          console.error('Error fetching messages:', msgError);
+        } else {
+          messages = msgData || [];
         }
       }
       
