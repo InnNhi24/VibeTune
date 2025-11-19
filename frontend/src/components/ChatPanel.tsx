@@ -418,19 +418,25 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   console.log('✅ Adding conversation to store:', newConv);
                   addConversation(newConv);
                   
-                  // Save conversation to database
+                  // Save conversation to database (non-blocking, best effort)
                   fetch('/api/save-conversation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newConv)
-                  }).then(response => {
+                  }).then(async response => {
                     if (response.ok) {
                       console.log('✅ Conversation saved to database');
                     } else {
-                      console.error('❌ Failed to save conversation to database');
+                      const errorData = await response.json().catch(() => ({}));
+                      console.warn('⚠️ Failed to save conversation to database:', response.status, errorData);
+                      // In development, this is expected if API server is not running
+                      if (import.meta.env.DEV) {
+                        console.log('💡 Tip: Run "vercel dev" to test API functions locally');
+                      }
                     }
                   }).catch(error => {
-                    console.error('❌ Error saving conversation:', error);
+                    console.warn('⚠️ Error saving conversation (network/CORS):', error.message);
+                    // Don't throw - conversation is already saved to localStorage
                   });
                   
                   // Immediately save to localStorage
