@@ -238,7 +238,11 @@ export const useAppStore = create<AppStore>()(
         },
         
         setCurrentTopic: (topic) => set({ currentTopic: topic }),
-        clearMessages: () => set({ messages: [] }),
+        // Don't clear all messages - this would lose conversation history
+        clearMessages: () => {
+          console.warn('⚠️ clearMessages called - this should not clear all messages');
+          // Only clear if really needed, otherwise keep messages for history
+        },
         // Conversations management
         addConversation: (conversation) => {
           set((state) => ({
@@ -531,8 +535,10 @@ export const useAppStore = create<AppStore>()(
                     
                     if (messagesResponse.ok) {
                       const messagesData = await messagesResponse.json();
+                      console.log('📥 Messages API response:', messagesData);
                       if (messagesData.messages && messagesData.messages.length > 0) {
                         console.log(`✅ Loaded ${messagesData.messages.length} messages from database`);
+                        console.log('📝 Sample message:', messagesData.messages[0]);
                         
                         // Merge with local messages (avoid duplicates)
                         const localMessages = get().messages;
@@ -540,7 +546,12 @@ export const useAppStore = create<AppStore>()(
                         const localOnlyMessages = localMessages.filter(m => !serverMessageIds.has(m.id));
                         
                         set({ messages: [...messagesData.messages, ...localOnlyMessages] });
+                        console.log('✅ Messages set in store, total:', get().messages.length);
+                      } else {
+                        console.warn('⚠️ No messages returned from API');
                       }
+                    } else {
+                      console.error('❌ Messages API failed:', messagesResponse.status);
                     }
                   } catch (error) {
                     console.warn('⚠️ Failed to load messages from database:', error);
@@ -618,9 +629,9 @@ export const useAppStore = create<AppStore>()(
           // Clear current session state but keep user and conversations history
           set(() => ({
             activeConversationId: null,
-            messages: [], // Clear current session messages
+            // DON'T clear messages - keep them for when user returns to old conversations
             currentTopic: 'New Conversation',
-            // Keep user, conversations, and other persistent data
+            // Keep user, conversations, messages, and other persistent data
           }));
         }
       }),
