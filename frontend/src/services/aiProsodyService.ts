@@ -154,10 +154,15 @@ class AIProsodyService {
       throw new Error('AI service not configured');
     }
 
-    logger.debug('🎤 VibeTune AI: Starting REAL prosody analysis with Whisper API');
+    logger.debug('🎤 VibeTune AI: Starting REAL prosody analysis with Whisper API', {
+      audioBlobSize: audioBlob.size,
+      audioBlobType: audioBlob.type,
+      textLength: text.length
+    });
     
     try {
       // Call real prosody analysis API with audio blob
+      logger.debug('Calling /api/prosody-analysis endpoint...');
       const response = await fetch('/api/prosody-analysis', {
         method: 'POST',
         headers: {
@@ -165,6 +170,8 @@ class AIProsodyService {
         },
         body: audioBlob
       });
+      
+      logger.debug('Prosody API response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -203,12 +210,15 @@ class AIProsodyService {
       return analysis;
       
     } catch (error) {
-      logger.error('❌ Real prosody analysis failed:', error);
-      logger.warn('Falling back to mock analysis');
+      logger.error('❌ Real prosody analysis failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      logger.warn('⚠️ Falling back to mock analysis due to API error');
       
       // Fallback to mock analysis if API fails
       const analysis = await this.generateAdvancedAnalysis(text, context);
-      logger.info('⚠️ Using fallback mock analysis');
+      logger.info('✅ Using fallback mock analysis (API unavailable)');
       return analysis;
     }
   }
