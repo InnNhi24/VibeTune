@@ -693,9 +693,29 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           );
 
           // Update the message with analysis
+          console.log('✅ [ChatPanel] Prosody analysis complete, updating message:', {
+            messageId,
+            hasAnalysis: !!prosodyAnalysis,
+            overallScore: prosodyAnalysis?.overall_score
+          });
+          
           setMessages(prev => prev.map(msg => 
             msg.id === messageId 
-              ? { ...msg, prosodyAnalysis, isProcessing: false }
+              ? { 
+                  ...msg, 
+                  prosodyAnalysis, 
+                  isProcessing: false,
+                  // Also update prosodyFeedback for MessageBubble display
+                  prosodyFeedback: prosodyAnalysis ? {
+                    overall_score: prosodyAnalysis.overall_score,
+                    pronunciation_score: prosodyAnalysis.pronunciation_score,
+                    rhythm_score: prosodyAnalysis.rhythm_score,
+                    intonation_score: prosodyAnalysis.intonation_score,
+                    fluency_score: prosodyAnalysis.fluency_score,
+                    feedback: prosodyAnalysis.detailed_feedback,
+                    suggestions: prosodyAnalysis.suggestions
+                  } : undefined
+                }
               : msg
           ));
 
@@ -703,11 +723,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           (newHistoryEntry as any).audio_analysis = prosodyAnalysis;
           
         } catch (error) {
+          console.error('❌ [ChatPanel] Audio analysis failed:', error);
           logger.error('Audio analysis failed:', error);
-          // Continue without analysis
+          // Continue without analysis - clear processing state
           setMessages(prev => prev.map(msg => 
             msg.id === messageId 
-              ? { ...msg, isProcessing: false }
+              ? { ...msg, isProcessing: false, prosodyAnalysis: undefined }
               : msg
           ));
         }
