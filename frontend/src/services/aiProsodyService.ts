@@ -270,7 +270,10 @@ class AIProsodyService {
   logger.debug('🤖 VibeTune AI: Generating contextual response with backend AI');
     
     try {
-      // Call backend API for AI response
+      // Extract pronunciation mistakes from prosody analysis
+      const lastMistakes = prosodyAnalysis?.detailed_feedback?.specific_issues?.map(issue => issue.word) || [];
+      
+      // Call backend API for AI response with FIXED topic
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -280,6 +283,10 @@ class AIProsodyService {
           conversationId: 'conversation-temp',
           profileId: 'temp-user',
           text: userInput,
+          topic: context.topic, // ALWAYS send the fixed topic
+          stage: 'practice', // Always practice mode when using this service
+          level: context.user_level.toLowerCase(),
+          lastMistakes: lastMistakes, // Send pronunciation issues for AI to address
           deviceId: localStorage.getItem('device_id') || undefined
         })
       });

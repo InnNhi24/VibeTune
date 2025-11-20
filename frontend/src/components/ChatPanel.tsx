@@ -343,29 +343,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       return newMessages;
     });
     
+    // Prepare payload - always include topic if it's fixed
+    const store = useAppStore.getState();
+    const profile = store.user;
+    const payload = {
+      text: messageText.trim(),
+      stage: waitingForTopic ? 'topic_discovery' : 'practice',
+      topic: waitingForTopic ? undefined : currentTopic, // Always send fixed topic in practice mode
+      conversationId: conversationId,
+      profileId: profile?.id || null,
+      level: safeLevel,
+      conversationHistory: conversationHistory,
+      lastMistakes: [] // TODO: Track pronunciation mistakes
+    } as any;
+    
     // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
       try {
-        const store = useAppStore.getState();
-        const profile = store.user;
-        const payload = {
-          text: messageText.trim(),
-          stage: waitingForTopic ? 'topic_discovery' : 'practice', // Only topic discovery when waiting
-          topic: waitingForTopic ? undefined : currentTopic, // Use current topic for practice
-          conversationId: waitingForTopic ? null : conversationId, // Use existing conversation for practice
-          profileId: profile?.id || null,
-          level: safeLevel,
-          conversationHistory: conversationHistory // Send conversation context
-        } as any;
 
-        console.log('Sending message with payload:', { 
-          stage: payload.stage, 
-          waitingForTopic, 
-          currentTopic, 
-          conversationId 
+        console.log('📤 Sending to API:', { 
+          text: messageText.substring(0, 50) + '...', 
+          stage: payload.stage,
+          topic: payload.topic,
+          conversationId: payload.conversationId
         });
-
-        console.log('🔍 Sending to API:', { text: messageText.trim(), stage: payload.stage });
         
         const resp = await fetch('/api/chat', {
           method: 'POST',
@@ -381,14 +382,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           console.log('🔍 Topic from API:', data.topic_confirmed);
           console.log('🔍 Will create conversation?', !!data.topic_confirmed);
           if (data) {
-            // Always show AI response, but clean control tags from display
+            // Get AI response text - no control tags expected
             let aiResponseText = data.replyText || data.text_response || "I'm thinking...";
-            console.log('AI response text:', aiResponseText); // Debug log
+            console.log('✅ AI response received:', aiResponseText.substring(0, 100) + '...');
             
-            // Remove control tags from display (but keep them for parsing)
-            const cleanText = aiResponseText.replace(/\[\[TOPIC_CONFIRMED:[^\]]+\]\]/gi, '').trim();
-            console.log('Clean text:', cleanText); // Debug log
-            console.log('Topic confirmed:', data.topic_confirmed); // Debug log
+            // Clean text (remove any unexpected control tags)
+            const cleanText = aiResponseText.replace(/\[\[.*?\]\]/gi, '').trim();
+            console.log('📝 Topic confirmed from API:', data.topic_confirmed);
             
             // Add AI response message
             console.log('🔍 Setting setTimeout for AI response...');

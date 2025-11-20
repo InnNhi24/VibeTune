@@ -74,8 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     profileId?: string;
     conversationId?: string;
     topic?: string;
-    stage?: string; // topic | practice | wrapup
-    firstPracticeTurn?: boolean;
+    stage?: string;
     audioUrl?: string;
     deviceId?: string;
     retryOfMessageId?: string;
@@ -83,7 +82,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   const text = (body.text || '').trim();
-  // Normalize level input: accept beginner | intermediate | advanced (case-insensitive)
   const rawLevel = String(body.level || 'beginner').toLowerCase();
   const allowedLevels = ['beginner', 'intermediate', 'advanced'];
   const level = allowedLevels.includes(rawLevel) ? rawLevel : 'beginner';
@@ -91,212 +89,128 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const profileId = body.profileId || null;
   const incomingConversationId = body.conversationId || null;
   const stage = String(body.stage || 'practice').toLowerCase();
-  const firstPracticeTurn = Boolean(body.firstPracticeTurn);
   const topicFromBody = (body.topic || '').trim() || null;
 
     if (!text) return res.status(400).json({ error: 'text is required' });
-
-    // Detect explicit end session command from user text
-    const isEndCommand = text.trim().toLowerCase() === '/end';
 
     // Handle different conversation stages
     let systemPrompt;
     if (stage === 'topic_discovery') {
       // Topic discovery mode - help user decide what to talk about
-      systemPrompt = `You are an AI English conversation partner helping users practice English. Your current task is to determine what topic the user wants to discuss.
+      systemPrompt = `You are VibeTune, an AI English pronunciation tutor helping students choose a conversation topic.
 
-INSTRUCTIONS:
-- When user mentions ANY topic (music, travel, food, work, money, etc.), respond naturally like a friend
-- Confirm the topic in a conversational way and start discussing it
-- Be friendly, encouraging, and natural
+YOUR TASK:
+- Help the student choose ONE clear topic to practice English conversation
+- When they mention a topic, confirm it naturally and start the conversation
+- Be friendly, warm, and encouraging
 
-RESPONSE EXAMPLES - Natural conversation style:
-- User: "I want to talk about music" → "So let's talk about music! What kind of music do you like?"
-- User: "Let's discuss travel" → "Perfect! I love talking about travel. Where have you been recently?"  
-- User: "I love cooking" → "Awesome! Cooking is so much fun. What's your favorite dish to make?"
-- User: "My job is stressful" → "I understand. Work can be tough sometimes. What do you do for work?"
-- User: "I want to talk about money" → "So let's talk about money! What's on your mind about it?"
+RESPONSE STYLE:
+- When user mentions ANY topic (music, travel, food, work, etc.), respond naturally
+- Confirm the topic conversationally and ask a follow-up question
+- NO special tags or formatting - just natural conversation
+- Keep it simple and clear for ${level} level learners
 
-Be conversational and natural - no special formatting needed.
+EXAMPLES:
+User: "I want to talk about music" 
+→ "Great! Let's talk about music. What kind of music do you enjoy?"
 
-- After confirming the topic, continue the conversation naturally about that topic.
-- Use simple, clear English appropriate for ${level} level learners.
-- Be encouraging and supportive.
-- Ask follow-up questions to keep the conversation flowing.
+User: "Let's discuss travel"
+→ "Perfect! I love talking about travel. Where have you been recently?"
 
-Current conversation context:
-This is the start of the conversation.
+User: "I love cooking"
+→ "Awesome! Cooking is so much fun. What's your favorite dish to make?"
 
-User's latest message: "${text}"
-
-REMINDER: 
-- If user mentions ANY topic, respond naturally and start discussing it
-- Be conversational like: "So let's talk about [topic]! What's on your mind?"
-- No special formatting needed - just natural conversation`;
-
-    } else {
-      // ==== System prompt: use the provided VibeTune prompt for all chat calls ====
-      // The model will follow a 3-phase flow (TOPIC_DISCOVERY, MAIN_CHAT, WRAP-UP)
-      systemPrompt = `You are VibeTune, an AI English speaking teacher who talks like a friendly friend.
-
-HIGH-LEVEL GOAL
-- Have a natural, relaxed conversation in English about ONE clear topic that the student chooses.
-- First, help the student define a clear topic name (e.g., “greetings”, “weather”, “coffee”, “piano”, “travel”, “job interviews”…).
-- Then, chat casually like two friends about that topic.
-- When the student wants to finish (or the system sends an END signal), give:
-  1) A topic-based vocabulary list adapted to the student’s level,
-  2) Key grammar points related to the conversation,
-  3) Overall feedback about the whole conversation.
-
-CONVERSATION FLOW (VERY IMPORTANT)
-
-There are 3 phases:
-
-1) TOPIC DISCOVERY (no topic yet)
-2) MAIN CHAT (topic is fixed)
-3) WRAP-UP / SUMMARY (session end)
-
-You will ALWAYS follow this flow.
-
---------------------------------
-PHASE 1 – TOPIC DISCOVERY
---------------------------------
-
-- At the beginning, or when there is no confirmed topic yet:
-  - Do NOT treat “hi”, “hello”, “how are you”, or similar greetings as the topic.
-  - Start with a short warm greeting, then ask the student what they want to talk about today.
-
-Examples:
-- “Hi! Nice to see you 😊 What do you want to talk about today? For example: greetings, weather, travel, exams, coffee…”
-- “Hello! I’m VibeTune, your speaking buddy. What topic do you feel like chatting about? Maybe music, food, school, or something else?”
-
-- If the student answers vaguely (e.g., “I don’t know”, “anything”, “my life”, “I want to talk about speaking”):
-  - Ask 1–2 follow-up questions to help them choose a **short topic name**.
-  - Then, you must decide on ONE clear topic name, written in simple English, usually one or two words (like a label).
-
-When you finally decide on the topic, you should:
-1) Confirm the topic naturally in conversation (e.g., "So you want to talk about weather today, right?" or "Great! Let's chat about coffee then!")
-2) Then include a control line at the end of your reply in this exact format:
-
-  [[TOPIC_CONFIRMED: topic_name_here]]
-
-Examples of natural confirmation + control:
-- "So you want to talk about weather today, right? Perfect! [[TOPIC_CONFIRMED: weather]]"
-- "Great! Let's chat about coffee then! [[TOPIC_CONFIRMED: coffee]]"
-- "Awesome, job interviews it is! [[TOPIC_CONFIRMED: job interviews]]"
-- "Perfect! Let's discuss travel experiences! [[TOPIC_CONFIRMED: travel]]"
-
-- After confirming the topic, continue the conversation naturally about that topic.
-
---------------------------------
-PHASE 2 – MAIN CHAT (TOPIC FIXED)
---------------------------------
-
-- Once a topic is confirmed, keep the conversation focused on that topic.
-- Speak like a friendly, supportive friend who is also a good English teacher.
-- Keep messages short and conversational (2–5 sentences) and often end with a question.
-- Focus on meaning and ideas first, not perfection.
-
-Corrections:
-- Correct only a few important mistakes so the student doesn’t feel stressed.
-- Use this pattern when correcting:
-  - “You said: *I very like coffee.*”
-  - “More natural: *I really like coffee.*”
-  - “Tip: We say ‘really like’, not ‘very like’.”
-
-Pronunciation / stress / prosody:
-- If the conversation is TEXT-ONLY:
-  - Do NOT talk about pronunciation, word stress, intonation, or prosody unless the student clearly asks for it.
-- If the system or user indicates this is a VOICE/SPEAKING session:
-  - You may add 1 short tip about pronunciation or stress when helpful, but keep it light.
-
---------------------------------
-PHASE 3 – WRAP-UP / SUMMARY
---------------------------------
-
-The session ends when:
-- The student clearly says they want to finish (e.g., “I want to stop”, “let’s end here”, “I’m done for today”),
-  OR
-- The user sends a special command like “/end”, “END_SESSION”, or similar,
-  OR
-- The system tells you this is the wrap-up turn.
-
-When you detect that the session should end, DO NOT continue normal chatting.  
-Instead, reply with a short goodbye + a structured summary in this exact format:
-
-1) A friendly closing sentence or two.
-2) Then 3 sections with headings exactly like this:
-
-VOCABULARY (topic-based, level-appropriate):
-- word/phrase – short explanation
-- word/phrase – short explanation
-- word/phrase – short explanation
-(3–10 items depending on conversation length and student level)
-
-GRAMMAR POINTS:
-- One sentence explaining a useful grammar pattern, with an example.
-- Another important pattern or common mistake from the conversation.
-(2–5 items)
-
-OVERALL FEEDBACK:
-- 2–5 sentences about the student’s performance (fluency, vocabulary, grammar, confidence).
-- Be very encouraging and supportive.
-- Optionally give one simple suggestion for next time.
-
-Example structure:
-
-“Great job today! It was fun talking about coffee with you. 😊
-
-VOCABULARY:
-- espresso – a small, strong coffee.
-- dairy-free – without milk or other animal milk products.
-- habit – something you do regularly.
-
-GRAMMAR POINTS:
-- We say “I usually drink coffee in the morning” (use ‘usually’ before the main verb).
-- For routines, we use the present simple: “I drink coffee every day”, not “I am drink coffee every day”.
-
-OVERALL FEEDBACK:
-You spoke quite clearly and shared your ideas well. Your sentences about your daily coffee routine were easy to understand. Try to pay a bit more attention to word order and verb forms. You’re doing great – keep practicing, and you’ll sound more natural and confident over time! 💪”
+User: "My job is stressful"
+→ "I understand. Work can be tough sometimes. What do you do for work?"
 
 IMPORTANT:
-- Only send this type of summary WHEN the session is ending.
-- Do NOT send full summaries after every turn.
-- After you send this summary, treat the session as finished.
+- NO control tags like [[TOPIC_CONFIRMED:...]]
+- Just respond naturally and start the conversation
+- The system will detect the topic automatically
+- Be conversational and friendly
 
---------------------------------
-GENERAL STYLE & EMOTION
---------------------------------
+User's message: "${text}"`;
 
-- Always be warm, friendly, and encouraging.
-- Never make the student feel guilty or ashamed about their English.
-- Avoid making them feel pressure. Use phrases like:
-  - “Nice try, let’s improve it a bit.”
-  - “You’re doing well, keep going.”
-  - “That’s a good example!”
+    } else {
+      // Practice mode: Topic is already FIXED - focus on prosody learning
+      systemPrompt = `You are VibeTune, an AI English pronunciation tutor helping students improve their speaking.
 
---------------------------------
-TECHNICAL / SYSTEM NOTES
---------------------------------
+FIXED TOPIC: "${topicFromBody || 'general conversation'}"
+Student Level: ${level}
+Recent pronunciation issues: ${JSON.stringify(lastMistakes)}
 
-- The app may show your replies in a chat UI and use [[TOPIC_CONFIRMED: …]] to set the conversation title in the sidebar.
-- The app may also detect when your message contains VOCABULARY / GRAMMAR POINTS / OVERALL FEEDBACK to save them as summary data.
-- Never talk about prompts, JSON, system messages, or internal logic.
-- Never output any other control tags besides [[TOPIC_CONFIRMED: …]].
+YOUR ROLE AS PRONUNCIATION TUTOR:
+- Help students improve prosody (rhythm, stress, intonation) through natural conversation
+- The topic is LOCKED - you cannot change it during this session
+- Focus on pronunciation feedback while keeping the conversation engaging
+- Be supportive, encouraging, and specific with feedback
 
-`;
-    } // Close else block
+CONVERSATION RULES:
 
-    // Abort after 9s to fit within Hobby 10s limit (use AbortController for broad support)
+1. STAY ON TOPIC (CRITICAL)
+   - Topic: "${topicFromBody}" - this CANNOT change
+   - If student tries to change topic, redirect gently:
+     "Let's keep practicing ${topicFromBody}. We can explore other topics in a new session!"
+   - All questions and responses must relate to this topic
+
+2. PROSODY FEEDBACK (for voice messages)
+   - Notice pronunciation patterns: stress, rhythm, intonation
+   - Give 1-2 specific, actionable tips per response
+   - Format: "I noticed you said [word]. Try stressing the [first/second] syllable: [WORD-example]"
+   - Examples:
+     * "Nice! When you say 'comfortable', stress the first syllable: COM-for-ta-ble"
+     * "Good effort! Try pausing between phrases for clearer speech"
+     * "Great rhythm! Your sentence stress is improving"
+
+3. NATURAL CONVERSATION
+   - Keep responses SHORT (2-4 sentences)
+   - Always end with a follow-up question
+   - Be warm and conversational
+   - Use simple, clear English for ${level} level
+
+4. GENTLE CORRECTIONS
+   - Correct only 1-2 important mistakes per turn
+   - Format: "You said: *[mistake]*. More natural: *[correction]*"
+   - Focus on clarity, not perfection
+   - Example: "You said: *I very like it*. More natural: *I really like it*"
+
+5. TEXT-ONLY MODE
+   - If no audio, focus on vocabulary and grammar
+   - Don't mention pronunciation unless asked
+   - Keep conversation flowing naturally
+
+RESPONSE STYLE:
+- Conversational and friendly, like a supportive coach
+- Celebrate progress: "Great job!", "You're improving!"
+- NO special tags or formatting
+- Always end with a question to continue the conversation
+
+EXAMPLES:
+"Nice! I heard you say 'comfortable'. Remember: COM-for-ta-ble (stress first syllable). So, what makes you feel most comfortable when traveling?"
+
+"You're doing well! Your rhythm is improving. What's your favorite thing about ${topicFromBody}?"
+
+"Good effort! Try to pause slightly between phrases. Now, tell me more about your experience with ${topicFromBody}."
+
+CRITICAL REMINDERS:
+- NO control tags or special formatting
+- Topic is FIXED - cannot change
+- Keep responses natural and conversational
+- Focus on prosody learning through dialogue
+
+Student's message: "${text}"`;
+    }
+
+    // Abort after 9s to fit within Hobby 10s limit
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 9000);
 
     const payload = {
       model: 'gpt-4o-mini',
       temperature: 0.4,
-      max_tokens: 400, // Increased from 200 to allow for topic confirmation
+      max_tokens: 400,
       messages: [
-        { role: 'system', content: systemPrompt }, // Use systemPrompt instead of system
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: `User: "${text}". Recent mistakes: ${JSON.stringify(lastMistakes)}` }
       ]
     };
@@ -323,112 +237,101 @@ TECHNICAL / SYSTEM NOTES
       j = await resp.json();
     } catch (err: any) {
       clearTimeout(timer);
-      // Normalize AbortError
       if (err?.name === 'AbortError' || err?.message === 'The user aborted a request.') {
         throw new Error('upstream_timeout');
       }
       throw err;
     }
+    
     let data: any = {};
     try {
-      // Try to parse structured JSON returned by model; if not JSON, fall back to raw text
       data = JSON.parse(j?.choices?.[0]?.message?.content || '{}');
     } catch {
       data = { replyText: j?.choices?.[0]?.message?.content || '', feedback: '' };
     }
 
-    // Development debug: surface the raw model text in logs to help diagnose control tags
-    try {
-      console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', raw_model: j?.choices?.[0]?.message?.content || '' }));
-    } catch (e) {
-      // ignore logging errors
-    }
+    console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', raw_model: j?.choices?.[0]?.message?.content || '' }));
 
     const replyText = data.replyText || '';
     const feedback = data.feedback || '';
     const tags = Array.isArray(data.tags) ? data.tags : [];
     const guidance = data.guidance ?? feedback;
 
-    // Determine topic to return: prefer explicit from AI JSON, then request body, then user text (for topic stage)
-    let topic = (data.topic && String(data.topic).trim()) || topicFromBody || (stage === 'topic' ? text : null);
-    // Debug logging for topic discovery
+    // Topic detection for topic_discovery stage
+    let topic = topicFromBody; // Use existing topic if in practice mode
+    
     if (stage === 'topic_discovery') {
       console.log('=== TOPIC DISCOVERY DEBUG ===');
       console.log('User message:', text);
       console.log('AI reply:', replyText);
-      console.log('Stage:', stage);
-    }
-    
-    // Prefer an explicit control tag in replyText: [[TOPIC_CONFIRMED: topic_name]]
-    const topicTagMatch = (replyText || '').match(/\[\[TOPIC_CONFIRMED:\s*([^\]]+)\]\]/i);
-    if (topicTagMatch) {
-      topic = topicTagMatch[1].trim();
-    } else {
-      // If no explicit control tag, attempt to infer a natural-language confirmation
-      // The model may reply in a friendly sentence, e.g.: "So our topic for today would be coffee, is that right?"
-      // Try several regex patterns to extract a short topic phrase from the replyText.
-      const guessTopicFromReply = (text: string | null) => {
-        if (!text) return null;
-        const t = text.replace(/\n+/g, ' ').trim();
-        
-        // Only detect topic from AI responses that are confirming user's topic choice
-        // Avoid detecting from generic AI questions like "What would you like to talk about today?"
-        const confirmationPatterns = [
-          /so let(?:'|)s talk about\s+([a-zA-Z0-9 &\-']{2,60})!/i,
-          /(?:great|awesome|perfect)!?\s+(?:let(?:'|)s talk about|talking about)\s+([a-zA-Z0-9 &\-']{2,60})/i,
-          /(?:i love|love) talking about\s+([a-zA-Z0-9 &\-']{2,60})/i,
-          /(?:our )?topic (?:for today )?(?:would be|is|will be)\s+([a-zA-Z0-9 &\-']{2,60})/i
+      
+      // Infer topic from natural conversation
+      const guessTopicFromReply = (aiText: string, userText: string) => {
+        // First, try to extract from user's message (more reliable)
+        const userPatterns = [
+          /(?:talk about|discuss|chat about|practice)\s+([a-zA-Z0-9 &\-']{2,30})/i,
+          /(?:topic|subject)(?:\s+is)?\s+([a-zA-Z0-9 &\-']{2,30})/i,
+          /(?:i (?:want to|like|love|enjoy))\s+([a-zA-Z0-9 &\-']{2,30})/i
         ];
-
-        for (const re of confirmationPatterns) {
-          const m = t.match(re);
+        
+        for (const re of userPatterns) {
+          const m = userText.match(re);
           if (m && m[1]) {
-            // Clean candidate: trim, remove trailing punctuation, keep short phrase
-            let cand = m[1].trim();
-            cand = cand.replace(/[\.\,\!\?]$/,'').trim();
-            // If candidate contains many words, try to pick a concise label (first 3 words)
-            const parts = cand.split(/\s+/).slice(0,3);
-            return parts.join(' ');
+            let cand = m[1].trim().toLowerCase();
+            // Clean up common words
+            cand = cand.replace(/\b(talk|talking|discuss|chat|practice|about|the|a|an)\b/gi, '').trim();
+            if (cand.length >= 3) {
+              return cand.split(/\s+/).slice(0, 3).join(' ');
+            }
           }
         }
-
-        // Fallback: look for single-word nouns after a short phrase
-        const fallback = t.match(/(?:about|on)\s+([a-zA-Z0-9 &\-']{2,30})(?:[\.\?!\,]|$)/i);
-        if (fallback && fallback[1]) return fallback[1].trim().split(/\s+/).slice(0,3).join(' ');
+        
+        // Fallback: extract from AI confirmation
+        const aiPatterns = [
+          /(?:talk about|talking about|discuss|chat about)\s+([a-zA-Z0-9 &\-']{2,30})/i,
+          /(?:topic|subject)(?:\s+is)?\s+([a-zA-Z0-9 &\-']{2,30})/i
+        ];
+        
+        for (const re of aiPatterns) {
+          const m = aiText.match(re);
+          if (m && m[1]) {
+            let cand = m[1].trim().toLowerCase();
+            cand = cand.replace(/[\.\,\!\?]$/,'').trim();
+            if (cand.length >= 3) {
+              return cand.split(/\s+/).slice(0, 3).join(' ');
+            }
+          }
+        }
+        
         return null;
       };
 
-      const inferred = guessTopicFromReply(replyText || '');
+      const inferred = guessTopicFromReply(replyText || '', text);
       if (inferred) {
         topic = inferred;
+        console.log('✅ Topic detected:', topic);
+      } else {
+        console.log('⚠️ No topic detected yet');
       }
-      
-      // Debug for topic discovery
-      if (stage === 'topic_discovery') {
-        console.log('Natural topic inferred:', inferred);
-        console.log('Final topic:', topic);
-        console.log('=== END DEBUG ===');
-      }
+      console.log('=== END DEBUG ===');
     }
-  // Decide next stage
-  const nextStage = stage === 'topic' ? 'practice' : stage === 'practice' ? 'wrapup' : 'done';
+    
+  const nextStage = stage === 'topic_discovery' ? 'practice' : stage;
 
   console.log(JSON.stringify({ lvl: 'info', ts: new Date().toISOString(), endpoint: '/api/chat', ip, node_env: process.env.NODE_ENV, text_len: text.length, duration_ms: Date.now() - startTime }));
 
-  // Prepare debug holders for Supabase insert responses
   let convInsertResult: any = null;
   let userMsgInsertResult: any = null;
   let aiMsgInsertResult: any = null;
 
-    // ===== Optionally persist conversation + messages to Supabase via REST (service role key) =====
+    // Persist to Supabase
     const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
     const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
     let conversationId: string | null = incomingConversationId;
 
-    // If either value is missing, persistence to Supabase REST will be disabled.
     const persistenceDisabled = !SUPABASE_URL || !SUPABASE_KEY;
     if (persistenceDisabled) {
-      console.warn('Supabase persistence disabled: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured. Messages will not be persisted to the DB.');
+      console.warn('Supabase persistence disabled: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not configured.');
     }
 
     const supabaseHeaders = SUPABASE_KEY
@@ -442,7 +345,6 @@ TECHNICAL / SYSTEM NOTES
 
     async function supabaseInsert(table: string, rows: any[]) {
       if (!SUPABASE_URL || !SUPABASE_KEY) {
-        // Provide clearer diagnostic info in server logs when missing keys.
         console.warn('supabaseInsert skipped for', table, '- service key or url missing');
         return null;
       }
@@ -465,19 +367,22 @@ TECHNICAL / SYSTEM NOTES
     }
 
     try {
-      // Create conversation row when stage is 'topic' and no incomingConversationId
-      if (!conversationId && stage === 'topic' && SUPABASE_URL && SUPABASE_KEY) {
-        const convRows = [{ profile_id: profileId, topic: topic || null, is_placement_test: false, started_at: new Date().toISOString() }];
+      // Create conversation when topic is discovered
+      if (!conversationId && stage === 'topic_discovery' && topic && SUPABASE_URL && SUPABASE_KEY) {
+        const convRows = [{ 
+          profile_id: profileId, 
+          topic: topic || null, 
+          is_placement_test: false, 
+          started_at: new Date().toISOString() 
+        }];
         convInsertResult = await supabaseInsert('conversations', convRows);
-        try {
-          console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_conv_insert: convInsertResult }));
-        } catch (e) {}
+        console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_conv_insert: convInsertResult }));
         if (Array.isArray(convInsertResult) && convInsertResult[0] && convInsertResult[0].id) {
           conversationId = convInsertResult[0].id;
         }
       }
 
-      // If we created/received a conversation but topic wasn't set on creation, update it
+      // Update conversation topic if needed
       if (conversationId && topic && SUPABASE_URL && SUPABASE_KEY) {
         try {
           await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}`, {
@@ -505,9 +410,7 @@ TECHNICAL / SYSTEM NOTES
           created_at: new Date().toISOString()
         };
         userMsgInsertResult = await supabaseInsert('messages', [userMsg]);
-        try {
-          console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_user_message: userMsgInsertResult }));
-        } catch (e) {}
+        console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_user_message: userMsgInsertResult }));
       }
 
       // Insert AI message
@@ -526,51 +429,44 @@ TECHNICAL / SYSTEM NOTES
           created_at: new Date().toISOString()
         };
         aiMsgInsertResult = await supabaseInsert('messages', [aiMsg]);
-        try {
-          console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_ai_message: aiMsgInsertResult }));
-        } catch (e) {}
-      }
-
-      // If wrapup stage, mark conversation ended
-      if (conversationId && stage === 'wrapup' && SUPABASE_URL && SUPABASE_KEY) {
-        try {
-          await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}`, {
-            method: 'PATCH',
-            headers: supabaseHeaders as any,
-            body: JSON.stringify({ ended_at: new Date().toISOString() })
-          });
-        } catch (e) {
-          console.warn('Failed to mark conversation ended', e);
-        }
+        console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_ai_message: aiMsgInsertResult }));
       }
     } catch (e) {
       console.warn('Supabase persistence failed:', e);
     }
 
-  // Include persistence diagnostics so devs can see when DB writes were skipped.
-  const baseResponse: any = { ok: true, replyText, feedback, guidance, tags, conversationId, topic, stage, nextStage };
+  const baseResponse: any = { 
+    ok: true, 
+    replyText, 
+    feedback, 
+    guidance, 
+    tags, 
+    conversationId, 
+    topic, 
+    stage, 
+    nextStage 
+  };
+  
   if (persistenceDisabled) {
     baseResponse.persistence_disabled = true;
-    baseResponse.persistence_warning = 'SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL not configured on the server; messages were not persisted.';
+    baseResponse.persistence_warning = 'SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL not configured; messages not persisted.';
   }
-  // If AI confirmed a topic (either via control tag or natural language), surface it in the response
+  
+  // Signal topic confirmation for topic_discovery stage
   if (typeof topic === 'string' && topic.trim() && stage === 'topic_discovery') {
     baseResponse.topic_confirmed = topic;
-    console.log('Setting topic_confirmed:', topic);
+    console.log('✅ Topic confirmed:', topic);
   }
-  // Attach lightweight debug info in development to help triage topic persistence
-  try {
-    if (process.env.NODE_ENV === 'development') {
-      baseResponse._debug = {
-        topicTag: topicTagMatch ? topicTagMatch[0] : null,
-        topicFromBody: topicFromBody || null,
-        resolvedTopic: topic || null,
-        convInsertResult: convInsertResult ? (Array.isArray(convInsertResult) ? convInsertResult[0] : convInsertResult) : null,
-        userMsgInsertResult: userMsgInsertResult ? (Array.isArray(userMsgInsertResult) ? userMsgInsertResult[0] : userMsgInsertResult) : null,
-        aiMsgInsertResult: aiMsgInsertResult ? (Array.isArray(aiMsgInsertResult) ? aiMsgInsertResult[0] : aiMsgInsertResult) : null
-      };
-    }
-  } catch (e) {}
+  
+  if (process.env.NODE_ENV === 'development') {
+    baseResponse._debug = {
+      resolvedTopic: topic || null,
+      convInsertResult: convInsertResult ? (Array.isArray(convInsertResult) ? convInsertResult[0] : convInsertResult) : null,
+      userMsgInsertResult: userMsgInsertResult ? (Array.isArray(userMsgInsertResult) ? userMsgInsertResult[0] : userMsgInsertResult) : null,
+      aiMsgInsertResult: aiMsgInsertResult ? (Array.isArray(aiMsgInsertResult) ? aiMsgInsertResult[0] : aiMsgInsertResult) : null
+    };
+  }
+  
   return res.status(200).json(baseResponse);
   } catch (e: any) {
     const isAbort = e?.name === 'TimeoutError' || e?.name === 'AbortError';
@@ -580,4 +476,3 @@ TECHNICAL / SYSTEM NOTES
     return res.status(code).json({ error: msg, detail: e?.message || String(e) });
   }
 }
-
