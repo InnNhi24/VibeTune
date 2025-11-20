@@ -407,6 +407,21 @@ export function RecordingControls({
   setView(finalTranscript || (finalRef.current || '').trim());
   setAnalysisProgress(100);
       
+      // Check if we have valid audio and transcription
+      const hasValidAudio = blob && blob.size > 0;
+      const hasValidTranscript = finalTranscript && finalTranscript.trim().length > 0;
+      
+      if (!hasValidAudio || !hasValidTranscript) {
+        // No valid recording - reset to idle state
+        console.warn('⚠️ No valid audio or transcription, resetting to idle');
+        setRecordingState('idle');
+        setRecordedMessage('');
+        setAudioBlob(null);
+        lastBlobRef.current = null;
+        setTranscribeError('No audio recorded. Please try again.');
+        return;
+      }
+      
       if (aiReady && showAIFeedback && finalTranscript) {
         setRecordingState('analyzing');
         setTimeout(() => {
@@ -417,7 +432,11 @@ export function RecordingControls({
       }
     } catch (error) {
       logger.error('Failed to stop recording:', error);
-      setRecordingState('ready');
+      // On error, reset to idle instead of ready
+      setRecordingState('idle');
+      setRecordedMessage('');
+      setAudioBlob(null);
+      lastBlobRef.current = null;
     }
   };
 
