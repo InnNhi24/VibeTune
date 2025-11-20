@@ -202,7 +202,7 @@ class AIProsodyService {
       }
 
       // Convert API response to ProsodyAnalysis format
-      const analysis: ProsodyAnalysis = {
+      const analysis: ProsodyAnalysis & { transcription?: string } = {
         overall_score: result.prosody_analysis.overall_score * 100, // Convert to percentage
         pronunciation_score: result.prosody_analysis.pronunciation_score * 100,
         rhythm_score: result.prosody_analysis.rhythm_score * 100,
@@ -215,7 +215,9 @@ class AIProsodyService {
         },
         word_level_analysis: this.generateWordLevelAnalysis(result.transcription),
         suggestions: result.prosody_analysis.detailed_feedback.improvements || [],
-        next_focus_areas: this.generateNextFocusAreas(context, result.prosody_analysis.overall_score * 100)
+        next_focus_areas: this.generateNextFocusAreas(context, result.prosody_analysis.overall_score * 100),
+        // Include transcription so ChatPanel can use it for message content
+        transcription: result.transcription
       };
 
       console.log('✅ [PROSODY] REAL analysis complete!', {

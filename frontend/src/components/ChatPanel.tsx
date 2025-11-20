@@ -692,17 +692,20 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             context
           );
 
-          // Update the message with analysis
+          // Update the message with analysis AND transcription
           console.log('✅ [ChatPanel] Prosody analysis complete, updating message:', {
             messageId,
             hasAnalysis: !!prosodyAnalysis,
-            overallScore: prosodyAnalysis?.overall_score
+            overallScore: prosodyAnalysis?.overall_score,
+            transcription: (prosodyAnalysis as any)?.transcription?.substring(0, 50)
           });
           
           setMessages(prev => prev.map(msg => 
             msg.id === messageId 
               ? { 
                   ...msg, 
+                  // Update text with actual transcription from prosody analysis
+                  text: (prosodyAnalysis as any)?.transcription || msg.text,
                   prosodyAnalysis, 
                   isProcessing: false,
                   // Also update prosodyFeedback for MessageBubble display
