@@ -673,8 +673,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         let aiResponse: AIResponse;
 
         // If it's audio and AI is ready, analyze it
+        console.log('🔍 [ChatPanel] Checking prosody analysis conditions:', {
+          isAudio,
+          hasAudioBlob: !!audioBlob,
+          audioBlobSize: audioBlob?.size,
+          aiReady,
+          willAnalyze: isAudio && audioBlob && aiReady
+        });
+        
         if (isAudio && audioBlob && aiReady) {
         const context = buildConversationContext();
+        console.log('✅ [ChatPanel] Starting prosody analysis...');
         
           try {
           prosodyAnalysis = await aiProsodyService.analyzeAudio(
