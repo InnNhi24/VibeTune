@@ -468,15 +468,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             // AI will return topic_confirmed when it's confident about the topic
             if (data.topic_confirmed) {
               console.log('✅ Topic confirmed! Creating conversation for:', data.topic_confirmed);
-              
-              // Update UI state - topic is now LOCKED for this session
-              setCurrentTopic(data.topic_confirmed);
-              setWaitingForTopic(false);
-              
-              // Update store topic to ensure consistency
-              if (onTopicChange) {
-                onTopicChange(data.topic_confirmed);
-              }
+
+                // Topic is now locked for this session; stop waiting for topic.
+                // We DO NOT set global currentTopic here to avoid racing with the
+                // "missing conversation" creation logic that listens for topic changes
+                // and may create a conversation prematurely. We'll set the global
+                // topic after the conversation has been created and set active.
+                setWaitingForTopic(false);
 
               // Create unique conversation ID for this session
               let finalConvId = data.conversationId || convId;
@@ -510,8 +508,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   return;
                 }
                 
-                // Check if conversation already exists
-                const existingConv = useAppStore.getState().conversations.find(c => c.id === finalConvId);
+                // Check if conversation already exists (by id OR by topic) to avoid duplicates
+                const existingConv = useAppStore.getState().conversations.find(c => c.id === finalConvId || c.topic === data.topic_confirmed);
                 if (!existingConv) {
                   const newConv = {
                     id: finalConvId,
@@ -571,9 +569,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   }, 100);
                 }
                 
-                // Set as active conversation and update topic in store
+                // Set as active conversation and THEN update topic in both local UI and store
+                // Doing this after creation avoids the race where other effects see a
+                // topic change and create a separate conversation.
                 setActiveConversation(finalConvId);
                 setCurrentTopic(data.topic_confirmed);
+                if (onTopicChange) {
+                  onTopicChange(data.topic_confirmed);
+                }
                 
                 // Update URL without navigation (optional - for browser history)
                 if (window.history && window.history.pushState) {

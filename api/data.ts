@@ -338,7 +338,10 @@ async function handleGetHistory(req: VercelRequest, res: VercelResponse) {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
       const token = authHeader.substring(7);
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      // Guard against malformed tokens: token.split('.')[1] may be undefined
+      const tokenBody = (token.split('.')[1] || '') as string;
+      const decoded = Buffer.from(tokenBody || '', 'base64').toString() || '{}';
+      const payload = JSON.parse(decoded);
       userId = payload.sub || payload.user_id;
     } catch (e) {
       console.warn('Failed to parse token:', e);

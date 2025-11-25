@@ -1,7 +1,12 @@
+import dotenv from 'dotenv';
+// Load environment variables before importing modules that initialize
+// clients using env vars (OpenAI, Supabase, etc.). This prevents
+// "Missing credentials" errors when those modules initialize at import time.
+dotenv.config();
+
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import chatRoute from './routes/chat';
 import placementScoreRoute from './routes/placementScore';
@@ -12,6 +17,7 @@ import speechRoute from './routes/liveTranscribe';
 import synthesizeRoute from './routes/synthesize';
 import analyzeProsodyRoute, { analyzeProsodyMiddleware } from './routes/analyzeProsody';
 import chatStreamRoute from './routes/chatStream';
+import dataProxy from './routes/dataProxy';
 import { 
   securityHeaders, 
   sanitizeInput, 
@@ -61,6 +67,8 @@ app.post('/api/chat-stream', rateLimits.ai, chatStreamRoute);
 
 // API routes with rate limiting
 app.post('/api/chat', rateLimits.ai, chatRoute);
+// Proxy legacy /api/data Vercel function to local Express route
+app.all('/api/data', dataProxy);
 app.post('/api/placement-score', rateLimits.general, placementScoreRoute);
 app.post('/api/events-ingest', rateLimits.general, eventsIngestRoute);
 app.post('/api/feedback', rateLimits.general, feedbackRoute);
