@@ -244,10 +244,12 @@ export const useAppStore = create<AppStore>()(
           // Only clear if really needed, otherwise keep messages for history
         },
         // Conversations management
+        // Add conversation to the list without automatically switching active conversation.
+        // Previously this auto-set `activeConversationId`, which caused sync or bulk
+        // restores to change the currently viewed conversation unexpectedly.
         addConversation: (conversation) => {
           set((state) => ({
-            conversations: [conversation, ...state.conversations],
-            activeConversationId: conversation.id
+            conversations: [conversation, ...state.conversations]
           }));
         },
         
