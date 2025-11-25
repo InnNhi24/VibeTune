@@ -350,7 +350,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       text: messageText.trim(),
       stage: waitingForTopic ? 'topic_discovery' : 'practice',
       topic: waitingForTopic ? undefined : currentTopic, // Always send fixed topic in practice mode
-      conversationId: conversationId,
+      // Use the locally-created convId to ensure the API receives the conversation id
+      // even though React state updates are async.
+      conversationId: convId,
       profileId: profile?.id || null,
       level: safeLevel,
       conversationHistory: conversationHistory,
