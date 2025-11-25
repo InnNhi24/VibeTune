@@ -114,41 +114,8 @@ async function handleSaveMessage(req: VercelRequest, res: VercelResponse) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Check if conversation exists, if not, create a placeholder
-      if (message.conversation_id && message.profile_id) {
-        const { data: convExists, error: convCheckError } = await supabase
-          .from('conversations')
-          .select('id')
-          .eq('id', message.conversation_id)
-          .maybeSingle();
-
-        if (!convExists && !convCheckError) {
-          console.log('📝 Conversation does not exist, creating placeholder:', message.conversation_id);
-          
-          // Create a placeholder conversation
-          const { error: convCreateError } = await supabase
-            .from('conversations')
-            .insert({
-              id: message.conversation_id,
-              profile_id: message.profile_id,
-              topic: 'New Conversation',
-              title: 'New Conversation',
-              is_placement_test: false,
-              started_at: new Date().toISOString()
-            });
-
-          if (convCreateError) {
-            console.error('❌ Failed to create placeholder conversation:', convCreateError);
-            return res.status(200).json({ 
-              success: true, 
-              message: 'Message saved locally (failed to create conversation)',
-              error: convCreateError.message
-            });
-          }
-          
-          console.log('✅ Placeholder conversation created');
-        }
-      }
+      // Don't create placeholder conversation here - client will create it when topic is confirmed
+      // This prevents duplicate conversations with "New Conversation" topic
 
       // Don't save audio_url if it's a Blob object (can't serialize)
       const messageData = {
