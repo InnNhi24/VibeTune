@@ -164,23 +164,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
         console.log('🔍 [ChatPanel] Found', msgs.length, 'messages for this conversation');
         
-        // Only update if we have more messages from store, or if local is empty
-        // This prevents overriding local messages that haven't been synced yet
-        setMessages(prev => {
-          // If store has more messages, use store data
-          if (msgs.length > prev.length) {
-            console.log('🔄 [ChatPanel] Updating from store (more messages)');
-            return msgs;
-          }
-          // If local is empty, use store data
-          if (prev.length === 0) {
-            console.log('🔄 [ChatPanel] Updating from store (local empty)');
-            return msgs;
-          }
-          // Otherwise keep local messages (they may be newer)
-          console.log('🔄 [ChatPanel] Keeping local messages (may have unsaved messages)');
-          return prev;
-        });
+        // Always load messages from store when conversation changes
+        // Store is the source of truth for conversation history
+        console.log('🔄 [ChatPanel] Loading messages from store for conversation:', activeConversationId);
+        setMessages(msgs);
         
         if (msgs.length > 0) {
           setWaitingForTopic(false);
