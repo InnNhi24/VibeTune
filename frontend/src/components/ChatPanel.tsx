@@ -737,6 +737,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   text: (prosodyAnalysis as any)?.transcription || msg.text,
                   prosodyAnalysis, 
                   isProcessing: false,
+                  // IMPORTANT: Preserve audioBlob for playback!
+                  audioBlob: msg.audioBlob,
+                  isAudio: msg.isAudio,
                   // Also update prosodyFeedback for MessageBubble display
                   prosodyFeedback: prosodyAnalysis ? {
                     overall_score: prosodyAnalysis.overall_score,
