@@ -273,7 +273,7 @@ class AIProsodyService {
       // Extract pronunciation mistakes from prosody analysis
       const lastMistakes = prosodyAnalysis?.detailed_feedback?.specific_issues?.map(issue => issue.word) || [];
       
-      // Call backend API for AI response with FIXED topic
+      // Call backend API for AI response with FIXED topic + PROSODY SCORES
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -287,6 +287,13 @@ class AIProsodyService {
           stage: 'practice', // Always practice mode when using this service
           level: context.user_level.toLowerCase(),
           lastMistakes: lastMistakes, // Send pronunciation issues for AI to address
+          prosodyScores: prosodyAnalysis ? {
+            overall: prosodyAnalysis.overall_score,
+            pronunciation: prosodyAnalysis.pronunciation_score,
+            rhythm: prosodyAnalysis.rhythm_score,
+            intonation: prosodyAnalysis.intonation_score,
+            fluency: prosodyAnalysis.fluency_score
+          } : null, // Pass actual scores for AI to generate dynamic feedback
           deviceId: localStorage.getItem('device_id') || undefined
         })
       });

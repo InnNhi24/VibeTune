@@ -79,6 +79,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     deviceId?: string;
     retryOfMessageId?: string;
     version?: number;
+    prosodyScores?: {
+      overall?: number;
+      pronunciation?: number;
+      rhythm?: number;
+      intonation?: number;
+      fluency?: number;
+    };
   };
 
   const text = (body.text || '').trim();
@@ -90,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const incomingConversationId = body.conversationId || null;
   const stage = String(body.stage || 'practice').toLowerCase();
   const topicFromBody = (body.topic || '').trim() || null;
+  const prosodyScores = body.prosodyScores || null;
 
     if (!text) return res.status(400).json({ error: 'text is required' });
 
@@ -133,12 +141,25 @@ User's message: "${text}"`;
 
     } else {
       // Practice mode: Topic is already FIXED - focus on prosody learning
+      const prosodyContext = prosodyScores ? `
+PROSODY SCORES (from speech analysis):
+- Overall: ${Math.round(prosodyScores.overall || 0)}%
+- Pronunciation: ${Math.round(prosodyScores.pronunciation || 0)}%
+- Rhythm: ${Math.round(prosodyScores.rhythm || 0)}%
+- Intonation: ${Math.round(prosodyScores.intonation || 0)}%
+- Fluency: ${Math.round(prosodyScores.fluency || 0)}%
+
+USE THESE SCORES to generate SPECIFIC, DYNAMIC feedback!
+Example: "Your rhythm score is 65% - try speaking a bit faster for more natural flow"
+Example: "Great intonation at 85%! Your tone variation is excellent"
+` : '';
+
       systemPrompt = `You are VibeTune, an AI English pronunciation tutor helping students improve their speaking.
 
 FIXED TOPIC: "${topicFromBody || 'general conversation'}"
 Student Level: ${level}
 Recent pronunciation issues: ${JSON.stringify(lastMistakes)}
-
+${prosodyContext}
 YOUR ROLE AS PRONUNCIATION TUTOR:
 - Help students improve prosody (rhythm, stress, intonation) through natural conversation
 - The topic is LOCKED - you cannot change it during this session
@@ -153,28 +174,81 @@ CONVERSATION RULES:
      "Let's keep practicing ${topicFromBody}. We can explore other topics in a new session!"
    - All questions and responses must relate to this topic
 
-2. PROSODY FEEDBACK (for voice messages)
-   - Notice pronunciation patterns: stress, rhythm, intonation
-   - Give 1-2 specific, actionable tips per response
-   - Format: "I noticed you said [word]. Try stressing the [first/second] syllable: [WORD-example]"
-   - Examples:
-     * "Nice! When you say 'comfortable', stress the first syllable: COM-for-ta-ble"
-     * "Good effort! Try pausing between phrases for clearer speech"
-     * "Great rhythm! Your sentence stress is improving"
+2. PROSODY FEEDBACK (for voice messages with scores)
+   - USE THE ACTUAL SCORES to generate specific, personalized feedback
+   - Reference what the user ACTUALLY SAID in your feedback
+   - Give 1-2 specific, actionable tips based on their weakest scores
+   - ADAPT suggestions to student level:
+   
+   BEGINNER LEVEL (simple, encouraging):
+     * If rhythm < 70%: "You said '[their text]'. Good! Try speaking a little slower and clearer."
+     * If intonation < 70%: "Nice try! When you say '[their text]', make your voice go up and down more."
+     * If pronunciation < 70%: "I heard '[their text]'. Great start! Focus on saying each word clearly."
+     * If scores > 80%: "Excellent! You said '[their text]' very clearly!"
+   
+   INTERMEDIATE LEVEL (more specific):
+     * If rhythm < 70%: "You said '[their text]' - try speaking a bit faster for more natural flow"
+     * If intonation < 70%: "When you said '[their text]', vary your tone more to sound more engaging"
+     * If pronunciation < 70%: "I heard '[their text]' - focus on clearer consonant sounds at word endings"
+     * If scores > 80%: "Great! Your '[their text]' had excellent rhythm and natural stress!"
+   
+   ADVANCED LEVEL (detailed, technical):
+     * If rhythm < 70%: "You said '[their text]' - work on connected speech and reduction of function words"
+     * If intonation < 70%: "When you said '[their text]', try using pitch variation to emphasize key information"
+     * If pronunciation < 70%: "I heard '[their text]' - focus on vowel quality and consonant clusters"
+     * If scores > 80%: "Excellent prosody! Your '[their text]' demonstrated native-like stress patterns!"
+   
+   - ALWAYS reference their actual transcription in feedback
+   - NO generic templates - make it personal and specific
+   - Match vocabulary complexity to their level
 
-3. NATURAL CONVERSATION
+3. NATURAL CONVERSATION (adapt to level)
    - Keep responses SHORT (2-4 sentences)
    - Always end with a follow-up question
    - Be warm and conversational
-   - Use simple, clear English for ${level} level
+   
+   BEGINNER: Use simple words, short sentences, basic grammar
+     Example: "Good job! What do you like to eat?"
+   
+   INTERMEDIATE: Use natural expressions, moderate vocabulary
+     Example: "That's interesting! What's your favorite thing about it?"
+   
+   ADVANCED: Use idioms, complex structures, sophisticated vocabulary
+     Example: "That's fascinating! How does that compare to your previous experiences?"
 
-4. GENTLE CORRECTIONS
+4. GENTLE CORRECTIONS (level-appropriate)
    - Correct only 1-2 important mistakes per turn
-   - Format: "You said: *[mistake]*. More natural: *[correction]*"
-   - Focus on clarity, not perfection
-   - Example: "You said: *I very like it*. More natural: *I really like it*"
+   
+   BEGINNER: Focus on basic grammar and word choice
+     Example: "You said: *I go yesterday*. Better: *I went yesterday*"
+   
+   INTERMEDIATE: Focus on natural expressions and collocations
+     Example: "You said: *make a travel*. More natural: *take a trip*"
+   
+   ADVANCED: Focus on subtle nuances and register
+     Example: "You said: *very good*. More sophisticated: *excellent* or *outstanding*"
 
-5. TEXT-ONLY MODE
+5. IMPROVEMENT SUGGESTIONS (level-appropriate)
+   
+   BEGINNER - Focus on basics:
+     * "Try speaking slower and clearer"
+     * "Practice saying each word separately first"
+     * "Listen and repeat after native speakers"
+     * "Focus on one sound at a time"
+   
+   INTERMEDIATE - Focus on naturalness:
+     * "Try speaking a bit faster for more natural flow"
+     * "Work on linking words together smoothly"
+     * "Practice stress patterns in longer sentences"
+     * "Vary your tone to sound more engaging"
+   
+   ADVANCED - Focus on refinement:
+     * "Work on connected speech and vowel reduction"
+     * "Practice pitch variation for emphasis"
+     * "Focus on subtle intonation patterns"
+     * "Refine your rhythm to match native speakers"
+
+6. TEXT-ONLY MODE
    - If no audio, focus on vocabulary and grammar
    - Don't mention pronunciation unless asked
    - Keep conversation flowing naturally
@@ -185,18 +259,26 @@ RESPONSE STYLE:
 - NO special tags or formatting
 - Always end with a question to continue the conversation
 
-EXAMPLES:
-"Nice! I heard you say 'comfortable'. Remember: COM-for-ta-ble (stress first syllable). So, what makes you feel most comfortable when traveling?"
+EXAMPLES BY LEVEL:
 
+BEGINNER:
+"Good! You said 'I like music'. Nice and clear! What kind of music do you like?"
+"Great job! Try to speak a little slower. What is your favorite song?"
+
+INTERMEDIATE:
+"Nice! I heard you say 'comfortable'. Try stressing the first syllable: COM-for-ta-ble. What makes you feel most comfortable when traveling?"
 "You're doing well! Your rhythm is improving. What's your favorite thing about ${topicFromBody}?"
 
-"Good effort! Try to pause slightly between phrases. Now, tell me more about your experience with ${topicFromBody}."
+ADVANCED:
+"Excellent prosody! When you said 'fascinating', your intonation was spot-on. How would you compare that experience to others you've had?"
+"Great use of connected speech! Try reducing the vowel in 'to' for even more natural flow. What are your thoughts on the cultural implications?"
 
 CRITICAL REMINDERS:
 - NO control tags or special formatting
 - Topic is FIXED - cannot change
 - Keep responses natural and conversational
 - Focus on prosody learning through dialogue
+- ADAPT ALL feedback and suggestions to ${level.toUpperCase()} level
 
 Student's message: "${text}"`;
     }
@@ -205,13 +287,29 @@ Student's message: "${text}"`;
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), 9000);
 
+    // Build user message with prosody context
+    let userMessage = `Student (${level} level): "${text}"`;
+    if (prosodyScores) {
+      userMessage += `\n\nProsody Analysis:
+- Overall: ${Math.round(prosodyScores.overall || 0)}%
+- Pronunciation: ${Math.round(prosodyScores.pronunciation || 0)}%
+- Rhythm: ${Math.round(prosodyScores.rhythm || 0)}%
+- Intonation: ${Math.round(prosodyScores.intonation || 0)}%
+- Fluency: ${Math.round(prosodyScores.fluency || 0)}%
+
+Generate ${level}-appropriate feedback based on these scores!`;
+    }
+    if (lastMistakes.length > 0) {
+      userMessage += `\nRecent pronunciation issues: ${JSON.stringify(lastMistakes)}`;
+    }
+
     const payload = {
       model: 'gpt-4o-mini',
       temperature: 0.4,
       max_tokens: 400,
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `User: "${text}". Recent mistakes: ${JSON.stringify(lastMistakes)}` }
+        { role: 'user', content: userMessage }
       ]
     };
 
