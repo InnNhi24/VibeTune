@@ -346,6 +346,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     // Prepare payload - always include topic if it's fixed
     const store = useAppStore.getState();
     const profile = store.user;
+    
+    // Calculate turn count (number of user messages in this conversation)
+    const userMessageCount = messages.filter(m => m.isUser).length + 1; // +1 for current message
+    
     const payload = {
       text: messageText.trim(),
       stage: waitingForTopic ? 'topic_discovery' : 'practice',
@@ -356,7 +360,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       profileId: profile?.id || null,
       level: safeLevel,
       conversationHistory: conversationHistory,
-      lastMistakes: [] // TODO: Track pronunciation mistakes
+      lastMistakes: [], // TODO: Track pronunciation mistakes
+      turnCount: userMessageCount // Track conversation progress for session management
     } as any;
     
     // Only allow topic discovery when waiting for topic

@@ -261,7 +261,8 @@ class AIProsodyService {
   async generateResponse(
     userInput: string,
     context: ConversationContext,
-    prosodyAnalysis?: ProsodyAnalysis
+    prosodyAnalysis?: ProsodyAnalysis,
+    turnCount?: number
   ): Promise<AIResponse> {
     if (!this.isConfigured) {
       throw new Error('AI service not configured');
@@ -294,6 +295,7 @@ class AIProsodyService {
             intonation: prosodyAnalysis.intonation_score,
             fluency: prosodyAnalysis.fluency_score
           } : null, // Pass actual scores for AI to generate dynamic feedback
+          turnCount: turnCount || 0, // Track conversation progress for session management
           deviceId: localStorage.getItem('device_id') || undefined
         })
       });

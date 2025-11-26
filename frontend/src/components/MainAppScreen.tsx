@@ -276,7 +276,6 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
     {/* Chat Panel - Relative container for absolute positioned ChatPanel */}
   <main className="flex-1 p-4 relative">
       <ChatPanel
-        key={activeConversationId || 'new'} // Force re-mount when switching conversations
         topic={currentTopic}
         level={currentLevel}
         onTopicChange={setCurrentTopic}
