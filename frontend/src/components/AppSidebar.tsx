@@ -364,7 +364,7 @@ export function AppSidebar({
                         {/* Topic Header */}
                         <div className="flex items-center gap-2 px-2 py-1 bg-sidebar-accent/20 rounded">
                           <TopicIcon className="w-3 h-3 text-sidebar-accent" />
-                          <span className="text-xs font-medium text-sidebar-foreground">{topicName}</span>
+                          <span className="text-xs font-medium text-sidebar-foreground">{capitalizeTitle(topicName)}</span>
                           <div className="flex-1" />
                           <Badge variant="outline" className="text-xs">
                             {topicConversations.length} session{topicConversations.length !== 1 ? 's' : ''}
