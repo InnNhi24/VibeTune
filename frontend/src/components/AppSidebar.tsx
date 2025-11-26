@@ -326,7 +326,7 @@ export function AppSidebar({
         </div>
 
         {/* Conversation History - Scrollable Section */}
-        <div className={`sidebar-scrollable-section px-4 ${isHistoryOpen ? 'flex-1 min-h-0 overflow-hidden' : 'flex-shrink-0'}`}>
+        <div className={`sidebar-scrollable-section px-4 pb-2 ${isHistoryOpen ? 'flex-1 min-h-0 overflow-hidden' : 'flex-shrink-0'}`}>
           <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
             <CollapsibleTrigger asChild>
               <Button variant="outline" className="w-full justify-between">
@@ -339,9 +339,9 @@ export function AppSidebar({
                 }`} />
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="flex-1 min-h-0">
+            <CollapsibleContent className="flex-1 min-h-0 overflow-hidden">
               {isHistoryOpen && (
-                <ScrollArea className="sidebar-history-scroll mt-2" style={{ height: 'calc(100vh - 500px)' }}>
+                <ScrollArea className="sidebar-history-scroll mt-2 h-full">
                   <div className="space-y-3 pr-1 pb-4">
                 {conversations.length === 0 ? (
                   <Card>
@@ -494,8 +494,8 @@ export function AppSidebar({
         </div>
       </div>
 
-      {/* Settings Footer */}
-      <div className="sidebar-fixed-section p-4 border-t border-sidebar-border space-y-2">
+      {/* Settings Footer - Always visible */}
+      <div className="sidebar-fixed-section flex-shrink-0 p-4 border-t border-sidebar-border space-y-2">
         <Button 
           variant="outline" 
           className="w-full justify-start"
@@ -505,8 +505,6 @@ export function AppSidebar({
           <Settings className="w-4 h-4 mr-2" />
           Settings
         </Button>
-        
-
       </div>
     </div>
   );
