@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-// Progress component not used here
-import { ScrollArea } from "./ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { 
   GraduationCap, 
@@ -325,11 +323,11 @@ export function AppSidebar({
 
         </div>
 
-        {/* Conversation History - Scrollable Section */}
-        <div className={`sidebar-scrollable-section px-4 pb-2 ${isHistoryOpen ? 'flex-1 min-h-0 overflow-hidden' : 'flex-shrink-0'}`}>
-          <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        {/* Conversation History - Scrollable Section with FIXED HEIGHT */}
+        <div className="px-4 pb-2 flex-1 min-h-0 flex flex-col">
+          <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen} className="flex flex-col min-h-0">
             <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
+              <Button variant="outline" className="w-full justify-between flex-shrink-0">
                 <span className="flex items-center gap-2">
                   <MessageCircle className="w-4 h-4" />
                   History ({conversations.length})
@@ -341,7 +339,7 @@ export function AppSidebar({
             </CollapsibleTrigger>
             <CollapsibleContent className="flex-1 min-h-0 overflow-hidden">
               {isHistoryOpen && (
-                <ScrollArea className="sidebar-history-scroll mt-2" style={{ maxHeight: 'calc(100vh - 550px)', minHeight: '200px' }}>
+                <div className="mt-2 h-full overflow-y-auto overflow-x-hidden custom-scrollbar">
                   <div className="space-y-3 pr-2 pb-4">
                 {conversations.length === 0 ? (
                   <Card>
@@ -487,7 +485,7 @@ export function AppSidebar({
                   })
                 )}
                   </div>
-                </ScrollArea>
+                </div>
               )}
             </CollapsibleContent>
           </Collapsible>
