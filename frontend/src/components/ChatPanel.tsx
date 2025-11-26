@@ -9,6 +9,7 @@ import { Textarea } from "./ui/textarea";
 import { MessageBubble } from "./MessageBubble";
 import { RecordingControls } from "./RecordingControls";
 import { ProsodyFeedback } from "./ProsodyFeedback";
+import { ProsodyScoreCard } from "./ProsodyScoreCard";
 import { AIConnectionStatus } from "./AIConnectionStatus";
 import { Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -973,7 +974,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             // Debug: Rendering individual message
             return (
             // mark the last message with a data attribute so the scroll effect can target it
-            <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined}>
+            <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined} className="space-y-3">
               <MessageBubble
                 message={message.text}
                 isUser={message.isUser}
@@ -993,6 +994,20 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 onAnalysisView={message.prosodyAnalysis ? () => handleAnalysisView(message.prosodyAnalysis!) : undefined}
                 onRetry={() => handleRetryRecording(message.id)}
               />
+              
+              {/* Show Prosody Score Card for audio messages with analysis */}
+              {message.isUser && message.isAudio && message.prosodyAnalysis && !message.isProcessing && (
+                <div className="ml-12">
+                  <ProsodyScoreCard
+                    overall={message.prosodyAnalysis.overall_score}
+                    pronunciation={message.prosodyAnalysis.pronunciation_score}
+                    rhythm={message.prosodyAnalysis.rhythm_score}
+                    intonation={message.prosodyAnalysis.intonation_score}
+                    fluency={message.prosodyAnalysis.fluency_score}
+                    compact={true}
+                  />
+                </div>
+              )}
             </div>
             );
           })}
