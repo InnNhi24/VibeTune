@@ -72,15 +72,19 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setCurrentTopic(topic);
       // If topic is already established, don't wait for topic confirmation
       setWaitingForTopic(false);
+      // Sync conversationId with activeConversationId when switching conversations
+      if (activeConversationId) {
+        setConversationId(activeConversationId);
+      }
     } else if (topic === "New Conversation" && currentTopic !== "New Conversation") {
       // New session started - reset everything
       setCurrentTopic("New Conversation");
       setWaitingForTopic(true);
       setMessages([]);
       setConversationHistory([]);
-      setConversationId(null);
+      setConversationId(null); // Reset for new conversation
     }
-  }, [topic, currentTopic]);
+  }, [topic, currentTopic, activeConversationId]);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
   // Removed scroll button - not needed
   const [conversationId, setConversationId] = useState<string | null>(null);
