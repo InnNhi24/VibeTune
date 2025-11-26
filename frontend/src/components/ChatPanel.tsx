@@ -307,40 +307,43 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     // Get or create conversation ID - needed for saving messages
     let convId = conversationId || activeConversationId;
     if (!convId) {
-      // Create conversation ID immediately, even during topic discovery
+      // Create conversation ID immediately
       convId = crypto.randomUUID();
       setConversationId(convId);
       console.log('🆔 Created new conversation ID:', convId);
       
-      // Create conversation in database IMMEDIATELY to avoid foreign key errors
-      const store = useAppStore.getState();
-      if (store.user) {
-        const newConv = {
-          id: convId,
-          profile_id: store.user.id,
-          topic: currentTopic || 'New Conversation',
-          title: currentTopic || 'New Conversation',
-          is_placement_test: false,
-          started_at: new Date().toISOString()
-        };
-        
-        // Add to local store
-        addConversation(newConv);
-        
-        // Save to database (non-blocking)
-        fetch('/api/data?action=save-conversation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newConv)
-        }).then(async response => {
-          if (response.ok) {
-            console.log('✅ Conversation created in database:', convId);
-          } else {
-            console.error('❌ Failed to create conversation in database:', await response.text());
-          }
-        }).catch(error => {
-          console.error('❌ Error creating conversation:', error);
-        });
+      // Only create conversation in database if NOT in topic discovery mode
+      // During topic discovery, conversation will be created when topic is confirmed
+      if (!waitingForTopic) {
+        const store = useAppStore.getState();
+        if (store.user) {
+          const newConv = {
+            id: convId,
+            profile_id: store.user.id,
+            topic: currentTopic,
+            title: currentTopic,
+            is_placement_test: false,
+            started_at: new Date().toISOString()
+          };
+          
+          // Add to local store
+          addConversation(newConv);
+          
+          // Save to database (non-blocking)
+          fetch('/api/data?action=save-conversation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newConv)
+          }).then(async response => {
+            if (response.ok) {
+              console.log('✅ Conversation created in database:', convId);
+            } else {
+              console.error('❌ Failed to create conversation in database:', await response.text());
+            }
+          }).catch(error => {
+            console.error('❌ Error creating conversation:', error);
+          });
+        }
       }
     }
     
