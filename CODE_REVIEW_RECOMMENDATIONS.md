@@ -2,19 +2,18 @@
 
 ## 🔴 CRITICAL BUGS (Fix Immediately)
 
-### 1. Missing Store Method
-**File**: `frontend/src/components/MainAppScreen.tsx:98`
-**Issue**: Calls `store.clearActiveSession()` which doesn't exist
-**Impact**: Runtime error when clicking "New Conversation"
-**Fix**: Add method to `appStore.ts` or remove the call
+### ~~1. Missing Store Method~~ ✅ FIXED
+**Status**: FALSE ALARM - Method exists at `appStore.ts:637-645`
+**Note**: `clearActiveSession()` is properly implemented and working
 
-```typescript
-// Add to appStore.ts
-clearActiveSession: () => set({ 
-  activeConversationId: null,
-  currentTopic: 'New Conversation'
-}),
-```
+---
+
+## 🔴 CRITICAL BUGS - REAL ISSUES
+
+### 1. ~~Old Messages Not Loading~~ ✅ FIXED (2024-11-27)
+**Issue**: Messages from old conversations not loading when switching
+**Fix**: Changed ChatPanel to always load from store (source of truth)
+**Status**: RESOLVED
 
 ---
 
@@ -143,10 +142,11 @@ Turn 8/15 ████████░░░░░░░
 ## 🎯 IMPLEMENTATION PRIORITY
 
 ### Phase 1 (This Week):
-1. ✅ Fix `clearActiveSession` bug
-2. ✅ Add recording visual feedback
-3. ✅ Show prosody scores prominently
-4. ✅ Add session progress indicator
+1. ✅ ~~Fix `clearActiveSession` bug~~ (False alarm - already exists)
+2. ✅ Fix old messages not loading (DONE 2024-11-27)
+3. ⬜ Add recording visual feedback
+4. ⬜ Show prosody scores prominently
+5. ⬜ Add session progress indicator
 
 ### Phase 2 (Next Week):
 5. Add session summary
@@ -167,7 +167,7 @@ Turn 8/15 ████████░░░░░░░
 1. **Add recording timer**: 5 minutes to implement
 2. **Show turn count**: "Turn 8/15" - 2 minutes
 3. **Add loading spinners**: 10 minutes
-4. **Fix clearActiveSession bug**: 2 minutes
+4. ~~**Fix clearActiveSession bug**~~: Already exists ✅
 
 ---
 

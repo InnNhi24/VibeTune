@@ -611,25 +611,80 @@ export function RecordingControls({
             className="space-y-3"
           >
             {recordingState === 'recording' && (
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
-                <span className="text-sm font-medium">Recording</span>
-                <Badge variant="outline" className="bg-destructive/10 text-destructive">
-                  {formatTime(recordingTime)}
-                </Badge>
-              </div>
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-destructive/10 border-2 border-destructive/30 rounded-xl p-4 space-y-3"
+              >
+                {/* Recording Header with Pulsing Dot */}
+                <div className="flex items-center justify-center gap-3">
+                  <motion.div 
+                    className="w-4 h-4 bg-destructive rounded-full"
+                    animate={{ 
+                      scale: [1, 1.3, 1],
+                      opacity: [1, 0.6, 1]
+                    }}
+                    transition={{ 
+                      duration: 1.5, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  />
+                  <span className="text-lg font-bold text-destructive">Recording...</span>
+                  <Badge variant="destructive" className="text-base px-3 py-1 font-mono">
+                    {formatTime(recordingTime)}
+                  </Badge>
+                </div>
+                
+                {/* Waveform Animation */}
+                <div className="flex items-center justify-center gap-1 h-12">
+                  {[...Array(20)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="w-1 bg-destructive rounded-full"
+                      animate={{
+                        height: [
+                          Math.random() * 20 + 10,
+                          Math.random() * 40 + 20,
+                          Math.random() * 20 + 10
+                        ]
+                      }}
+                      transition={{
+                        duration: 0.5 + Math.random() * 0.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: i * 0.05
+                      }}
+                    />
+                  ))}
+                </div>
+                
+                {/* Instruction Text */}
+                <p className="text-center text-sm text-muted-foreground">
+                  🎤 Speak clearly into your microphone
+                </p>
+              </motion.div>
             )}
             
             {(recordingState === 'processing' || recordingState === 'analyzing') && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-accent" />
-                  <span className="text-sm text-muted-foreground">
-                    {recordingState === 'processing' ? 'Processing audio...' : 'AI analyzing pronunciation...'}
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-accent/10 border-2 border-accent/30 rounded-xl p-4 space-y-3"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-accent" />
+                  <span className="text-base font-semibold text-accent">
+                    {recordingState === 'processing' ? '⚙️ Processing audio...' : '🤖 AI analyzing pronunciation...'}
                   </span>
                 </div>
-                <Progress value={analysisProgress} className="h-1" />
-              </div>
+                <div className="space-y-2">
+                  <Progress value={analysisProgress} className="h-2" />
+                  <p className="text-center text-xs text-muted-foreground">
+                    {analysisProgress}% complete
+                  </p>
+                </div>
+              </motion.div>
             )}
 
             {/* Incremental feedback removed to avoid AI calls while recording. */}
@@ -694,13 +749,43 @@ export function RecordingControls({
             className={getRecordButtonClass()}
             disabled={disabled || recordingState === 'processing' || recordingState === 'analyzing'}
           >
-            {/* Pulse animation for recording */}
+            {/* Pulse animation for recording - ENHANCED */}
             {recordingState === 'recording' && (
+              <>
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-destructive"
+                  animate={{
+                    scale: [1, 1.3, 1],
+                    opacity: [0.6, 0.2, 0.6],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                />
+                <motion.div
+                  className="absolute inset-0 rounded-full border-4 border-destructive"
+                  animate={{
+                    scale: [1, 1.5, 1],
+                    opacity: [0.8, 0, 0.8],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeOut"
+                  }}
+                />
+              </>
+            )}
+            
+            {/* Success animation for ready state */}
+            {recordingState === 'ready' && (
               <motion.div
-                className="absolute inset-0 rounded-full bg-destructive"
+                className="absolute inset-0 rounded-full bg-success"
                 animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 0.2, 0.5],
+                  scale: [1, 1.1, 1],
+                  opacity: [0.3, 0.5, 0.3],
                 }}
                 transition={{
                   duration: 1,
@@ -709,6 +794,7 @@ export function RecordingControls({
                 }}
               />
             )}
+            
             {getRecordButtonIcon()}
           </Button>
         </motion.div>
