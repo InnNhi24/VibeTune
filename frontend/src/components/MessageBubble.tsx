@@ -192,7 +192,7 @@ export function MessageBubble({
                     )}
                   </div>
                   
-                  <p className="text-sm">
+                  <p className="text-sm whitespace-pre-wrap break-words">
                     {prosodyFeedback?.highlights 
                       ? renderHighlightedText(message, prosodyFeedback.highlights)
                       : message

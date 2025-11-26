@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 
@@ -11,7 +10,7 @@ import { RecordingControls } from "./RecordingControls";
 import { ProsodyFeedback } from "./ProsodyFeedback";
 import { ProsodyScoreCard } from "./ProsodyScoreCard";
 import { AIConnectionStatus } from "./AIConnectionStatus";
-import { Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext, ProsodyAnalysis, AIResponse } from "../services/aiProsodyService";
 import { useAppStore } from "../store/appStore";
@@ -1047,91 +1046,53 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
       </div>
 
-      {/* Input / Recording controls - Fixed at bottom */}
-  <div ref={inputAreaRef} className="flex-shrink-0 bg-card border-t border-border p-4 space-y-3">
-
-        {/* Text Input with Toggle */}
-        <form onSubmit={handleTextSubmit} className="space-y-2">
-          <div className="flex gap-2">
-            {isTextareaMode ? (
-              <Textarea
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                onCompositionStart={() => setIsComposing(true)}
-                onCompositionEnd={() => setIsComposing(false)}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    void sendTextFromInput();
-                  }
-                }}
-                placeholder="Type your message here..."
-                disabled={isLoading}
-                // Limit textarea growth so it doesn't push the chat area; allow internal scroll when large
-                className="flex-1 min-h-[80px] max-h-40 resize-y overflow-auto"
-                maxLength={500}
-              />
-            ) : (
-              <Input
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                onCompositionStart={() => setIsComposing(true)}
-                onCompositionEnd={() => setIsComposing(false)}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    void sendTextFromInput();
-                  }
-                }}
-                placeholder="Type your message here..."
-                disabled={isLoading}
-                className="flex-1"
-              />
-            )}
-            
-            <div className="flex flex-col gap-1">
-              <Button
-                type="submit"
-                disabled={!textInput.trim() || isLoading}
-                size="icon"
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={toggleInputMode}
-                className="h-8 w-8"
-                title={isTextareaMode ? "Switch to single line" : "Switch to multi-line"}
-              >
-                {isTextareaMode ? (
-                  <ChevronUp className="w-3 h-3" />
-                ) : (
-                  <ChevronDown className="w-3 h-3" />
-                )}
-              </Button>
-            </div>
-          </div>
+      {/* Unified Input Area - Text OR Voice */}
+      <div ref={inputAreaRef} className="flex-shrink-0 bg-card border-t border-border p-4">
+        <div className="flex items-end gap-2">
+          {/* Auto-expanding Textarea */}
+          <Textarea
+            value={textInput}
+            onChange={(e) => {
+              setTextInput(e.target.value);
+              // Auto-expand
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
+            }}
+            onCompositionStart={() => setIsComposing(true)}
+            onCompositionEnd={() => setIsComposing(false)}
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                void sendTextFromInput();
+              }
+            }}
+            placeholder="Type your message or tap mic to speak..."
+            disabled={isLoading}
+            className="flex-1 min-h-[44px] max-h-32 resize-none"
+            rows={1}
+          />
           
-          {isTextareaMode && (
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Multi-line mode for longer messages</span>
-              <span>{textInput.length}/500</span>
+          {/* Send or Voice Button */}
+          {textInput.trim() ? (
+            <Button
+              onClick={() => void sendTextFromInput()}
+              disabled={isLoading}
+              size="icon"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground h-11 w-11 flex-shrink-0"
+              aria-label="Send message"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          ) : (
+            <div className="flex-shrink-0">
+              <RecordingControls
+                onSendMessage={handleSendMessage}
+                conversationContext={buildConversationContext()}
+                disabled={isLoading}
+                showAIFeedback={aiReady}
+              />
             </div>
           )}
-        </form>
-
-        {/* Enhanced Recording Controls */}
-        <div className="border-t border-border pt-3">
-          <RecordingControls
-            onSendMessage={handleSendMessage}
-            conversationContext={buildConversationContext()}
-            disabled={isLoading}
-            showAIFeedback={aiReady}
-          />
         </div>
       </div>
 
