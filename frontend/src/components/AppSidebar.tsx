@@ -341,8 +341,8 @@ export function AppSidebar({
             </CollapsibleTrigger>
             <CollapsibleContent className="flex-1 min-h-0 overflow-hidden">
               {isHistoryOpen && (
-                <ScrollArea className="sidebar-history-scroll mt-2 h-full">
-                  <div className="space-y-3 pr-1 pb-4">
+                <ScrollArea className="sidebar-history-scroll mt-2" style={{ maxHeight: 'calc(100vh - 550px)', minHeight: '200px' }}>
+                  <div className="space-y-3 pr-2 pb-4">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
