@@ -710,6 +710,8 @@ export function RecordingControls({
                   variant="ghost"
                   size="sm"
                   className="flex-shrink-0"
+                  aria-label={isPlaying ? "Pause playback" : "Play recording"}
+                  title={isPlaying ? "Pause playback" : "Play recording"}
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </Button>
@@ -748,6 +750,20 @@ export function RecordingControls({
             }
             className={getRecordButtonClass()}
             disabled={disabled || recordingState === 'processing' || recordingState === 'analyzing'}
+            aria-label={
+              recordingState === 'recording'
+                ? 'Stop recording'
+                : recordingState === 'ready'
+                ? 'Send message'
+                : 'Start recording'
+            }
+            title={
+              recordingState === 'recording'
+                ? 'Stop recording'
+                : recordingState === 'ready'
+                ? 'Send message'
+                : 'Start recording'
+            }
           >
             {/* Pulse animation for recording - ENHANCED */}
             {recordingState === 'recording' && (

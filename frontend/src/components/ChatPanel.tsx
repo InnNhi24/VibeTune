@@ -310,6 +310,37 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       convId = crypto.randomUUID();
       setConversationId(convId);
       console.log('🆔 Created new conversation ID:', convId);
+      
+      // Create conversation in database IMMEDIATELY to avoid foreign key errors
+      const store = useAppStore.getState();
+      if (store.user) {
+        const newConv = {
+          id: convId,
+          profile_id: store.user.id,
+          topic: currentTopic || 'New Conversation',
+          title: currentTopic || 'New Conversation',
+          is_placement_test: false,
+          started_at: new Date().toISOString()
+        };
+        
+        // Add to local store
+        addConversation(newConv);
+        
+        // Save to database (non-blocking)
+        fetch('/api/data?action=save-conversation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newConv)
+        }).then(async response => {
+          if (response.ok) {
+            console.log('✅ Conversation created in database:', convId);
+          } else {
+            console.error('❌ Failed to create conversation in database:', await response.text());
+          }
+        }).catch(error => {
+          console.error('❌ Error creating conversation:', error);
+        });
+      }
     }
     
     // Add user message to UI IMMEDIATELY (before AI processing)
