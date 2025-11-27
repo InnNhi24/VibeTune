@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface AudioWaveVisualizerProps {
   isActive: boolean;
@@ -6,17 +6,18 @@ interface AudioWaveVisualizerProps {
 }
 
 export function AudioWaveVisualizer({ isActive, audioStream }: AudioWaveVisualizerProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const analyserRef = useRef<AnalyserNode>();
   const dataArrayRef = useRef<Uint8Array>();
+  const [barHeights, setBarHeights] = useState<number[]>([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]);
 
   useEffect(() => {
     if (!isActive || !audioStream) {
-      // Stop animation
+      // Stop animation and reset bars to minimum height
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
+      setBarHeights([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]);
       return;
     }
 
@@ -26,7 +27,8 @@ export function AudioWaveVisualizer({ isActive, audioStream }: AudioWaveVisualiz
       const analyser = audioContext.createAnalyser();
       const source = audioContext.createMediaStreamSource(audioStream);
       
-      analyser.fftSize = 32; // Small FFT for 7 bars
+      analyser.fftSize = 64; // Larger FFT for better frequency resolution
+      analyser.smoothingTimeConstant = 0.8; // Smooth out the data
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
       
@@ -36,6 +38,27 @@ export function AudioWaveVisualizer({ isActive, audioStream }: AudioWaveVisualiz
       dataArrayRef.current = dataArray;
       
       // Start animation
+      const animate = () => {
+        if (!analyserRef.current || !dataArrayRef.current) return;
+        
+        analyserRef.current.getByteFrequencyData(dataArrayRef.current as Uint8Array);
+        
+        // Calculate heights for 7 bars based on frequency data
+        const dataArray = dataArrayRef.current;
+        const newHeights = [0, 1, 2, 3, 4, 5, 6].map(i => {
+          // Sample different frequency ranges for each bar
+          const index = Math.floor((i / 7) * dataArray.length);
+          const value = dataArray[index];
+          // Normalize to 0.3 - 1.0 range (minimum 30% height)
+          return Math.max(0.3, Math.min(1.0, value / 255));
+        });
+        
+        setBarHeights(newHeights);
+        
+        // Continue animation loop
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      
       animate();
       
       return () => {
@@ -46,28 +69,23 @@ export function AudioWaveVisualizer({ isActive, audioStream }: AudioWaveVisualiz
         audioContext.close();
       };
     } catch (error) {
-      console.warn('Web Audio API not available, using CSS animation fallback');
+      console.warn('Web Audio API not available');
+      // Set static heights as fallback
+      setBarHeights([0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3]);
     }
   }, [isActive, audioStream]);
 
-  const animate = () => {
-    if (!analyserRef.current || !dataArrayRef.current) return;
-    
-    analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-    
-    // Continue animation loop
-    animationRef.current = requestAnimationFrame(animate);
-  };
-
-  // Simple 7 wave bars with CSS animation
+  // Wave bars controlled by audio input only
   return (
     <div className="flex items-center justify-center gap-1 h-6">
-      {[...Array(7)].map((_, i) => (
+      {barHeights.map((height, i) => (
         <div
           key={i}
-          className="wave-bar"
+          className="w-[3px] bg-white rounded-sm transition-all duration-100"
           style={{
-            animationDelay: `${i * 0.1}s`
+            height: '24px',
+            transform: `scaleY(${height})`,
+            transformOrigin: 'center'
           }}
         />
       ))}
