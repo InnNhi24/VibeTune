@@ -1047,7 +1047,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       </div>
 
       {/* Google Translate Style Input */}
-      <div ref={inputAreaRef} className="flex-shrink-0 bg-background p-4">
+      <div ref={inputAreaRef} className="flex-shrink-0 bg-background p-4 space-y-3">
+        {/* Text Input Row */}
         <div className="relative flex items-center gap-2 bg-card border border-border rounded-full px-4 py-2 shadow-sm hover:shadow-md transition-shadow">
           {/* Textarea - Auto-expanding */}
           <Textarea
@@ -1066,37 +1067,34 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 void sendTextFromInput();
               }
             }}
-            placeholder="Type your message or tap mic to speak..."
+            placeholder="Type your message..."
             disabled={isLoading}
             className="flex-1 min-h-[40px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0 py-2"
             rows={1}
           />
           
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Send Button - Only when text exists */}
-            {textInput.trim() ? (
-              <Button
-                onClick={() => void sendTextFromInput()}
-                disabled={isLoading}
-                size="icon"
-                className="h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                aria-label="Send message"
-              >
-                <Send className="w-5 h-5" />
-              </Button>
-            ) : (
-              /* Voice Button - When no text */
-              <div className="h-10 w-10">
-                <RecordingControls
-                  onSendMessage={handleSendMessage}
-                  conversationContext={buildConversationContext()}
-                  disabled={isLoading}
-                  showAIFeedback={aiReady}
-                />
-              </div>
-            )}
-          </div>
+          {/* Send Button - Only when text exists */}
+          {textInput.trim() && (
+            <Button
+              onClick={() => void sendTextFromInput()}
+              disabled={isLoading}
+              size="icon"
+              className="h-10 w-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground flex-shrink-0"
+              aria-label="Send message"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          )}
+        </div>
+        
+        {/* Voice Recording - Separate Row */}
+        <div className="flex justify-center">
+          <RecordingControls
+            onSendMessage={handleSendMessage}
+            conversationContext={buildConversationContext()}
+            disabled={isLoading}
+            showAIFeedback={aiReady}
+          />
         </div>
       </div>
 
