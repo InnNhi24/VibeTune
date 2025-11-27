@@ -60,6 +60,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [focusAreas, setFocusAreas] = useState<string[]>(['basic pronunciation', 'sentence stress']);
   const [currentAnalysis, setCurrentAnalysis] = useState<ProsodyAnalysis | null>(null);
   const [showAnalysisOverlay, setShowAnalysisOverlay] = useState(false);
+  const [selectedMessageForAnalysis, setSelectedMessageForAnalysis] = useState<Message | null>(null);
   const [aiReady, setAiReady] = useState(false);
   const [isTextareaMode, setIsTextareaMode] = useState(false);
   const [waitingForTopic, setWaitingForTopic] = useState(true);
@@ -979,9 +980,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 onRetry={() => handleRetryRecording(message.id)}
               />
               
-              {/* Show Prosody Score Card for audio messages with analysis */}
+              {/* Show Prosody Score Card for audio messages with analysis - Click to view details */}
               {message.isUser && message.isAudio && message.prosodyAnalysis && !message.isProcessing && (
-                <div className="ml-12">
+                <div 
+                  className="ml-12 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setSelectedMessageForAnalysis(message)}
+                >
                   <ProsodyScoreCard
                     overall={message.prosodyAnalysis.overall_score}
                     pronunciation={message.prosodyAnalysis.pronunciation_score}
@@ -990,6 +994,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     fluency={message.prosodyAnalysis.fluency_score}
                     compact={true}
                   />
+                  <p className="text-xs text-muted-foreground text-center mt-1">Click to view details</p>
                 </div>
               )}
             </div>
@@ -1078,29 +1083,40 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         </div>
       </div>
 
-      {/* Analysis Overlay */}
+      {/* Prosody Analysis Popup - Click on voice message to view */}
       <AnimatePresence>
-        {showAnalysisOverlay && currentAnalysis && (
+        {selectedMessageForAnalysis && selectedMessageForAnalysis.prosodyAnalysis && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={() => setShowAnalysisOverlay(false)}
+            onClick={() => setSelectedMessageForAnalysis(null)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+              className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto custom-scrollbar"
               onClick={(e) => e.stopPropagation()}
             >
-              <ProsodyFeedback
-                analysis={currentAnalysis}
-                originalText="Your recorded message"
-                onRetry={() => setShowAnalysisOverlay(false)}
-                className="p-6"
-              />
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold">Pronunciation Analysis</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedMessageForAnalysis(null)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <ProsodyFeedback
+                  analysis={selectedMessageForAnalysis.prosodyAnalysis}
+                  originalText={selectedMessageForAnalysis.text}
+                  onRetry={() => setSelectedMessageForAnalysis(null)}
+                />
+              </div>
             </motion.div>
           </motion.div>
         )}
