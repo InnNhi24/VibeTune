@@ -65,6 +65,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
   const [liveTranscription, setLiveTranscription] = useState("");
+  const [topicLocked, setTopicLocked] = useState(false); // Prevent topic changes after confirmation
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Handle topic prop changes (when user selects conversation from sidebar)
@@ -73,10 +74,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setCurrentTopic(topic);
       // If topic is already established, don't wait for topic confirmation
       setWaitingForTopic(false);
+      setTopicLocked(true); // Existing conversation - topic is locked
     } else if (topic === "New Conversation" && currentTopic !== "New Conversation") {
       // New session started - reset everything
       setCurrentTopic("New Conversation");
       setWaitingForTopic(true);
+      setTopicLocked(false); // New conversation - topic can be set
       setMessages([]);
       setConversationHistory([]);
       setConversationId(null);
@@ -498,15 +501,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
             // AI will return topic_confirmed when it's confident about the topic
             if (data.topic_confirmed) {
+              if (topicLocked) {
+                console.log('⚠️ Topic already locked - ignoring topic update request');
+                return;
+              }
+              
               console.log('✅ Topic confirmed! Updating conversation name to:', data.topic_confirmed);
 
-              // Topic is now locked for this session
+              // Topic is now locked for this session - prevent further updates
               setWaitingForTopic(false);
+              setTopicLocked(true);
 
               // Use existing conversation ID (already created with placeholder name)
               const finalConvId = convId;
 
-              // UPDATE existing conversation with confirmed topic name
+              // UPDATE existing conversation with confirmed topic name (ONE TIME ONLY)
               try {
                 const storeUser = useAppStore.getState().user;
                 if (!storeUser?.id) {
