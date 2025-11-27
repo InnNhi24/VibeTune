@@ -715,16 +715,6 @@ export function RecordingControls({
                 : 'Start recording'
             }
           >
-            {/* Timer badge on recording button */}
-            {recordingState === 'recording' && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-2 -right-2 text-xs font-mono px-2 py-0.5 shadow-lg z-10"
-              >
-                {formatTime(recordingTime)}
-              </Badge>
-            )}
-            
             {/* Pulse animation for recording - MINIMAL */}
             {recordingState === 'recording' && (
               <motion.div
