@@ -64,6 +64,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [isTextareaMode, setIsTextareaMode] = useState(false);
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
+  const [liveTranscription, setLiveTranscription] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Handle topic prop changes (when user selects conversation from sidebar)
@@ -299,6 +300,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const handleSendMessage = async (messageText: string, isAudio: boolean = false, audioBlob?: Blob) => {
     if (!messageText.trim()) return;
 
+    // Clear live transcription when sending
+    setLiveTranscription("");
+
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = crypto.randomUUID(); // Use UUID instead of timestamp
     const userMessageCreatedAt = new Date().toISOString(); // Save timestamp for ordering
@@ -311,38 +315,43 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setConversationId(convId);
       console.log('🆔 Created new conversation ID:', convId);
       
-      // Only create conversation in database if NOT in topic discovery mode
-      // During topic discovery, conversation will be created when topic is confirmed
-      if (!waitingForTopic) {
-        const store = useAppStore.getState();
-        if (store.user) {
-          const newConv = {
-            id: convId,
-            profile_id: store.user.id,
-            topic: currentTopic,
-            title: currentTopic,
-            is_placement_test: false,
-            started_at: new Date().toISOString()
-          };
-          
-          // Add to local store
-          addConversation(newConv);
-          
-          // Save to database (non-blocking)
-          fetch('/api/data?action=save-conversation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newConv)
-          }).then(async response => {
-            if (response.ok) {
-              console.log('✅ Conversation created in database:', convId);
-            } else {
-              console.error('❌ Failed to create conversation in database:', await response.text());
-            }
-          }).catch(error => {
-            console.error('❌ Error creating conversation:', error);
-          });
-        }
+      // CREATE CONVERSATION IMMEDIATELY with placeholder name
+      // This allows messages to be saved to database right away
+      // Topic name will be updated later when confirmed
+      const store = useAppStore.getState();
+      if (store.user) {
+        const placeholderTopic = waitingForTopic ? 'New Conversation' : currentTopic;
+        const newConv = {
+          id: convId,
+          profile_id: store.user.id,
+          topic: placeholderTopic,
+          title: placeholderTopic,
+          is_placement_test: false,
+          started_at: new Date().toISOString()
+        };
+        
+        console.log('✅ Creating conversation with placeholder name:', placeholderTopic);
+        
+        // Add to local store
+        addConversation(newConv);
+        
+        // Set as active conversation immediately
+        setActiveConversation(convId);
+        
+        // Save to database (await to ensure it's created before messages)
+        await fetch('/api/data?action=save-conversation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newConv)
+        }).then(async response => {
+          if (response.ok) {
+            console.log('✅ Conversation created in database:', convId);
+          } else {
+            console.error('❌ Failed to create conversation in database:', await response.text());
+          }
+        }).catch(error => {
+          console.error('❌ Error creating conversation:', error);
+        });
       }
     }
     
@@ -458,32 +467,26 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   timestamp: aiResponseMessage.timestamp
                 };
                 
-                // Save to both local and database in parallel
-                Promise.all([
-                  // 1. Save to local store (instant)
-                  Promise.resolve(addMessageToStore(aiMessageData)),
-                  
-                  // 2. Save to database (async)
-                  fetch('/api/data?action=save-message', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(aiMessageData)
-                  }).then(async response => {
-                    const result = await response.json();
-                    if (response.ok) {
-                      if (result.supabase_error) {
-                        console.error('❌ AI message saved locally but database sync failed:', result.supabase_error);
-                      } else {
-                        console.log('✅ AI message saved to database:', aiResponseMessage.id, result);
-                      }
-                      return !result.supabase_error;
+                // Save to local store immediately
+                addMessageToStore(aiMessageData);
+                console.log('✅ AI message saved to local store:', aiResponseMessage.id);
+                
+                // Save to database (conversation already exists)
+                fetch('/api/data?action=save-message', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(aiMessageData)
+                }).then(async response => {
+                  const result = await response.json();
+                  if (response.ok) {
+                    if (result.supabase_error) {
+                      console.error('❌ AI message saved locally but database sync failed:', result.supabase_error);
                     } else {
-                      console.warn('⚠️ Failed to save AI message to database:', response.status, result);
-                      return false;
+                      console.log('✅ AI message saved to database:', aiResponseMessage.id, result);
                     }
-                  })
-                ]).then(([localSaved, dbSaved]) => {
-                  console.log('✅ AI message persisted:', { local: true, database: dbSaved, id: aiResponseMessage.id });
+                  } else {
+                    console.warn('⚠️ Failed to save AI message to database:', response.status, result);
+                  }
                 }).catch(error => {
                   console.warn('⚠️ Error saving AI message:', error.message);
                 });
@@ -495,84 +498,62 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
             // AI will return topic_confirmed when it's confident about the topic
             if (data.topic_confirmed) {
-              console.log('✅ Topic confirmed! Creating conversation for:', data.topic_confirmed);
+              console.log('✅ Topic confirmed! Updating conversation name to:', data.topic_confirmed);
 
-                // Topic is now locked for this session; stop waiting for topic.
-                // We DO NOT set global currentTopic here to avoid racing with the
-                // "missing conversation" creation logic that listens for topic changes
-                // and may create a conversation prematurely. We'll set the global
-                // topic after the conversation has been created and set active.
-                setWaitingForTopic(false);
+              // Topic is now locked for this session
+              setWaitingForTopic(false);
 
-              // Create unique conversation ID for this session
-              let finalConvId = data.conversationId || convId;
-              if (!finalConvId) {
-                // Generate UUID v4 compatible ID for database compatibility
-                finalConvId = crypto.randomUUID();
-                setConversationId(finalConvId);
-              }
+              // Use existing conversation ID (already created with placeholder name)
+              const finalConvId = convId;
 
-              // Create and save conversation immediately
+              // UPDATE existing conversation with confirmed topic name
               try {
                 const storeUser = useAppStore.getState().user;
-                if (!storeUser && user) {
-                  console.log('📝 Setting user in store from prop:', user?.id);
-                  useAppStore.getState().setUser(user);
-                }
-                
-                const finalUser = storeUser || user;
-                
-                // Debug: Check for profile_id mismatch
-                if (storeUser?.id && user?.id && storeUser.id !== user.id) {
-                  console.error('❌ CRITICAL: Store user ID !== Prop user ID!', {
-                    storeUserId: storeUser.id,
-                    propUserId: user.id,
-                    usingForConversation: finalUser.id
-                  });
-                }
-                
-                if (!finalUser?.id) {
+                if (!storeUser?.id) {
                   console.error('❌ No valid user ID found');
                   return;
                 }
                 
-                // Check if conversation already exists (by id OR by topic) to avoid duplicates
-                const existingConv = useAppStore.getState().conversations.find(c => c.id === finalConvId || c.topic === data.topic_confirmed);
-                if (!existingConv) {
-                  const newConv = {
-                    id: finalConvId,
-                    profile_id: finalUser.id,
+                // Update conversation in local store
+                const conversations = useAppStore.getState().conversations;
+                const existingConv = conversations.find(c => c.id === finalConvId);
+                
+                if (existingConv) {
+                  // Update existing conversation with new topic
+                  const updatedConv = {
+                    ...existingConv,
                     topic: data.topic_confirmed,
-                    title: data.topic_confirmed, // This shows in sidebar
-                    is_placement_test: false,
-                    started_at: new Date().toISOString()
+                    title: data.topic_confirmed
                   };
                   
-                  console.log('✅ Adding conversation to store:', newConv);
-                  addConversation(newConv);
+                  console.log('✅ Updating conversation topic in store:', data.topic_confirmed);
                   
-                  // Save conversation to database FIRST (blocking) before saving messages
-                  await fetch('/api/data?action=save-conversation', {
+                  // Update in store (replace old conversation)
+                  const updatedConversations = conversations.map(c => 
+                    c.id === finalConvId ? updatedConv : c
+                  );
+                  useAppStore.setState({ conversations: updatedConversations });
+                  
+                  // Update in database
+                  fetch('/api/data?action=update-conversation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newConv)
+                    body: JSON.stringify({
+                      id: finalConvId,
+                      topic: data.topic_confirmed,
+                      title: data.topic_confirmed
+                    })
                   }).then(async response => {
                     if (response.ok) {
-                      console.log('✅ Conversation saved to database - messages can now be saved');
+                      console.log('✅ Conversation topic updated in database');
                     } else {
-                      const errorData = await response.json().catch(() => ({}));
-                      console.warn('⚠️ Failed to save conversation to database:', response.status, errorData);
-                      // In development, this is expected if API server is not running
-                      if (process.env.NODE_ENV !== 'production') {
-                        console.log('💡 Tip: Run "vercel dev" to test API functions locally');
-                      }
+                      console.warn('⚠️ Failed to update conversation in database:', response.status);
                     }
                   }).catch(error => {
-                    console.warn('⚠️ Error saving conversation (network/CORS):', error.message);
-                    // Don't throw - conversation is already saved to localStorage
+                    console.warn('⚠️ Error updating conversation:', error.message);
                   });
                   
-                  // Immediately save to localStorage
+                  // Update localStorage
                   setTimeout(() => {
                     try {
                       const currentState = useAppStore.getState();
@@ -590,31 +571,23 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                         }
                       };
                       localStorage.setItem('vibetune-app-store', JSON.stringify({ state: storeData, version: 0 }));
-                      console.log('✅ Conversation saved to localStorage');
+                      console.log('✅ Conversation updated in localStorage');
                     } catch (e) {
-                      console.error('❌ Failed to save conversation:', e);
+                      console.error('❌ Failed to update localStorage:', e);
                     }
                   }, 100);
                 }
                 
-                // Set as active conversation and THEN update topic in both local UI and store
-                // Doing this after creation avoids the race where other effects see a
-                // topic change and create a separate conversation.
-                setActiveConversation(finalConvId);
+                // Update current topic in UI
                 setCurrentTopic(data.topic_confirmed);
                 if (onTopicChange) {
                   onTopicChange(data.topic_confirmed);
                 }
                 
-                // Update URL without navigation (optional - for browser history)
-                if (window.history && window.history.pushState) {
-                  window.history.pushState(null, '', `/chat/${finalConvId}`);
-                }
-                
-                console.log('✅ Conversation setup complete:', finalConvId, 'Topic:', data.topic_confirmed);
+                console.log('✅ Conversation topic updated:', finalConvId, 'Topic:', data.topic_confirmed);
                 
               } catch (e) {
-                console.error('❌ Failed to create conversation:', e);
+                console.error('❌ Failed to update conversation:', e);
               }
             }
             // If no topic_confirmed, AI is still asking questions to clarify topic
@@ -655,35 +628,29 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     
-    // Save to both local and database in parallel (don't wait, non-blocking)
-    Promise.all([
-      // 1. Save to local store (instant, synchronous)
-      Promise.resolve(addMessageToStore(messageData)),
-      
-      // 2. Save to database (async) - exclude Blob from JSON
-      fetch('/api/data?action=save-message', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...messageData,
-          audio_url: null // Don't send Blob to API, will be handled separately
-        })
-      }).then(async response => {
-        const result = await response.json();
-        if (response.ok) {
-          if (result.supabase_error) {
-            console.error('❌ User message saved locally but database sync failed:', result.supabase_error);
-          } else {
-            console.log('✅ User message saved to database:', messageId, result);
-          }
-          return !result.supabase_error;
-        } else {
-          console.warn('⚠️ Failed to save user message to database:', response.status, result);
-          return false;
-        }
+    // Save to local store immediately
+    addMessageToStore(messageData);
+    console.log('✅ User message saved to local store:', messageId);
+    
+    // Save to database (conversation already exists with placeholder name)
+    fetch('/api/data?action=save-message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...messageData,
+        audio_url: null // Don't send Blob to API, will be handled separately
       })
-    ]).then(([localSaved, dbSaved]) => {
-      console.log('✅ User message persisted:', { local: true, database: dbSaved, id: messageId });
+    }).then(async response => {
+      const result = await response.json();
+      if (response.ok) {
+        if (result.supabase_error) {
+          console.error('❌ User message saved locally but database sync failed:', result.supabase_error);
+        } else {
+          console.log('✅ User message saved to database:', messageId, result);
+        }
+      } else {
+        console.warn('⚠️ Failed to save user message to database:', response.status, result);
+      }
     }).catch(error => {
       console.warn('⚠️ Error saving user message:', error.message);
     });
@@ -1087,13 +1054,31 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             </div>
           )}
           
-          {/* Voice Recording - Centered */}
-          <div className="flex justify-center">
+          {/* Voice Recording - Centered with Live Transcription */}
+          <div className="flex flex-col items-center gap-4 max-w-2xl mx-auto">
+            {/* Live Transcription Display - Large text above button */}
+            <AnimatePresence>
+              {liveTranscription && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="text-center px-6"
+                >
+                  <p className="text-2xl md:text-3xl text-foreground font-medium">
+                    "{liveTranscription}"
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
+            {/* Recording Button */}
             <RecordingControls
               onSendMessage={handleSendMessage}
               conversationContext={buildConversationContext()}
               disabled={isLoading}
               showAIFeedback={aiReady}
+              onLiveTranscription={setLiveTranscription}
             />
           </div>
         </div>

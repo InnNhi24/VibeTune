@@ -7,12 +7,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ConversationContext } from "../services/aiProsodyService";
 import { liveTranscriptionService } from "../services/liveTranscriptionService";
 import { logger } from '../utils/logger';
+import { AudioWaveVisualizer } from "./AudioWaveVisualizer";
 
 interface RecordingControlsProps {
   onSendMessage: (message: string, isAudio: boolean, audioBlob?: Blob) => void;
   conversationContext?: ConversationContext;
   disabled?: boolean;
   showAIFeedback?: boolean;
+  onLiveTranscription?: (text: string) => void;
 }
 
 type RecordingState = 'idle' | 'recording' | 'processing' | 'analyzing' | 'ready';
@@ -21,7 +23,8 @@ export function RecordingControls({
   onSendMessage, 
   conversationContext,
   disabled, 
-  showAIFeedback = true 
+  showAIFeedback = true,
+  onLiveTranscription
 }: RecordingControlsProps) {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordingTime, setRecordingTime] = useState(0);
@@ -136,6 +139,12 @@ export function RecordingControls({
       setInterim("");
       setView("");
       setRecordedMessage("");
+      
+      // Clear live transcription in parent
+      if (onLiveTranscription) {
+        onLiveTranscription("");
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Try different audio formats for better mobile compatibility
@@ -229,6 +238,12 @@ export function RecordingControls({
             // update combined view
             const combinedView = (finalRef.current + ' ' + (interimText || '')).trim();
             setView(combinedView);
+            
+            // Send live transcription to parent
+            if (onLiveTranscription && combinedView) {
+              onLiveTranscription(combinedView);
+            }
+            
             if (!event.isFinal && combinedView) {
               setAnalysisProgress(Math.min(combinedView.length * 2, 90));
             }
@@ -469,6 +484,11 @@ export function RecordingControls({
     setRecordingState('idle');
     setAnalysisProgress(0);
     
+    // Clear live transcription in parent
+    if (onLiveTranscription) {
+      onLiveTranscription("");
+    }
+    
     if (audioRef.current) {
       audioRef.current.pause();
       setIsPlaying(false);
@@ -532,7 +552,8 @@ export function RecordingControls({
   const getRecordButtonIcon = () => {
     switch (recordingState) {
       case 'recording':
-        return <MicOff className="w-6 h-6" />;
+        // Show wave bars instead of icon when recording
+        return <AudioWaveVisualizer isActive={true} audioStream={activeStreamRef.current} />;
       case 'ready':
         return <Send className="w-6 h-6" />;
       case 'processing':
@@ -544,10 +565,10 @@ export function RecordingControls({
   };
 
   const getRecordButtonClass = () => {
-    const baseClass = "h-16 w-16 rounded-full flex items-center justify-center transition-all duration-300 relative overflow-hidden";
+    const baseClass = "h-20 w-20 rounded-full flex items-center justify-center transition-all duration-300 relative overflow-hidden";
     switch (recordingState) {
       case 'recording':
-        return `${baseClass} bg-destructive hover:bg-destructive/90 text-destructive-foreground`;
+        return `${baseClass} rainbow-recording text-white shadow-2xl`;
       case 'ready':
         return `${baseClass} bg-success hover:bg-success/90 text-success-foreground shadow-lg hover:shadow-xl`;
       case 'processing':
@@ -601,93 +622,22 @@ export function RecordingControls({
         </div>
       )}
 
-      {/* Recording Status */}
+      {/* Minimal Processing Status */}
       <AnimatePresence mode="wait">
-        {recordingState !== 'idle' && (
+        {(recordingState === 'processing' || recordingState === 'analyzing') && (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="space-y-3"
+            className="text-center space-y-2"
           >
-            {recordingState === 'recording' && (
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="bg-destructive/10 border-2 border-destructive/30 rounded-xl p-4 space-y-3"
-              >
-                {/* Recording Header with Pulsing Dot */}
-                <div className="flex items-center justify-center gap-3">
-                  <motion.div 
-                    className="w-4 h-4 bg-destructive rounded-full"
-                    animate={{ 
-                      scale: [1, 1.3, 1],
-                      opacity: [1, 0.6, 1]
-                    }}
-                    transition={{ 
-                      duration: 1.5, 
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  />
-                  <span className="text-lg font-bold text-destructive">Recording...</span>
-                  <Badge variant="destructive" className="text-base px-3 py-1 font-mono">
-                    {formatTime(recordingTime)}
-                  </Badge>
-                </div>
-                
-                {/* Waveform Animation */}
-                <div className="flex items-center justify-center gap-1 h-12">
-                  {[...Array(20)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="w-1 bg-destructive rounded-full"
-                      animate={{
-                        height: [
-                          Math.random() * 20 + 10,
-                          Math.random() * 40 + 20,
-                          Math.random() * 20 + 10
-                        ]
-                      }}
-                      transition={{
-                        duration: 0.5 + Math.random() * 0.5,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: i * 0.05
-                      }}
-                    />
-                  ))}
-                </div>
-                
-                {/* Instruction Text */}
-                <p className="text-center text-sm text-muted-foreground">
-                  🎤 Speak clearly into your microphone
-                </p>
-              </motion.div>
-            )}
-            
-            {(recordingState === 'processing' || recordingState === 'analyzing') && (
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="bg-accent/10 border-2 border-accent/30 rounded-xl p-4 space-y-3"
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-accent" />
-                  <span className="text-base font-semibold text-accent">
-                    {recordingState === 'processing' ? '⚙️ Processing audio...' : '🤖 AI analyzing pronunciation...'}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <Progress value={analysisProgress} className="h-2" />
-                  <p className="text-center text-xs text-muted-foreground">
-                    {analysisProgress}% complete
-                  </p>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Incremental feedback removed to avoid AI calls while recording. */}
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-accent" />
+              <span className="text-sm text-muted-foreground">
+                {recordingState === 'processing' ? 'Processing...' : 'AI analyzing...'}
+              </span>
+            </div>
+            <Progress value={analysisProgress} className="h-1 max-w-xs mx-auto" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -765,34 +715,30 @@ export function RecordingControls({
                 : 'Start recording'
             }
           >
-            {/* Pulse animation for recording - ENHANCED */}
+            {/* Timer badge on recording button */}
             {recordingState === 'recording' && (
-              <>
-                <motion.div
-                  className="absolute inset-0 rounded-full bg-destructive"
-                  animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.6, 0.2, 0.6],
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                />
-                <motion.div
-                  className="absolute inset-0 rounded-full border-4 border-destructive"
-                  animate={{
-                    scale: [1, 1.5, 1],
-                    opacity: [0.8, 0, 0.8],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeOut"
-                  }}
-                />
-              </>
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 text-xs font-mono px-2 py-0.5 shadow-lg z-10"
+              >
+                {formatTime(recordingTime)}
+              </Badge>
+            )}
+            
+            {/* Pulse animation for recording - MINIMAL */}
+            {recordingState === 'recording' && (
+              <motion.div
+                className="absolute inset-0 rounded-full border-2 border-white/30"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 0, 0.5],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeOut"
+                }}
+              />
             )}
             
             {/* Success animation for ready state */}

@@ -20,6 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     switch (action) {
       case 'save-conversation':
         return await handleSaveConversation(req, res);
+      case 'update-conversation':
+        return await handleUpdateConversation(req, res);
       case 'save-message':
         return await handleSaveMessage(req, res);
       case 'delete-conversation':
@@ -29,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'get-history':
         return await handleGetHistory(req, res);
       default:
-        return res.status(400).json({ error: 'Unknown action. Use ?action=save-conversation|save-message|delete-conversation|get-messages|get-history' });
+        return res.status(400).json({ error: 'Unknown action. Use ?action=save-conversation|update-conversation|save-message|delete-conversation|get-messages|get-history' });
     }
   } catch (error: any) {
     console.error('Data API error:', error);
@@ -88,6 +90,61 @@ async function handleSaveConversation(req: VercelRequest, res: VercelResponse) {
       console.error('❌ Failed to save conversation:', error);
       return res.status(500).json({ 
         error: 'Failed to save conversation to database',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  return res.status(503).json({ 
+    error: 'Database not configured',
+    message: 'Supabase configuration is missing'
+  });
+}
+
+async function handleUpdateConversation(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { id, topic, title } = req.body;
+  
+  if (!id) {
+    return res.status(400).json({ error: 'Conversation id is required' });
+  }
+
+  if (SUPABASE_URL && SUPABASE_KEY) {
+    try {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const updateData: any = {};
+      if (topic !== undefined) updateData.topic = topic;
+      if (title !== undefined) updateData.title = title;
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Supabase update failed:', error);
+        return res.status(500).json({ 
+          error: 'Failed to update conversation in database',
+          details: error.message
+        });
+      }
+
+      console.log('✅ Conversation updated:', id);
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Conversation updated successfully',
+        data
+      });
+    } catch (error) {
+      console.error('❌ Failed to update conversation:', error);
+      return res.status(500).json({ 
+        error: 'Failed to update conversation in database',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
