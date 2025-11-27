@@ -610,6 +610,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         // Set loading to false after AI response is processed
         setTimeout(() => setIsLoading(false), 1000);
       }
+      
+      // IMPORTANT: Return here to prevent practice mode from running during topic discovery
+      return;
     }
     
     // Persist user message to BOTH local store AND database simultaneously
