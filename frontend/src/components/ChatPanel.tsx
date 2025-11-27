@@ -74,7 +74,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setCurrentTopic(topic);
       // If topic is already established, don't wait for topic confirmation
       setWaitingForTopic(false);
-      setTopicLocked(true); // Existing conversation - topic is locked
+      // Only lock if topic is NOT "New Conversation" (real topic exists)
+      setTopicLocked(true);
     } else if (topic === "New Conversation" && currentTopic !== "New Conversation") {
       // New session started - reset everything
       setCurrentTopic("New Conversation");
@@ -83,6 +84,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setMessages([]);
       setConversationHistory([]);
       setConversationId(null);
+    } else if (topic === "New Conversation" && currentTopic === "New Conversation") {
+      // Ensure topicLocked is false for new conversations
+      setTopicLocked(false);
     }
   }, [topic, currentTopic]);
   const inputAreaRef = useRef<HTMLDivElement | null>(null);
