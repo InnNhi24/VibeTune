@@ -21,7 +21,10 @@ import {
   Gamepad2,
   Camera,
   Music,
-  Utensils
+  Utensils,
+  Edit2,
+  Check,
+  X
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
@@ -33,6 +36,7 @@ interface AppSidebarProps {
   conversations: Conversation[];
   onConversationSelect: (conversation: Conversation) => void;
   onConversationDelete?: (conversationId: string) => void;
+  onConversationRename?: (conversationId: string, newName: string) => void;
   onNewConversation?: () => void;
   onLogout: () => void;
   onSettings?: () => void;
@@ -44,12 +48,15 @@ export function AppSidebar({
   conversations,
   onConversationSelect,
   onConversationDelete,
+  onConversationRename,
   onNewConversation,
   onLogout,
   onSettings,
   isCollapsed = false
 }: AppSidebarProps) {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
+  const [editingConvId, setEditingConvId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   
   // Helper function to capitalize first letter of each word
   const capitalizeTitle = (title: string) => {
@@ -427,7 +434,69 @@ export function AppSidebar({
                                       <div className="space-y-2">
                                         {/* Header */}
                                         <div className="flex items-start justify-between gap-2 min-w-0">
-                                          <h4 className="text-xs font-medium truncate text-sidebar-foreground flex-1 min-w-0">{capitalizeTitle(conversation.title || 'New Conversation')}</h4>
+                                          {editingConvId === conversation.id ? (
+                                            <div className="flex items-center gap-1 flex-1 min-w-0">
+                                              <input
+                                                type="text"
+                                                value={editingName}
+                                                onChange={(e) => setEditingName(e.target.value)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter') {
+                                                    if (editingName.trim() && onConversationRename) {
+                                                      onConversationRename(conversation.id, editingName.trim());
+                                                    }
+                                                    setEditingConvId(null);
+                                                  } else if (e.key === 'Escape') {
+                                                    setEditingConvId(null);
+                                                  }
+                                                }}
+                                                className="flex-1 text-xs px-1 py-0.5 border rounded focus:outline-none focus:ring-1 focus:ring-sidebar-primary"
+                                                autoFocus
+                                              />
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  if (editingName.trim() && onConversationRename) {
+                                                    onConversationRename(conversation.id, editingName.trim());
+                                                  }
+                                                  setEditingConvId(null);
+                                                }}
+                                                className="h-5 w-5 p-0"
+                                              >
+                                                <Check className="w-3 h-3 text-success" />
+                                              </Button>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingConvId(null);
+                                                }}
+                                                className="h-5 w-5 p-0"
+                                              >
+                                                <X className="w-3 h-3 text-destructive" />
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <h4 className="text-xs font-medium truncate text-sidebar-foreground flex-1 min-w-0">{capitalizeTitle(conversation.title || 'New Conversation')}</h4>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingConvId(conversation.id);
+                                                  setEditingName(conversation.title || 'New Conversation');
+                                                }}
+                                                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-60 hover:opacity-100 transition-opacity"
+                                              >
+                                                <Edit2 className="w-3 h-3" />
+                                              </Button>
+                                            </>
+                                          )}
                                           <div className="flex items-center gap-1">
                                             <StatusIcon className={`w-3 h-3 ${completion.color}`} />
                                             {conversation.avg_prosody_score && (

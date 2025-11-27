@@ -102,6 +102,43 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
       });
   };
 
+  const handleConversationRename = (conversationId: string, newName: string) => {
+    console.log('✏️ Renaming conversation:', conversationId, 'to:', newName);
+    
+    // Update in local store
+    const currentConversations = useAppStore.getState().conversations;
+    const updatedConversations = currentConversations.map(conv =>
+      conv.id === conversationId
+        ? { ...conv, title: newName, topic: newName }
+        : conv
+    );
+    useAppStore.setState({ conversations: updatedConversations });
+    
+    // Update current topic if this is the active conversation
+    if (activeConversationId === conversationId) {
+      setCurrentTopic(newName);
+    }
+    
+    // Update in database
+    fetch('/api/data?action=update-conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: conversationId,
+        topic: newName,
+        title: newName
+      })
+    }).then(async response => {
+      if (response.ok) {
+        console.log('✅ Conversation renamed in database');
+      } else {
+        console.warn('⚠️ Failed to rename conversation in database:', response.status);
+      }
+    }).catch(error => {
+      console.warn('⚠️ Error renaming conversation:', error.message);
+    });
+  };
+
   const handleNewConversation = () => {
     // Clear active conversation and reset to completely new session
     setActiveConversation(null);
@@ -152,6 +189,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
           conversations={conversations}
           onConversationSelect={handleConversationSelect}
           onConversationDelete={handleConversationDelete}
+          onConversationRename={handleConversationRename}
           onNewConversation={handleNewConversation}
           onLogout={onLogout}
           onSettings={() => setShowSettings(true)}
@@ -201,6 +239,7 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
                   conversations={conversations}
                   onConversationSelect={handleConversationSelect}
                   onConversationDelete={handleConversationDelete}
+                  onConversationRename={handleConversationRename}
                   onNewConversation={() => {
                     handleNewConversation();
                     setIsSidebarOpen(false);
