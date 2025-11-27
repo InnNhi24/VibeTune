@@ -344,10 +344,9 @@ export function AppSidebar({
                 }`} />
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="flex-1 min-h-0 overflow-hidden">
-              {isHistoryOpen && (
-                <div className="h-full overflow-y-auto overflow-x-hidden custom-scrollbar">
-                  <div className="space-y-3 pr-2 pb-4">
+            <CollapsibleContent className="flex-1 min-h-0 overflow-hidden" style={{ height: isHistoryOpen ? 'auto' : 0 }}>
+              <div className="h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div className="space-y-3 pb-4">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
@@ -553,9 +552,8 @@ export function AppSidebar({
                     );
                   })
                 )}
-                  </div>
                 </div>
-              )}
+              </div>
             </CollapsibleContent>
           </Collapsible>
         </div>
