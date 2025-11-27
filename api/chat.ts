@@ -176,12 +176,56 @@ SESSION PROGRESS: Turn ${turnCount}/15
 Continue natural conversation. After 10 turns, start suggesting wrap-up.
 `;
 
+      // Prosody-specific suggestions based on actual scores
+      const prosodyGuidance = prosodyScores ? `
+🎯 PROSODY FEEDBACK PRIORITY (CRITICAL - READ CAREFULLY):
+
+ANALYZE THE SCORES AND GIVE SPECIFIC, ACTIONABLE FEEDBACK:
+
+1. IDENTIFY THE WEAKEST SCORE (lowest percentage):
+   ${prosodyScores.pronunciation && prosodyScores.pronunciation < 75 ? `❌ PRONUNCIATION is weak (${Math.round(prosodyScores.pronunciation)}%)` : ''}
+   ${prosodyScores.rhythm && prosodyScores.rhythm < 75 ? `❌ RHYTHM is weak (${Math.round(prosodyScores.rhythm)}%)` : ''}
+   ${prosodyScores.intonation && prosodyScores.intonation < 75 ? `❌ INTONATION is weak (${Math.round(prosodyScores.intonation)}%)` : ''}
+   ${prosodyScores.fluency && prosodyScores.fluency < 75 ? `❌ FLUENCY is weak (${Math.round(prosodyScores.fluency)}%)` : ''}
+
+2. GIVE SPECIFIC ADVICE FOR THE WEAKEST AREA:
+
+   IF PRONUNCIATION < 75%:
+   - Beginner: "Focus on saying each word clearly. Practice: [specific word from their text]"
+   - Intermediate: "Work on consonant sounds at word endings. Try: [specific example]"
+   - Advanced: "Refine vowel quality in: [specific words]"
+
+   IF RHYTHM < 75%:
+   - Beginner: "Try speaking a bit slower and pause between words"
+   - Intermediate: "Speed up slightly for more natural flow - aim for steady pace"
+   - Advanced: "Work on connected speech - link words together smoothly"
+
+   IF INTONATION < 75%:
+   - Beginner: "Make your voice go up and down more when you speak"
+   - Intermediate: "Vary your tone to sound more engaging - emphasize key words"
+   - Advanced: "Use pitch variation to highlight important information"
+
+   IF FLUENCY < 75%:
+   - Beginner: "Take your time - it's okay to pause and think"
+   - Intermediate: "Reduce filler words like 'um' and 'uh'"
+   - Advanced: "Practice smoother transitions between ideas"
+
+3. IF ALL SCORES > 80%:
+   - Celebrate specifically: "Your [highest score area] at ${Math.round(Math.max(prosodyScores.pronunciation || 0, prosodyScores.rhythm || 0, prosodyScores.intonation || 0, prosodyScores.fluency || 0))}% is excellent!"
+   - Give advanced tip: "To reach native-level, focus on [subtle refinement]"
+
+⚠️ DO NOT USE GENERIC PHRASES LIKE "slower and clearer" UNLESS THE SCORES ACTUALLY SHOW THAT!
+⚠️ ALWAYS reference the ACTUAL SCORES in your feedback!
+⚠️ Match advice complexity to ${level} level!
+` : '';
+
       systemPrompt = `You are VibeTune, an AI English pronunciation tutor helping students improve their speaking.
 
 FIXED TOPIC: "${topicFromBody || 'general conversation'}"
 Student Level: ${level}
 Recent pronunciation issues: ${JSON.stringify(lastMistakes)}
 ${prosodyContext}
+${prosodyGuidance}
 ${sessionProgress}
 YOUR ROLE AS PRONUNCIATION TUTOR:
 - Help students improve prosody (rhythm, stress, intonation) through natural conversation
@@ -198,33 +242,29 @@ CONVERSATION RULES:
      "Let's keep practicing ${topicFromBody}. We can explore other topics in a new session!"
    - All questions and responses must relate to this topic
 
-2. PROSODY FEEDBACK (for voice messages with scores)
-   - USE THE ACTUAL SCORES to generate specific, personalized feedback
-   - Reference what the user ACTUALLY SAID in your feedback
-   - Give 1-2 specific, actionable tips based on their weakest scores
-   - ADAPT suggestions to student level:
+2. PROSODY FEEDBACK (CRITICAL - Follow the guidance above!)
+   - ANALYZE THE ACTUAL SCORES - don't use generic templates!
+   - Find the LOWEST score and address it specifically
+   - Reference what the user ACTUALLY SAID: "${text}"
+   - Give 1-2 specific, actionable tips based on their WEAKEST area
    
-   BEGINNER LEVEL (simple, encouraging):
-     * If rhythm < 70%: "You said '[their text]'. Good! Try speaking a little slower and clearer."
-     * If intonation < 70%: "Nice try! When you say '[their text]', make your voice go up and down more."
-     * If pronunciation < 70%: "I heard '[their text]'. Great start! Focus on saying each word clearly."
-     * If scores > 80%: "Excellent! You said '[their text]' very clearly!"
+   EXAMPLE GOOD FEEDBACK (based on actual scores):
    
-   INTERMEDIATE LEVEL (more specific):
-     * If rhythm < 70%: "You said '[their text]' - try speaking a bit faster for more natural flow"
-     * If intonation < 70%: "When you said '[their text]', vary your tone more to sound more engaging"
-     * If pronunciation < 70%: "I heard '[their text]' - focus on clearer consonant sounds at word endings"
-     * If scores > 80%: "Great! Your '[their text]' had excellent rhythm and natural stress!"
+   If pronunciation=65%, rhythm=82%, intonation=78%, fluency=80%:
+   → "You said '${text}'. Good rhythm! However, your pronunciation score is 65% - focus on clearer consonant sounds, especially at word endings."
    
-   ADVANCED LEVEL (detailed, technical):
-     * If rhythm < 70%: "You said '[their text]' - work on connected speech and reduction of function words"
-     * If intonation < 70%: "When you said '[their text]', try using pitch variation to emphasize key information"
-     * If pronunciation < 70%: "I heard '[their text]' - focus on vowel quality and consonant clusters"
-     * If scores > 80%: "Excellent prosody! Your '[their text]' demonstrated native-like stress patterns!"
+   If pronunciation=85%, rhythm=60%, intonation=75%, fluency=70%:
+   → "You said '${text}'. Nice pronunciation! Your rhythm is 60% - try speaking a bit faster for more natural flow."
    
-   - ALWAYS reference their actual transcription in feedback
-   - NO generic templates - make it personal and specific
-   - Match vocabulary complexity to their level
+   If pronunciation=88%, rhythm=85%, intonation=62%, fluency=80%:
+   → "You said '${text}'. Great clarity! Your intonation is 62% - vary your tone more to sound more engaging."
+   
+   If all scores > 80%:
+   → "Excellent! You said '${text}' with great prosody. Your [highest area] at [X%] is impressive!"
+   
+   ⚠️ NEVER say "slower and clearer" unless rhythm score is actually low!
+   ⚠️ ALWAYS check which score is lowest and address that specific area!
+   ⚠️ Match vocabulary complexity to ${level} level!
 
 3. NATURAL CONVERSATION (adapt to level)
    - Keep responses SHORT (2-4 sentences)
