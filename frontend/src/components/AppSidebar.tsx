@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { 
   GraduationCap, 
   MessageCircle, 
@@ -332,21 +331,23 @@ export function AppSidebar({
 
         {/* Conversation History - Scrollable Section */}
         <div className="px-4 pb-2 flex-1 min-h-0 flex flex-col overflow-hidden">
-          <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen} className="flex flex-col h-full min-h-0">
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full justify-between flex-shrink-0 mb-2">
-                <span className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" />
-                  History ({conversations.length})
-                </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${
-                  isHistoryOpen ? 'rotate-180' : ''
-                }`} />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="flex-1 min-h-0 overflow-hidden" style={{ height: isHistoryOpen ? 'auto' : 0 }}>
-              <div className="h-full overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
-                <div className="space-y-3 pb-4">
+          <Button 
+            variant="outline" 
+            className="w-full justify-between flex-shrink-0 mb-2"
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          >
+            <span className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" />
+              History ({conversations.length})
+            </span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${
+              isHistoryOpen ? 'rotate-180' : ''
+            }`} />
+          </Button>
+          
+          {isHistoryOpen && (
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+              <div className="space-y-3 pb-4">
                 {conversations.length === 0 ? (
                   <Card>
                     <CardContent className="p-4 text-center">
@@ -552,10 +553,9 @@ export function AppSidebar({
                     );
                   })
                 )}
-                </div>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          )}
         </div>
       </div>
 
