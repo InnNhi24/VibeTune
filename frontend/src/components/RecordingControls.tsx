@@ -596,9 +596,9 @@ export function RecordingControls({
 
   return (
     <div className="space-y-4">
-      {/* AI Status */}
+      {/* AI Status - Centered */}
       {showAIFeedback && (
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-center text-xs">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${aiReady ? 'bg-success animate-pulse' : 'bg-muted'}`} />
             <span className="text-muted-foreground">
@@ -606,18 +606,16 @@ export function RecordingControls({
             </span>
           </div>
           {!aiReady && (
-            <Button variant="ghost" size="sm" className="h-6 px-2">
+            <Button variant="ghost" size="sm" className="h-6 px-2 ml-2">
               <Settings className="w-3 h-3 mr-1" />
               Setup
             </Button>
           )}
           {/* Microphone enable helper - visible when permission not granted */}
           {micPermission !== 'granted' && (
-            <div className="ml-3">
-              <Button size="sm" variant="outline" onClick={handleEnableMicClick} className="h-6 px-2">
-                Enable Microphone
-              </Button>
-            </div>
+            <Button size="sm" variant="outline" onClick={handleEnableMicClick} className="h-6 px-2 ml-2">
+              Enable Microphone
+            </Button>
           )}
         </div>
       )}
