@@ -64,7 +64,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [isTextareaMode, setIsTextareaMode] = useState(false);
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
-  const [liveTranscription, setLiveTranscription] = useState("");
   const [topicLocked, setTopicLocked] = useState(false); // Prevent topic changes after confirmation
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -306,9 +305,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
   const handleSendMessage = async (messageText: string, isAudio: boolean = false, audioBlob?: Blob) => {
     if (!messageText.trim()) return;
-
-    // Clear live transcription when sending
-    setLiveTranscription("");
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = crypto.randomUUID(); // Use UUID instead of timestamp
@@ -1067,31 +1063,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             </div>
           )}
           
-          {/* Voice Recording - Centered with Live Transcription */}
-          <div className="flex flex-col items-center gap-4 max-w-2xl mx-auto">
-            {/* Live Transcription Display - Large text above button */}
-            <AnimatePresence>
-              {liveTranscription && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="text-center px-6"
-                >
-                  <p className="text-2xl md:text-3xl text-foreground font-medium">
-                    "{liveTranscription}"
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
-            {/* Recording Button */}
+          {/* Voice Recording - Centered */}
+          <div className="flex justify-center">
             <RecordingControls
               onSendMessage={handleSendMessage}
               conversationContext={buildConversationContext()}
               disabled={isLoading}
               showAIFeedback={aiReady}
-              onLiveTranscription={setLiveTranscription}
             />
           </div>
         </div>
