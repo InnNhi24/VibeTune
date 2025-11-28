@@ -41,6 +41,7 @@ export function RecordingControls({
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const activeStreamRef = useRef<MediaStream | null>(null);
+  const [activeStream, setActiveStream] = useState<MediaStream | null>(null); // State for triggering re-render
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   // Store the last produced audio blob in a ref so consumers can await it without
@@ -177,7 +178,8 @@ export function RecordingControls({
       }
       
       mediaRecorderRef.current = mediaRecorder;
-  activeStreamRef.current = stream;
+      activeStreamRef.current = stream;
+      setActiveStream(stream); // Update state to trigger re-render
       
       const chunks: BlobPart[] = [];
       
@@ -196,6 +198,7 @@ export function RecordingControls({
         // stop any active tracks
         try { activeStreamRef.current?.getTracks().forEach(track => track.stop()); } catch (e) { /* noop */ }
         activeStreamRef.current = null;
+        setActiveStream(null); // Clear state
       };
       
       mediaRecorder.start();
@@ -519,6 +522,7 @@ export function RecordingControls({
       // stop any active stream tracks
       try { activeStreamRef.current?.getTracks().forEach(t => t.stop()); } catch (e) { /* noop */ }
       activeStreamRef.current = null;
+      setActiveStream(null); // Clear state
 
       // stop speech recognition if active
       if (recognitionRef.current) {
@@ -553,7 +557,7 @@ export function RecordingControls({
     switch (recordingState) {
       case 'recording':
         // Show wave bars instead of icon when recording
-        return <AudioWaveVisualizer isActive={true} audioStream={activeStreamRef.current} />;
+        return <AudioWaveVisualizer isActive={true} audioStream={activeStream} />;
       case 'ready':
         return <Send className="w-6 h-6" />;
       case 'processing':
