@@ -163,13 +163,19 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             return matches;
           })
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
-          .map(m => ({
-            id: m.id,
-            text: m.content,
-            isUser: m.sender === 'user',
-            isAudio: m.type === 'audio',
-            timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          } as Message));
+          .map(m => {
+            // Preserve prosodyAnalysis from existing messages if available
+            const existingMsg = messages.find(msg => msg.id === m.id);
+            return {
+              id: m.id,
+              text: m.content,
+              isUser: m.sender === 'user',
+              isAudio: m.type === 'audio',
+              timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              prosodyAnalysis: existingMsg?.prosodyAnalysis, // Preserve prosody data
+              audioBlob: existingMsg?.audioBlob // Preserve audio blob for playback
+            } as Message;
+          });
 
         console.log('🔍 [ChatPanel] Found', msgs.length, 'messages for this conversation');
         
