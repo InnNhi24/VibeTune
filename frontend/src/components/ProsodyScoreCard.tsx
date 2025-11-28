@@ -285,11 +285,11 @@ function ProsodyDetailModal({
   getScoreColor: (score: number) => string;
   getScoreLabel: (score: number) => string;
 }) {
-  // Merge improvements and suggestions into one list
-  const allImprovements = [
+  // Merge improvements and suggestions into one list, removing duplicates
+  const allImprovements = Array.from(new Set([
     ...(detailedFeedback?.improvements || []),
     ...(suggestions || [])
-  ];
+  ]));
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
