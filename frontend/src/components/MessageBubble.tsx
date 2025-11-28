@@ -249,132 +249,19 @@ export function MessageBubble({
                       )}
                     </div>
 
-                    {/* Score Badge - Hidden, use star button instead */}
+                    {/* Score Badge - Always show for audio with prosody feedback */}
+                    {prosodyFeedback && (
+                      <Badge 
+                        className={`text-xs transition-all ${getScoreBgColor(prosodyFeedback.score)}`}
+                      >
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        {Math.round(prosodyFeedback.score)}%
+                      </Badge>
+                    )}
                   </div>
                 )}
 
-                {/* Enhanced Prosody Feedback */}
-                <AnimatePresence>
-                  {isUser && prosodyFeedback && showFullFeedback && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0, y: -10 }}
-                      animate={{ opacity: 1, height: 'auto', y: 0 }}
-                      exit={{ opacity: 0, height: 0, y: -10 }}
-                      transition={{ duration: 0.2 }}
-                      className="mt-3"
-                    >
-                      <Card className={`${getScoreBgColor(prosodyFeedback.score)} shadow-sm`}>
-                        <CardContent className="p-3 space-y-3">
-                          {/* Header */}
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold">AI Prosody Analysis</span>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-bold ${getScoreColor(prosodyFeedback.score)}`}>
-                                {Math.round(prosodyFeedback.score)}%
-                              </span>
-                              {onAnalysisView && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={onAnalysisView}
-                                        className="h-6 w-6 p-0"
-                                      >
-                                        <Eye className="w-3 h-3" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      View detailed analysis
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Highlights */}
-                          {prosodyFeedback.highlights.length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground mb-1">Key areas:</p>
-                              <div className="flex flex-wrap gap-1">
-                                {prosodyFeedback.highlights.slice(0, 3).map((highlight, index) => (
-                                  <TooltipProvider key={index}>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge
-                                          variant="outline"
-                                          className={`text-xs px-2 py-0.5 cursor-help ${getHighlightStyle(highlight.type)}`}
-                                        >
-                                          {highlight.text}
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-xs">
-                                        <p className="text-xs">{highlight.feedback}</p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Top Suggestions */}
-                          {prosodyFeedback.suggestions.length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground mb-1">Quick tips:</p>
-                              <ul className="text-xs space-y-0.5">
-                                {prosodyFeedback.suggestions.slice(0, 2).map((suggestion, index) => (
-                                  <li key={index} className="flex items-start gap-1">
-                                    <span className="text-accent mt-0.5 flex-shrink-0">•</span>
-                                    <span className="leading-tight">{suggestion}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Action Buttons */}
-                          <div className="flex gap-1 pt-1">
-                            {onRetry && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={onRetry}
-                                className="h-6 px-2 text-xs flex-1"
-                              >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                Try Again
-                              </Button>
-                            )}
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 px-2 text-xs"
-                            >
-                              <ThumbsUp className="w-3 h-3 mr-1" />
-                              Helpful
-                            </Button>
-                            {onAnalysisView && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={onAnalysisView}
-                                className="h-6 px-2 text-xs"
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                Details
-                              </Button>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Compact Feedback Preview - Hidden, use star button instead */}
+                {/* Enhanced Prosody Feedback - Moved to star button popup */}
               </CardContent>
             </Card>
           </div>
