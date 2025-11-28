@@ -249,16 +249,7 @@ export function MessageBubble({
                       )}
                     </div>
 
-                    {/* Score Badge */}
-                    {!isProcessing && prosodyFeedback && (
-                      <Badge 
-                        className={`text-xs cursor-pointer transition-all hover:scale-105 ${getScoreBgColor(prosodyFeedback.score)}`}
-                        onClick={() => setShowFullFeedback(!showFullFeedback)}
-                      >
-                        <TrendingUp className="w-3 h-3 mr-1" />
-                        {Math.round(prosodyFeedback.score)}%
-                      </Badge>
-                    )}
+                    {/* Score Badge - Hidden, use star button instead */}
                   </div>
                 )}
 
@@ -383,24 +374,7 @@ export function MessageBubble({
                   )}
                 </AnimatePresence>
 
-                {/* Compact Feedback Preview */}
-                {isUser && prosodyFeedback && !showFullFeedback && !isProcessing && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-2"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowFullFeedback(true)}
-                      className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground w-full justify-start"
-                    >
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                      View AI feedback ({Math.round(prosodyFeedback.score)}%)
-                    </Button>
-                  </motion.div>
-                )}
+                {/* Compact Feedback Preview - Hidden, use star button instead */}
               </CardContent>
             </Card>
           </div>
