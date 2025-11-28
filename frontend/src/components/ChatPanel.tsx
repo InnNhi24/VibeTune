@@ -10,7 +10,7 @@ import { RecordingControls } from "./RecordingControls";
 import { ProsodyFeedback } from "./ProsodyFeedback";
 import { ProsodyScoreCard } from "./ProsodyScoreCard";
 import { AIConnectionStatus } from "./AIConnectionStatus";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { aiProsodyService, ConversationContext, ProsodyAnalysis, AIResponse } from "../services/aiProsodyService";
 import { useAppStore } from "../store/appStore";
@@ -61,6 +61,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [currentAnalysis, setCurrentAnalysis] = useState<ProsodyAnalysis | null>(null);
   const [showAnalysisOverlay, setShowAnalysisOverlay] = useState(false);
   const [selectedMessageForAnalysis, setSelectedMessageForAnalysis] = useState<Message | null>(null);
+  const [selectedProsodyMessage, setSelectedProsodyMessage] = useState<Message | null>(null); // For prosody popup
   const [aiReady, setAiReady] = useState(false);
   const [isTextareaMode, setIsTextareaMode] = useState(false);
   const [waitingForTopic, setWaitingForTopic] = useState(true);
@@ -960,42 +961,40 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             return (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined} className="space-y-3">
-              <MessageBubble
-                message={message.text}
-                isUser={message.isUser}
-                isAudio={message.isAudio}
-                audioBlob={message.audioBlob}
-                prosodyFeedback={message.prosodyAnalysis ? {
-                  score: message.prosodyAnalysis.overall_score,
-                  highlights: message.prosodyAnalysis.detailed_feedback.specific_issues.map(issue => ({
-                    text: issue.word,
-                    type: issue.severity === 'high' ? 'error' : 'suggestion',
-                    feedback: issue.feedback
-                  })),
-                  suggestions: message.prosodyAnalysis.suggestions
-                } : undefined}
-                timestamp={message.timestamp}
-                isProcessing={message.isProcessing}
-                onAnalysisView={message.prosodyAnalysis ? () => handleAnalysisView(message.prosodyAnalysis!) : undefined}
-                onRetry={() => handleRetryRecording(message.id)}
-              />
-              
-              {/* Show Prosody Score Card for audio messages with analysis - Click to view details */}
-              {message.isUser && message.isAudio && message.prosodyAnalysis && !message.isProcessing && (
-                <div className="ml-12">
-                  <ProsodyScoreCard
-                    overall={message.prosodyAnalysis.overall_score}
-                    pronunciation={message.prosodyAnalysis.pronunciation_score}
-                    rhythm={message.prosodyAnalysis.rhythm_score}
-                    intonation={message.prosodyAnalysis.intonation_score}
-                    fluency={message.prosodyAnalysis.fluency_score}
-                    compact={true}
-                    detailedFeedback={message.prosodyAnalysis.detailed_feedback}
-                    suggestions={message.prosodyAnalysis.suggestions}
-                  />
-                  <p className="text-xs text-muted-foreground text-center mt-1">Click for detailed analysis</p>
-                </div>
-              )}
+              <div className="relative group">
+                <MessageBubble
+                  message={message.text}
+                  isUser={message.isUser}
+                  isAudio={message.isAudio}
+                  audioBlob={message.audioBlob}
+                  prosodyFeedback={message.prosodyAnalysis ? {
+                    score: message.prosodyAnalysis.overall_score,
+                    highlights: message.prosodyAnalysis.detailed_feedback.specific_issues.map(issue => ({
+                      text: issue.word,
+                      type: issue.severity === 'high' ? 'error' : 'suggestion',
+                      feedback: issue.feedback
+                    })),
+                    suggestions: message.prosodyAnalysis.suggestions
+                  } : undefined}
+                  timestamp={message.timestamp}
+                  isProcessing={message.isProcessing}
+                  onAnalysisView={message.prosodyAnalysis ? () => handleAnalysisView(message.prosodyAnalysis!) : undefined}
+                  onRetry={() => handleRetryRecording(message.id)}
+                />
+                
+                {/* Star button for prosody feedback - Always show for audio messages with analysis */}
+                {message.isUser && message.isAudio && message.prosodyAnalysis && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute bottom-2 right-2 h-7 w-7 p-0 rounded-full bg-primary/10 hover:bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setSelectedProsodyMessage(message)}
+                    title="View detailed prosody analysis"
+                  >
+                    <Star className="w-4 h-4 text-primary fill-primary" />
+                  </Button>
+                )}
+              </div>
             </div>
             );
           })}
@@ -1120,6 +1119,22 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Prosody Feedback Popup Modal */}
+      {selectedProsodyMessage && selectedProsodyMessage.prosodyAnalysis && (
+        <ProsodyScoreCard
+          overall={selectedProsodyMessage.prosodyAnalysis.overall_score}
+          pronunciation={selectedProsodyMessage.prosodyAnalysis.pronunciation_score}
+          rhythm={selectedProsodyMessage.prosodyAnalysis.rhythm_score}
+          intonation={selectedProsodyMessage.prosodyAnalysis.intonation_score}
+          fluency={selectedProsodyMessage.prosodyAnalysis.fluency_score}
+          showModalOnly={true}
+          isModalOpen={true}
+          onModalClose={() => setSelectedProsodyMessage(null)}
+          detailedFeedback={selectedProsodyMessage.prosodyAnalysis.detailed_feedback}
+          suggestions={selectedProsodyMessage.prosodyAnalysis.suggestions}
+        />
+      )}
     </div>
   );
 }

@@ -25,6 +25,10 @@ interface ProsodyScoreCardProps {
     }>;
   };
   suggestions?: string[];
+  // External modal control (optional)
+  showModalOnly?: boolean; // If true, only show modal, no card
+  isModalOpen?: boolean;
+  onModalClose?: () => void;
 }
 
 export function ProsodyScoreCard({
@@ -35,9 +39,22 @@ export function ProsodyScoreCard({
   fluency,
   compact = false,
   detailedFeedback,
-  suggestions
+  suggestions,
+  showModalOnly = false,
+  isModalOpen,
+  onModalClose
 }: ProsodyScoreCardProps) {
   const [showDetailModal, setShowDetailModal] = useState(false);
+  
+  // Use external control if provided, otherwise use internal state
+  const modalOpen = isModalOpen !== undefined ? isModalOpen : showDetailModal;
+  const handleModalClose = () => {
+    if (onModalClose) {
+      onModalClose();
+    } else {
+      setShowDetailModal(false);
+    }
+  };
   
   const getScoreColor = (score: number) => {
     if (score >= 85) return "text-success";
@@ -72,6 +89,22 @@ export function ProsodyScoreCard({
     { label: "Intonation", value: intonation, icon: Zap, color: "text-yellow-500" },
     { label: "Fluency", value: fluency, icon: MessageCircle, color: "text-green-500" }
   ];
+
+  // If showModalOnly, only render the modal
+  if (showModalOnly) {
+    return (
+      <ProsodyDetailModal
+        open={modalOpen}
+        onClose={handleModalClose}
+        overall={overall}
+        scores={scores}
+        detailedFeedback={detailedFeedback}
+        suggestions={suggestions}
+        getScoreColor={getScoreColor}
+        getScoreLabel={getScoreLabel}
+      />
+    );
+  }
 
   if (compact) {
     return (
@@ -129,8 +162,8 @@ export function ProsodyScoreCard({
 
         {/* Detail Modal */}
         <ProsodyDetailModal
-          open={showDetailModal}
-          onClose={() => setShowDetailModal(false)}
+          open={modalOpen}
+          onClose={handleModalClose}
           overall={overall}
           scores={scores}
           detailedFeedback={detailedFeedback}
@@ -208,8 +241,8 @@ export function ProsodyScoreCard({
 
       {/* Detail Modal */}
       <ProsodyDetailModal
-        open={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
+        open={modalOpen}
+        onClose={handleModalClose}
         overall={overall}
         scores={scores}
         detailedFeedback={detailedFeedback}
