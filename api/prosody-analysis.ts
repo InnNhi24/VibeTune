@@ -253,47 +253,73 @@ function calculateFluencyScore(text: string, speakingRate: number): number {
   return Math.min(1.0, Math.max(0.4, score));
 }
 
-// Generate detailed feedback
+// Generate detailed feedback with specific scores
 function generateFeedback(pronunciation: number, rhythm: number, intonation: number, fluency: number, speakingRate: number) {
   const feedback: any = {
     strengths: [],
     improvements: []
   };
   
-  // Pronunciation feedback
+  // Convert to percentages for clearer feedback
+  const pronPct = Math.round(pronunciation * 100);
+  const rhythmPct = Math.round(rhythm * 100);
+  const intonPct = Math.round(intonation * 100);
+  const fluencyPct = Math.round(fluency * 100);
+  
+  // Find weakest area for targeted improvement
+  const scores = [
+    { name: 'pronunciation', value: pronunciation, pct: pronPct },
+    { name: 'rhythm', value: rhythm, pct: rhythmPct },
+    { name: 'intonation', value: intonation, pct: intonPct },
+    { name: 'fluency', value: fluency, pct: fluencyPct }
+  ];
+  const weakest = scores.reduce((min, curr) => curr.value < min.value ? curr : min);
+  
+  // Pronunciation feedback - specific to score
   if (pronunciation >= 0.85) {
-    feedback.strengths.push('Excellent pronunciation clarity');
+    feedback.strengths.push(`Excellent pronunciation clarity (${pronPct}%)`);
   } else if (pronunciation >= 0.70) {
-    feedback.strengths.push('Good pronunciation overall');
+    feedback.strengths.push(`Good pronunciation overall (${pronPct}%)`);
+  } else if (pronunciation >= 0.60) {
+    feedback.improvements.push(`Pronunciation at ${pronPct}% - Focus on consonant sounds at word endings`);
   } else {
-    feedback.improvements.push('Focus on clearer pronunciation and enunciation');
+    feedback.improvements.push(`Pronunciation needs work (${pronPct}%) - Practice each word slowly and clearly`);
   }
   
-  // Rhythm feedback
+  // Rhythm feedback - specific to speaking rate
   if (rhythm >= 0.80) {
-    feedback.strengths.push('Natural speaking rhythm and pacing');
+    feedback.strengths.push(`Natural speaking rhythm (${rhythmPct}%) at ${Math.round(speakingRate)} words/min`);
   } else {
     if (speakingRate < 100) {
-      feedback.improvements.push('Try speaking a bit faster for more natural flow');
+      feedback.improvements.push(`Rhythm at ${rhythmPct}% - Speaking rate is ${Math.round(speakingRate)} wpm (try 120-140 wpm)`);
     } else if (speakingRate > 180) {
-      feedback.improvements.push('Slow down slightly for better clarity');
+      feedback.improvements.push(`Rhythm at ${rhythmPct}% - Speaking too fast at ${Math.round(speakingRate)} wpm (aim for 120-160 wpm)`);
     } else {
-      feedback.improvements.push('Work on maintaining consistent pacing');
+      feedback.improvements.push(`Rhythm at ${rhythmPct}% - Work on consistent pacing between words`);
     }
   }
   
-  // Intonation feedback
+  // Intonation feedback - specific to score
   if (intonation >= 0.80) {
-    feedback.strengths.push('Good use of intonation patterns');
+    feedback.strengths.push(`Good intonation patterns (${intonPct}%)`);
+  } else if (intonation >= 0.65) {
+    feedback.improvements.push(`Intonation at ${intonPct}% - Add more tone variation to emphasize key words`);
   } else {
-    feedback.improvements.push('Vary your tone more to sound more natural and engaging');
+    feedback.improvements.push(`Intonation needs improvement (${intonPct}%) - Practice making your voice go up and down more`);
   }
   
-  // Fluency feedback
+  // Fluency feedback - specific to score
   if (fluency >= 0.80) {
-    feedback.strengths.push('Fluent speech with good flow');
+    feedback.strengths.push(`Fluent speech with good flow (${fluencyPct}%)`);
+  } else if (fluency >= 0.65) {
+    feedback.improvements.push(`Fluency at ${fluencyPct}% - Reduce filler words (um, uh, like)`);
   } else {
-    feedback.improvements.push('Reduce filler words and hesitations for smoother speech');
+    feedback.improvements.push(`Fluency needs work (${fluencyPct}%) - Reduce filler words and practice smoother transitions`);
+  }
+  
+  // Add priority improvement based on weakest area
+  if (weakest.value < 0.70) {
+    feedback.improvements.unshift(`🎯 Priority: Improve ${weakest.name} (currently ${weakest.pct}%)`);
   }
   
   return feedback;

@@ -4,7 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const openai_1 = __importDefault(require("../clients/openai"));
-const deepgram_1 = __importDefault(require("../clients/deepgram"));
 const supabase_1 = require("../clients/supabase");
 const chatRoute = async (req, res) => {
     const { conversationId, profileId, text, audioUrl, deviceId, retryOfMessageId, version } = req.body;
@@ -19,16 +18,14 @@ const chatRoute = async (req, res) => {
     try {
         // 2. If audioUrl present => fetch audio => Deepgram STT => transcript => userText = transcript
         if (audioUrl) {
-            const { result, error } = await deepgram_1.default.listen.prerecorded.transcribeUrl(audioUrl, {
-                model: 'nova-2',
-                smart_format: true,
-                language: 'en',
+            // Download audio file and transcribe with OpenAI Whisper
+            const audioResponse = await fetch(audioUrl);
+            const audioBuffer = await audioResponse.arrayBuffer();
+            const transcription = await openai_1.default.audio.transcriptions.create({
+                file: new File([Buffer.from(audioBuffer)], 'audio.wav', { type: 'audio/wav' }),
+                model: 'whisper-1'
             });
-            if (error) {
-                console.error('Deepgram STT error:', error);
-                return res.status(502).json({ error: 'Deepgram STT failed', details: error.message });
-            }
-            userText = result.results?.channels[0]?.alternatives[0]?.transcript || "";
+            userText = transcription.text || "";
         }
         // 3. Call OpenAI with system prompt and JSON response format
         const systemPrompt = `You are VibeTune, a friendly AI prosody coach.\nRespond casually in 2–4 short sentences.\nThen provide “AI Analysis” with word stress marks, intonation arrows (↗︎/↘︎),\nrhythm pacing comments, and a short actionable tip.\nReturn structured JSON:\n{\n  "replyText": "...",\n  "turn_feedback": {\n    "grammar": [{"error": "...", "suggest": "..."}],\n    "vocab": [{"word": "...", "explain": "...", "CEFR": "B1"}],\n    "prosody": {"rate": 0.7, "pitch": 0.8, "energy": 0.6, "notes": "..."}\n  },\n  "guidance": "Short motivational tip"\n}`;

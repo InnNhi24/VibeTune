@@ -36,10 +36,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const dotenv_1 = __importDefault(require("dotenv"));
+// Load environment variables before importing modules that initialize
+// clients using env vars (OpenAI, Supabase, etc.). This prevents
+// "Missing credentials" errors when those modules initialize at import time.
+dotenv_1.default.config();
 const express_1 = __importDefault(require("express"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 const chat_1 = __importDefault(require("./routes/chat"));
 const placementScore_1 = __importDefault(require("./routes/placementScore"));
@@ -49,6 +53,7 @@ const liveTranscribe_1 = __importDefault(require("./routes/liveTranscribe"));
 const synthesize_1 = __importDefault(require("./routes/synthesize"));
 const analyzeProsody_1 = __importStar(require("./routes/analyzeProsody"));
 const chatStream_1 = __importDefault(require("./routes/chatStream"));
+const dataProxy_1 = __importDefault(require("./routes/dataProxy"));
 const security_1 = require("./middleware/security");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -78,6 +83,8 @@ app.post('/api/speech/analyze-prosody', security_1.rateLimits.ai, ...(Array.isAr
 app.post('/api/chat-stream', security_1.rateLimits.ai, chatStream_1.default);
 // API routes with rate limiting
 app.post('/api/chat', security_1.rateLimits.ai, chat_1.default);
+// Proxy legacy /api/data Vercel function to local Express route
+app.all('/api/data', dataProxy_1.default);
 app.post('/api/placement-score', security_1.rateLimits.general, placementScore_1.default);
 app.post('/api/events-ingest', security_1.rateLimits.general, eventsIngest_1.default);
 app.post('/api/feedback', security_1.rateLimits.general, feedback_1.default);
