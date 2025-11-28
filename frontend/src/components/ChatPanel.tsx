@@ -957,7 +957,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         <div className="p-4 space-y-4">
           {/* Debug: Rendering messages */}
           {messages.map((message, index) => {
-            // Debug: Rendering individual message
+            // Debug: Check prosody analysis
+            if (message.isAudio && message.isUser) {
+              console.log('ChatPanel Message Debug:', {
+                messageId: message.id,
+                isAudio: message.isAudio,
+                isUser: message.isUser,
+                hasProsodyAnalysis: !!message.prosodyAnalysis,
+                prosodyScore: message.prosodyAnalysis?.overall_score,
+                messageText: message.text.substring(0, 30)
+              });
+            }
             return (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined} className="space-y-3">
