@@ -88,6 +88,9 @@ async function transcribeAudio(audioBuffer: Buffer, contentType: string) {
     formData.append('model', 'whisper-1');
     formData.append('language', 'en'); // Force English transcription only
     formData.append('response_format', 'verbose_json');
+    formData.append('timestamp_granularities[]', 'word'); // Request word-level timestamps
+    // Prompt to preserve exact speech without grammar correction
+    formData.append('prompt', 'Transcribe exactly as spoken, including any grammar mistakes, filler words, and hesitations.');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -109,7 +112,8 @@ async function transcribeAudio(audioBuffer: Buffer, contentType: string) {
       text: result.text || '',
       duration: result.duration || 0,
       language: result.language || 'en',
-      segments: result.segments || []
+      segments: result.segments || [],
+      words: result.words || [] // Word-level timestamps
     };
   } catch (error) {
     console.error('❌ Transcription failed:', error);
@@ -119,7 +123,7 @@ async function transcribeAudio(audioBuffer: Buffer, contentType: string) {
 
 // Analyze prosody metrics from transcription
 function analyzeProsody(transcription: any) {
-  const { text, duration, segments } = transcription;
+  const { text, duration, segments, words: wordTimestamps } = transcription;
   
   // Calculate word count and speaking rate
   const words = text.trim().split(/\s+/);
@@ -138,6 +142,9 @@ function analyzeProsody(transcription: any) {
   // Analyze fluency (based on hesitations and pace)
   const fluency = calculateFluencyScore(text, speakingRate);
   
+  // Analyze word-level pronunciation
+  const wordAnalysis = analyzeWordLevel(wordTimestamps, text);
+  
   // Calculate overall score
   const overall_score = (pronunciation * 0.3 + rhythm * 0.25 + intonation * 0.25 + fluency * 0.2);
   
@@ -150,7 +157,7 @@ function analyzeProsody(transcription: any) {
     speaking_rate: Math.round(speakingRate * 10) / 10,
     word_count: wordCount,
     duration: Math.round(duration * 10) / 10,
-    detailed_feedback: generateFeedback(pronunciation, rhythm, intonation, fluency, speakingRate)
+    detailed_feedback: generateFeedback(pronunciation, rhythm, intonation, fluency, speakingRate, wordAnalysis)
   };
 }
 
@@ -253,8 +260,58 @@ function calculateFluencyScore(text: string, speakingRate: number): number {
   return Math.min(1.0, Math.max(0.4, score));
 }
 
+// Analyze word-level pronunciation
+function analyzeWordLevel(wordTimestamps: any[], text: string) {
+  if (!wordTimestamps || wordTimestamps.length === 0) {
+    return [];
+  }
+  
+  const wordAnalysis: any[] = [];
+  
+  // Common pronunciation issues for non-native speakers
+  const difficultPatterns = [
+    { pattern: /th/i, issue: 'TH sound', suggestion: 'Place tongue between teeth' },
+    { pattern: /r$/i, issue: 'Final R', suggestion: 'Curl tongue slightly for R sound' },
+    { pattern: /ed$/i, issue: 'Past tense', suggestion: 'Pronounce -ed as /d/, /t/, or /ɪd/' },
+    { pattern: /s$/i, issue: 'Plural S', suggestion: 'Clear S sound at word end' },
+    { pattern: /v/i, issue: 'V sound', suggestion: 'Touch upper teeth to lower lip' },
+    { pattern: /w/i, issue: 'W sound', suggestion: 'Round lips for W' }
+  ];
+  
+  wordTimestamps.forEach((wordData, index) => {
+    const word = wordData.word || '';
+    const wordClean = word.trim().toLowerCase();
+    
+    // Check for difficult patterns
+    const issues = difficultPatterns.filter(p => p.pattern.test(wordClean));
+    
+    if (issues.length > 0) {
+      // Estimate pronunciation score based on word complexity
+      const baseScore = 0.75;
+      const penalty = issues.length * 0.05;
+      const score = Math.max(0.5, baseScore - penalty);
+      
+      wordAnalysis.push({
+        word: word.trim(),
+        start: wordData.start,
+        end: wordData.end,
+        score: Math.round(score * 100),
+        issues: issues.map(i => ({
+          type: i.issue,
+          suggestion: i.suggestion
+        }))
+      });
+    }
+  });
+  
+  // Limit to top 5 most problematic words
+  return wordAnalysis
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 5);
+}
+
 // Generate detailed feedback with specific scores
-function generateFeedback(pronunciation: number, rhythm: number, intonation: number, fluency: number, speakingRate: number) {
+function generateFeedback(pronunciation: number, rhythm: number, intonation: number, fluency: number, speakingRate: number, wordAnalysis: any[] = []) {
   const feedback: any = {
     strengths: [],
     improvements: []
@@ -320,6 +377,17 @@ function generateFeedback(pronunciation: number, rhythm: number, intonation: num
   // Add priority improvement based on weakest area
   if (weakest.value < 0.70) {
     feedback.improvements.unshift(`🎯 Priority: Improve ${weakest.name} (currently ${weakest.pct}%)`);
+  }
+  
+  // Add word-level analysis to specific_issues
+  if (wordAnalysis.length > 0) {
+    feedback.specific_issues = wordAnalysis.map(wa => ({
+      type: 'pronunciation',
+      word: wa.word,
+      severity: wa.score < 60 ? 'high' : wa.score < 75 ? 'medium' : 'low',
+      feedback: `Pronunciation score: ${wa.score}%`,
+      suggestion: wa.issues.map((i: any) => i.suggestion).join('; ')
+    }));
   }
   
   return feedback;
