@@ -179,10 +179,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
         console.log('🔍 [ChatPanel] Found', msgs.length, 'messages for this conversation');
         
-        // Always load messages from store when conversation changes
-        // Store is the source of truth for conversation history
-        console.log('🔄 [ChatPanel] Loading messages from store for conversation:', activeConversationId);
-        setMessages(msgs);
+        // Only update messages if they're different (to preserve prosodyAnalysis)
+        // Compare by checking if all message IDs match
+        const currentIds = messages.map(m => m.id).sort().join(',');
+        const newIds = msgs.map(m => m.id).sort().join(',');
+        
+        if (currentIds !== newIds) {
+          console.log('🔄 [ChatPanel] Loading messages from store (conversation changed)');
+          setMessages(msgs);
+        } else {
+          console.log('✅ [ChatPanel] Messages already loaded, skipping to preserve prosodyAnalysis');
+        }
         
         if (msgs.length > 0) {
           setWaitingForTopic(false);
