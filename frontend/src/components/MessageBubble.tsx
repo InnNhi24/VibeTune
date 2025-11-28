@@ -64,18 +64,6 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showFullFeedback, setShowFullFeedback] = useState(false);
-  
-  // Debug logging
-  if (isAudio && isUser) {
-    console.log('MessageBubble Audio Debug:', {
-      hasAudio: isAudio,
-      isUser,
-      hasProsodyFeedback: !!prosodyFeedback,
-      prosodyScore: prosodyFeedback?.score,
-      hasOnAnalysisView: !!onAnalysisView,
-      isProcessing
-    });
-  }
 
   const handlePlayAudio = () => {
     if (audioBlob && !isPlaying) {

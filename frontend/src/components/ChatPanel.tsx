@@ -368,7 +368,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       isAudio,
       audioBlob,
       timestamp,
-      isProcessing: isAudio
+      isProcessing: isAudio,
+      prosodyAnalysis: undefined // Will be filled after analysis
     };
 
     console.log('🔍 Adding user message:', userMessage);
@@ -955,19 +956,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         className="flex-1 overflow-y-auto overflow-x-hidden bg-background min-h-0 relative"
       >
         <div className="p-4 space-y-4">
-          {/* Debug: Rendering messages */}
           {messages.map((message, index) => {
-            // Debug: Check prosody analysis
-            if (message.isAudio && message.isUser) {
-              console.log('ChatPanel Message Debug:', {
-                messageId: message.id,
-                isAudio: message.isAudio,
-                isUser: message.isUser,
-                hasProsodyAnalysis: !!message.prosodyAnalysis,
-                prosodyScore: message.prosodyAnalysis?.overall_score,
-                messageText: message.text.substring(0, 30)
-              });
-            }
             return (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined} className="space-y-3">
