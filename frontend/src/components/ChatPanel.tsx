@@ -982,10 +982,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               
               {/* Show Prosody Score Card for audio messages with analysis - Click to view details */}
               {message.isUser && message.isAudio && message.prosodyAnalysis && !message.isProcessing && (
-                <div 
-                  className="ml-12 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setSelectedMessageForAnalysis(message)}
-                >
+                <div className="ml-12">
                   <ProsodyScoreCard
                     overall={message.prosodyAnalysis.overall_score}
                     pronunciation={message.prosodyAnalysis.pronunciation_score}
@@ -993,8 +990,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     intonation={message.prosodyAnalysis.intonation_score}
                     fluency={message.prosodyAnalysis.fluency_score}
                     compact={true}
+                    detailedFeedback={message.prosodyAnalysis.detailed_feedback}
+                    suggestions={message.prosodyAnalysis.suggestions}
                   />
-                  <p className="text-xs text-muted-foreground text-center mt-1">Click to view details</p>
+                  <p className="text-xs text-muted-foreground text-center mt-1">Click for detailed analysis</p>
                 </div>
               )}
             </div>
