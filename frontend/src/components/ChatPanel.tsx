@@ -1139,6 +1139,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           rhythm={selectedProsodyMessage.prosodyAnalysis.rhythm_score}
           intonation={selectedProsodyMessage.prosodyAnalysis.intonation_score}
           fluency={selectedProsodyMessage.prosodyAnalysis.fluency_score}
+          messageId={selectedProsodyMessage.id}
           showModalOnly={true}
           isModalOpen={true}
           onModalClose={() => setSelectedProsodyMessage(null)}

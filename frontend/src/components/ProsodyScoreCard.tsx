@@ -3,9 +3,12 @@ import { Badge } from "./ui/badge";
 import { Progress } from "./ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { TrendingUp, TrendingDown, Minus, Award, Volume2, Music, Zap, MessageCircle, Info, BarChart3, MessageSquare, FileText } from "lucide-react";
+import { Button } from "./ui/button";
+import { TrendingUp, TrendingDown, Minus, Award, Volume2, Music, Zap, MessageCircle, Info, BarChart3, MessageSquare, FileText, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { supabase } from "../services/supabaseClient";
+import { useAppStore } from "../store/appStore";
 
 interface ProsodyScoreCardProps {
   overall: number;
@@ -26,6 +29,7 @@ interface ProsodyScoreCardProps {
     }>;
   };
   suggestions?: string[];
+  messageId?: string; // For saving feedback rating
   // External modal control (optional)
   showModalOnly?: boolean; // If true, only show modal, no card
   isModalOpen?: boolean;
@@ -41,6 +45,7 @@ export function ProsodyScoreCard({
   compact = false,
   detailedFeedback,
   suggestions,
+  messageId,
   showModalOnly = false,
   isModalOpen,
   onModalClose
@@ -101,6 +106,7 @@ export function ProsodyScoreCard({
         scores={scores}
         detailedFeedback={detailedFeedback}
         suggestions={suggestions}
+        messageId={messageId}
         getScoreColor={getScoreColor}
         getScoreLabel={getScoreLabel}
       />
@@ -169,6 +175,7 @@ export function ProsodyScoreCard({
           scores={scores}
           detailedFeedback={detailedFeedback}
           suggestions={suggestions}
+          messageId={messageId}
           getScoreColor={getScoreColor}
           getScoreLabel={getScoreLabel}
         />
@@ -248,10 +255,72 @@ export function ProsodyScoreCard({
         scores={scores}
         detailedFeedback={detailedFeedback}
         suggestions={suggestions}
+        messageId={messageId}
         getScoreColor={getScoreColor}
         getScoreLabel={getScoreLabel}
       />
     </>
+  );
+}
+
+// Feedback Rating Component
+function FeedbackRating({ messageId }: { messageId?: string }) {
+  const [rating, setRating] = useState<number | null>(null);
+  const [hoveredRating, setHoveredRating] = useState<number | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const user = useAppStore((state) => state.user);
+
+  const handleRating = async (value: number) => {
+    if (!messageId || !user?.id) {
+      console.warn('Cannot save rating: missing messageId or user');
+      return;
+    }
+
+    setRating(value);
+    setIsSaving(true);
+
+    try {
+      const { error } = await supabase
+        .from('feedback_rating')
+        .insert({
+          message_id: messageId,
+          profile_id: user.id,
+          rating: value
+        });
+
+      if (error) throw error;
+      console.log('✅ Feedback rating saved:', value);
+    } catch (error) {
+      console.error('❌ Failed to save feedback rating:', error);
+      setRating(null); // Reset on error
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((value) => (
+        <Button
+          key={value}
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 hover:bg-transparent"
+          disabled={isSaving}
+          onClick={() => handleRating(value)}
+          onMouseEnter={() => setHoveredRating(value)}
+          onMouseLeave={() => setHoveredRating(null)}
+        >
+          <Star
+            className={`w-4 h-4 transition-colors ${
+              (hoveredRating !== null ? value <= hoveredRating : value <= (rating || 0))
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'text-muted-foreground'
+            }`}
+          />
+        </Button>
+      ))}
+    </div>
   );
 }
 
@@ -263,6 +332,7 @@ function ProsodyDetailModal({
   scores,
   detailedFeedback,
   suggestions,
+  messageId,
   getScoreColor,
   getScoreLabel
 }: {
@@ -282,6 +352,7 @@ function ProsodyDetailModal({
     }>;
   };
   suggestions?: string[];
+  messageId?: string;
   getScoreColor: (score: number) => string;
   getScoreLabel: (score: number) => string;
 }) {
@@ -295,16 +366,21 @@ function ProsodyDetailModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Award className={`w-6 h-6 ${getScoreColor(overall)}`} />
-            Detailed Prosody Analysis
-          </DialogTitle>
-          <DialogDescription className="flex items-center gap-2">
-            Overall Score: <span className={`font-bold text-lg ${getScoreColor(overall)}`}>{Math.round(overall)}%</span> 
-            <Badge variant="outline" className={getScoreColor(overall)}>
-              {getScoreLabel(overall)}
-            </Badge>
-          </DialogDescription>
+          <div className="flex items-start justify-between">
+            <div>
+              <DialogTitle className="flex items-center gap-2">
+                <Award className={`w-6 h-6 ${getScoreColor(overall)}`} />
+                Detailed Prosody Analysis
+              </DialogTitle>
+              <DialogDescription className="flex items-center gap-2 mt-1">
+                Overall Score: <span className={`font-bold text-lg ${getScoreColor(overall)}`}>{Math.round(overall)}%</span> 
+                <Badge variant="outline" className={getScoreColor(overall)}>
+                  {getScoreLabel(overall)}
+                </Badge>
+              </DialogDescription>
+            </div>
+            <FeedbackRating messageId={messageId} />
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="scores" className="mt-2">
