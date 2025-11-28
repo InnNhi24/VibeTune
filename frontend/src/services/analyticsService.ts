@@ -106,13 +106,18 @@ export class AnalyticsService {
         profile_id: event.profile_id || session?.user?.id || null
       }));
 
-            // DISABLED: Database analytics (use localStorage only)
-  logger.info('Database analytics disabled - using localStorage fallback');
-      
-      // Always store offline instead of trying database
-      eventsToInsert.forEach(event => this.storeOfflineEvent(event));
-      
-  logger.info(`Stored ${eventsToInsert.length} events offline (database disabled)`);
+      // Insert events into database
+      const { error } = await supabase
+        .from('analytics_events')
+        .insert(eventsToInsert);
+
+      if (error) {
+        logger.error('Failed to insert analytics events:', error);
+        // Store offline for retry
+        eventsToInsert.forEach(event => this.storeOfflineEvent(event));
+      } else {
+        logger.info(`Successfully tracked ${eventsToInsert.length} analytics events`);
+      }
 
       // Clear queue
       this.eventQueue = [];
@@ -186,13 +191,19 @@ export class AnalyticsService {
       for (let i = 0; i < eventsToInsert.length; i += batchSize) {
         const batch = eventsToInsert.slice(i, i + batchSize);
         
-        // DISABLED: Database sync (keep events in localStorage)
-  logger.info(`Keeping ${batch.length} events in localStorage (database sync disabled)`);
+        const { error } = await supabase
+          .from('analytics_events')
+          .insert(batch);
+
+        if (error) {
+          logger.error(`Failed to sync batch ${i / batchSize + 1}:`, error);
+          throw error;
+        }
       }
 
       // Clear offline events on successful sync
       storage.removeItem(key);
-  logger.info(`Successfully synced ${eventsToInsert.length} offline analytics events`);
+      logger.info(`Successfully synced ${eventsToInsert.length} offline analytics events`);
 
     } catch (error) {
       logger.error('Failed to sync offline analytics events:', error);

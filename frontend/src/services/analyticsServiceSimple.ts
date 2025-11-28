@@ -1,6 +1,7 @@
 import logger from '../utils/logger';
+import { supabase } from './supabaseClient';
 
-// Simple analytics service that only uses localStorage - no database writes
+// Analytics service with localStorage + database sync
 export interface AnalyticsEvent {
   event_type: string;
   metadata: Record<string, any>;
@@ -12,21 +13,28 @@ export interface AnalyticsEvent {
 export class SimpleAnalyticsService {
   private static readonly STORAGE_KEY = 'vibetune_analytics_simple';
   private static readonly MAX_EVENTS = 1000;
+  private static syncInterval: NodeJS.Timeout | null = null;
 
-  // Initialize analytics service (localStorage only)
+  // Initialize analytics service (localStorage + database sync)
   static initialize() {
     try {
-  logger.info('✅ Analytics ready (localStorage)');
+      logger.info('✅ Analytics ready (localStorage + database sync)');
       
-      // Delayed cleanup to avoid blocking startup
+      // Delayed cleanup and sync to avoid blocking startup
       if (typeof window !== 'undefined') {
         setTimeout(() => {
           try {
             this.cleanupOldEvents();
+            this.syncToDatabase(); // Initial sync
           } catch (e) {
-            logger.warn('Cleanup old events failed:', e);
+            logger.warn('Cleanup/sync failed:', e);
           }
-        }, 10000); // Much longer delay
+        }, 10000);
+
+        // Periodic sync every 5 minutes
+        this.syncInterval = setInterval(() => {
+          this.syncToDatabase().catch(e => logger.warn('Periodic sync failed:', e));
+        }, 5 * 60 * 1000);
       }
     } catch (error) {
       logger.warn('⚠️ Analytics init failed (non-critical):', error);
@@ -74,8 +82,75 @@ export class SimpleAnalyticsService {
       }
       
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(events));
+
+      // Try immediate database insert (non-blocking)
+      this.insertToDatabase(event).catch(e => 
+        logger.warn('Immediate DB insert failed (will retry in batch):', e)
+      );
     } catch (error) {
       logger.warn('Failed to store analytics event:', error);
+    }
+  }
+
+  // Insert single event to database
+  private static async insertToDatabase(event: AnalyticsEvent) {
+    try {
+      const { error } = await supabase
+        .from('analytics_events')
+        .insert({
+          event_type: event.event_type,
+          metadata: event.metadata,
+          profile_id: event.profile_id || null,
+          created_at: event.created_at
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      // Silently fail - will be retried in batch sync
+      throw error;
+    }
+  }
+
+  // Sync all localStorage events to database
+  private static async syncToDatabase() {
+    try {
+      const events = this.getStoredEvents();
+      if (events.length === 0) return;
+
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Prepare events for insertion
+      const eventsToInsert = events.map(event => ({
+        event_type: event.event_type,
+        metadata: event.metadata,
+        profile_id: event.profile_id || session?.user?.id || null,
+        created_at: event.created_at
+      }));
+
+      // Insert in batches of 50
+      const batchSize = 50;
+      let successCount = 0;
+
+      for (let i = 0; i < eventsToInsert.length; i += batchSize) {
+        const batch = eventsToInsert.slice(i, i + batchSize);
+        
+        const { error } = await supabase
+          .from('analytics_events')
+          .insert(batch);
+
+        if (!error) {
+          successCount += batch.length;
+        } else {
+          logger.warn(`Failed to sync batch ${i / batchSize + 1}:`, error);
+        }
+      }
+
+      if (successCount > 0) {
+        logger.info(`✅ Synced ${successCount} analytics events to database`);
+      }
+    } catch (error) {
+      logger.warn('Failed to sync analytics to database:', error);
     }
   }
 
