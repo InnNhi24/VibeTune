@@ -203,7 +203,7 @@ export function MessageBubble({
                 {/* Audio Controls */}
                 {isAudio && (
                   <div className="mt-3 pt-2 border-t border-border/50 space-y-2">
-                    {/* Row 1: Overall Score */}
+                    {/* Row 1: Overall Score - Always show if prosodyFeedback exists */}
                     {prosodyFeedback && (
                       <div className="flex items-center">
                         <div className="w-px h-4 bg-border mr-2"></div>
@@ -266,8 +266,8 @@ export function MessageBubble({
                         <div className="w-px h-4 bg-border"></div>
                       </div>
 
-                      {/* Star button for detailed analysis */}
-                      {prosodyFeedback && onAnalysisView && (
+                      {/* Star button for detailed analysis - Always show if prosodyFeedback exists */}
+                      {prosodyFeedback && (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -275,6 +275,7 @@ export function MessageBubble({
                                 variant="ghost"
                                 size="sm"
                                 onClick={onAnalysisView}
+                                disabled={!onAnalysisView}
                                 className="h-7 w-7 p-0 hover:bg-primary/10"
                               >
                                 <Star className="w-4 h-4 text-primary fill-primary" />
