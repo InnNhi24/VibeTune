@@ -977,24 +977,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 } : undefined}
                 timestamp={message.timestamp}
                 isProcessing={message.isProcessing}
-                onAnalysisView={message.prosodyAnalysis ? () => handleAnalysisView(message.prosodyAnalysis!) : undefined}
+                onAnalysisView={message.prosodyAnalysis ? () => setSelectedProsodyMessage(message) : undefined}
                 onRetry={() => handleRetryRecording(message.id)}
               />
-              
-              {/* Star button for prosody feedback - Show below message for audio with analysis */}
-              {message.isUser && message.isAudio && message.prosodyAnalysis && (
-                <div className="flex justify-end ml-12">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 rounded-full bg-primary/10 hover:bg-primary/20 border-primary/30 transition-all hover:scale-105"
-                    onClick={() => setSelectedProsodyMessage(message)}
-                  >
-                    <Star className="w-4 h-4 text-primary fill-primary mr-1" />
-                    <span className="text-xs font-medium">View Analysis</span>
-                  </Button>
-                </div>
-              )}
             </div>
             );
           })}

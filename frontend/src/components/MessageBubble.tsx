@@ -202,62 +202,91 @@ export function MessageBubble({
 
                 {/* Audio Controls */}
                 {isAudio && (
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
-                    <div className="flex items-center gap-2">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handlePlayAudio}
-                              className="h-7 px-2 text-xs"
-                              disabled={isProcessing}
-                            >
-                              {isPlaying ? (
-                                <Pause className="w-3 h-3 mr-1" />
-                              ) : (
-                                <Volume2 className="w-3 h-3 mr-1" />
-                              )}
-                              {isPlaying ? 'Pause' : 'Play'}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Play your recorded audio
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      {audioBlob && (
+                  <div className="mt-3 pt-2 border-t border-border/50 space-y-2">
+                    {/* Row 1: Overall Score */}
+                    {prosodyFeedback && (
+                      <div className="flex items-center">
+                        <div className="w-px h-4 bg-border mr-2"></div>
+                        <Badge 
+                          className={`text-xs transition-all ${getScoreBgColor(prosodyFeedback.score)}`}
+                        >
+                          <TrendingUp className="w-3 h-3 mr-1" />
+                          Overall: {Math.round(prosodyFeedback.score)}%
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    {/* Row 2: Play/Download controls and Star button */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={handleDownloadAudio}
+                                onClick={handlePlayAudio}
                                 className="h-7 px-2 text-xs"
+                                disabled={isProcessing}
                               >
-                                <Download className="w-3 h-3" />
+                                {isPlaying ? (
+                                  <Pause className="w-3 h-3 mr-1" />
+                                ) : (
+                                  <Volume2 className="w-3 h-3 mr-1" />
+                                )}
+                                {isPlaying ? 'Pause' : 'Play'}
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              Download audio file
+                              Play your recorded audio
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        {audioBlob && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleDownloadAudio}
+                                  className="h-7 px-2 text-xs"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Download audio file
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        
+                        <div className="w-px h-4 bg-border"></div>
+                      </div>
+
+                      {/* Star button for detailed analysis */}
+                      {prosodyFeedback && onAnalysisView && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={onAnalysisView}
+                                className="h-7 w-7 p-0 hover:bg-primary/10"
+                              >
+                                <Star className="w-4 h-4 text-primary fill-primary" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              View detailed analysis
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       )}
                     </div>
-
-                    {/* Score Badge - Always show for audio with prosody feedback */}
-                    {prosodyFeedback && (
-                      <Badge 
-                        className={`text-xs transition-all ${getScoreBgColor(prosodyFeedback.score)}`}
-                      >
-                        <TrendingUp className="w-3 h-3 mr-1" />
-                        {Math.round(prosodyFeedback.score)}%
-                      </Badge>
-                    )}
                   </div>
                 )}
 
