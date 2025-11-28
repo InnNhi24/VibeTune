@@ -713,30 +713,38 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             transcription: (prosodyAnalysis as any)?.transcription?.substring(0, 50)
           });
           
-          setMessages(prev => prev.map(msg => 
-            msg.id === messageId 
-              ? { 
-                  ...msg, 
-                  // Update text with actual transcription from prosody analysis
-                  text: (prosodyAnalysis as any)?.transcription || msg.text,
-                  prosodyAnalysis, 
-                  isProcessing: false,
-                  // IMPORTANT: Preserve audioBlob for playback!
-                  audioBlob: msg.audioBlob,
-                  isAudio: msg.isAudio,
-                  // Also update prosodyFeedback for MessageBubble display
-                  prosodyFeedback: prosodyAnalysis ? {
-                    overall_score: prosodyAnalysis.overall_score,
-                    pronunciation_score: prosodyAnalysis.pronunciation_score,
-                    rhythm_score: prosodyAnalysis.rhythm_score,
-                    intonation_score: prosodyAnalysis.intonation_score,
-                    fluency_score: prosodyAnalysis.fluency_score,
-                    feedback: prosodyAnalysis.detailed_feedback,
-                    suggestions: prosodyAnalysis.suggestions
-                  } : undefined
-                }
-              : msg
-          ));
+          setMessages(prev => {
+            const updated = prev.map(msg => 
+              msg.id === messageId 
+                ? { 
+                    ...msg, 
+                    // Update text with actual transcription from prosody analysis
+                    text: (prosodyAnalysis as any)?.transcription || msg.text,
+                    prosodyAnalysis, 
+                    isProcessing: false,
+                    // IMPORTANT: Preserve audioBlob for playback!
+                    audioBlob: msg.audioBlob,
+                    isAudio: msg.isAudio,
+                    // Also update prosodyFeedback for MessageBubble display
+                    prosodyFeedback: prosodyAnalysis ? {
+                      overall_score: prosodyAnalysis.overall_score,
+                      pronunciation_score: prosodyAnalysis.pronunciation_score,
+                      rhythm_score: prosodyAnalysis.rhythm_score,
+                      intonation_score: prosodyAnalysis.intonation_score,
+                      fluency_score: prosodyAnalysis.fluency_score,
+                      feedback: prosodyAnalysis.detailed_feedback,
+                      suggestions: prosodyAnalysis.suggestions
+                    } : undefined
+                  }
+                : msg
+            );
+            console.log('✅ [ChatPanel] Updated message with prosodyAnalysis:', {
+              messageId,
+              hasProsodyAnalysis: !!updated.find(m => m.id === messageId)?.prosodyAnalysis,
+              overallScore: updated.find(m => m.id === messageId)?.prosodyAnalysis?.overall_score
+            });
+            return updated;
+          });
 
           // Update conversation history with analysis
           (newHistoryEntry as any).audio_analysis = prosodyAnalysis;
@@ -813,7 +821,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           aiResponse
         };
-        setMessages(prev => [...prev, aiResponseMessage]);
+        setMessages(prev => {
+          console.log('🤖 [ChatPanel] Adding AI response, checking user message prosody:', {
+            userMessageId: messageId,
+            userMessageHasProsody: !!prev.find(m => m.id === messageId)?.prosodyAnalysis
+          });
+          return [...prev, aiResponseMessage];
+        });
         // Persist AI message to global store
         try {
           // Use store user to ensure consistency with conversation profile_id
