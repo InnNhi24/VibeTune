@@ -987,7 +987,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="absolute bottom-2 right-2 h-7 w-7 p-0 rounded-full bg-primary/10 hover:bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute bottom-2 right-2 h-8 w-8 p-0 rounded-full bg-primary/20 hover:bg-primary/30 shadow-md z-10 transition-all hover:scale-110"
                     onClick={() => setSelectedProsodyMessage(message)}
                     title="View detailed prosody analysis"
                   >
