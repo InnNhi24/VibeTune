@@ -961,40 +961,40 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             return (
             // mark the last message with a data attribute so the scroll effect can target it
             <div key={message.id} data-last-message={index === messages.length - 1 ? 'true' : undefined} className="space-y-3">
-              <div className="relative group">
-                <MessageBubble
-                  message={message.text}
-                  isUser={message.isUser}
-                  isAudio={message.isAudio}
-                  audioBlob={message.audioBlob}
-                  prosodyFeedback={message.prosodyAnalysis ? {
-                    score: message.prosodyAnalysis.overall_score,
-                    highlights: message.prosodyAnalysis.detailed_feedback.specific_issues.map(issue => ({
-                      text: issue.word,
-                      type: issue.severity === 'high' ? 'error' : 'suggestion',
-                      feedback: issue.feedback
-                    })),
-                    suggestions: message.prosodyAnalysis.suggestions
-                  } : undefined}
-                  timestamp={message.timestamp}
-                  isProcessing={message.isProcessing}
-                  onAnalysisView={message.prosodyAnalysis ? () => handleAnalysisView(message.prosodyAnalysis!) : undefined}
-                  onRetry={() => handleRetryRecording(message.id)}
-                />
-                
-                {/* Star button for prosody feedback - Always show for audio messages with analysis */}
-                {message.isUser && message.isAudio && message.prosodyAnalysis && (
+              <MessageBubble
+                message={message.text}
+                isUser={message.isUser}
+                isAudio={message.isAudio}
+                audioBlob={message.audioBlob}
+                prosodyFeedback={message.prosodyAnalysis ? {
+                  score: message.prosodyAnalysis.overall_score,
+                  highlights: message.prosodyAnalysis.detailed_feedback.specific_issues.map(issue => ({
+                    text: issue.word,
+                    type: issue.severity === 'high' ? 'error' : 'suggestion',
+                    feedback: issue.feedback
+                  })),
+                  suggestions: message.prosodyAnalysis.suggestions
+                } : undefined}
+                timestamp={message.timestamp}
+                isProcessing={message.isProcessing}
+                onAnalysisView={message.prosodyAnalysis ? () => handleAnalysisView(message.prosodyAnalysis!) : undefined}
+                onRetry={() => handleRetryRecording(message.id)}
+              />
+              
+              {/* Star button for prosody feedback - Show below message for audio with analysis */}
+              {message.isUser && message.isAudio && message.prosodyAnalysis && (
+                <div className="flex justify-end ml-12">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="absolute bottom-2 right-2 h-8 w-8 p-0 rounded-full bg-primary/20 hover:bg-primary/30 shadow-md z-10 transition-all hover:scale-110"
+                    className="h-8 px-3 rounded-full bg-primary/10 hover:bg-primary/20 border-primary/30 transition-all hover:scale-105"
                     onClick={() => setSelectedProsodyMessage(message)}
-                    title="View detailed prosody analysis"
                   >
-                    <Star className="w-4 h-4 text-primary fill-primary" />
+                    <Star className="w-4 h-4 text-primary fill-primary mr-1" />
+                    <span className="text-xs font-medium">View Analysis</span>
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
             );
           })}
