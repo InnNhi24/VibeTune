@@ -271,8 +271,17 @@ function FeedbackRating({ messageId }: { messageId?: string }) {
   const user = useAppStore((state) => state.user);
 
   const handleRating = async (value: number) => {
-    if (!messageId || !user?.id) {
-      console.warn('Cannot save rating: missing messageId or user');
+    console.log('🌟 Rating clicked:', { value, messageId, userId: user?.id });
+
+    if (!messageId) {
+      console.error('❌ Cannot save rating: messageId is missing');
+      alert('Cannot save rating: Message ID is missing');
+      return;
+    }
+
+    if (!user?.id) {
+      console.error('❌ Cannot save rating: user is not logged in');
+      alert('Cannot save rating: Please log in first');
       return;
     }
 
@@ -280,23 +289,48 @@ function FeedbackRating({ messageId }: { messageId?: string }) {
     setIsSaving(true);
 
     try {
-      const { error } = await supabase
+      console.log('📤 Inserting feedback rating:', {
+        message_id: messageId,
+        profile_id: user.id,
+        rating: value
+      });
+
+      const { data, error } = await supabase
         .from('feedback_rating')
         .insert({
           message_id: messageId,
           profile_id: user.id,
           rating: value
-        });
+        })
+        .select();
 
-      if (error) throw error;
-      console.log('✅ Feedback rating saved:', value);
-    } catch (error) {
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+
+      console.log('✅ Feedback rating saved successfully:', data);
+      // Optional: Show success message
+      // alert('Thank you for your feedback!');
+    } catch (error: any) {
       console.error('❌ Failed to save feedback rating:', error);
+      alert(`Failed to save rating: ${error.message || 'Unknown error'}`);
       setRating(null); // Reset on error
     } finally {
       setIsSaving(false);
     }
   };
+
+  // Debug: Log when component renders
+  console.log('🌟 FeedbackRating rendered:', { messageId, userId: user?.id, rating });
+
+  if (!messageId) {
+    return (
+      <div className="text-xs text-muted-foreground">
+        No message ID
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1">
