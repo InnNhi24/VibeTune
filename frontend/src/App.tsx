@@ -40,6 +40,21 @@ function AppContent() {
 
     const initializeApp = async () => {
       try {
+        // Initialize analytics service
+        try {
+          const { AnalyticsService } = await import('./services/analyticsServiceSimple');
+          AnalyticsService.initialize();
+          logger.info('✅ Analytics service initialized');
+          
+          // Track app start event
+          AnalyticsService.track('app_started', {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+          });
+        } catch (analyticsError) {
+          logger.warn('⚠️ Analytics initialization failed:', analyticsError);
+        }
+
         // Run migration for old conversation IDs
         try {
           const { migrateOldConversationIds } = await import('./utils/migrationHelper');

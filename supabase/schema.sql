@@ -414,10 +414,10 @@ CREATE POLICY "Service role can manage all messages" ON public.messages FOR ALL 
 
 -- Analytics policies
 DROP POLICY IF EXISTS "Users can view own analytics" ON public.analytics_events;
-CREATE POLICY "Users can view own analytics" ON public.analytics_events FOR SELECT USING (auth.uid() = profile_id);
+CREATE POLICY "Users can view own analytics" ON public.analytics_events FOR SELECT USING (auth.uid() = profile_id OR profile_id IS NULL);
 
 DROP POLICY IF EXISTS "Users can create own analytics" ON public.analytics_events;
-CREATE POLICY "Users can create own analytics" ON public.analytics_events FOR INSERT WITH CHECK (auth.uid() = profile_id);
+CREATE POLICY "Users can create own analytics" ON public.analytics_events FOR INSERT WITH CHECK (auth.uid() = profile_id OR profile_id IS NULL);
 
 DROP POLICY IF EXISTS "Service role can manage all analytics" ON public.analytics_events;
 CREATE POLICY "Service role can manage all analytics" ON public.analytics_events FOR ALL USING (auth.jwt() ->> 'role' = 'service_role');
