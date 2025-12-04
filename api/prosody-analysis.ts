@@ -157,7 +157,7 @@ function analyzeProsody(transcription: any) {
     speaking_rate: Math.round(speakingRate * 10) / 10,
     word_count: wordCount,
     duration: Math.round(duration * 10) / 10,
-    detailed_feedback: generateFeedback(pronunciation, rhythm, intonation, fluency, speakingRate, wordAnalysis)
+    detailed_feedback: generateFeedback(pronunciation, rhythm, intonation, fluency, speakingRate, wordAnalysis, text)
   };
 }
 
@@ -260,6 +260,80 @@ function calculateFluencyScore(text: string, speakingRate: number): number {
   return Math.min(1.0, Math.max(0.4, score));
 }
 
+// Analyze text content for specific feedback
+function analyzeTextContent(text: string) {
+  const analysis: any = {
+    fillerWords: [],
+    difficultWords: [],
+    sentenceStructure: '',
+    specificTips: []
+  };
+  
+  const textLower = text.toLowerCase();
+  const words = text.split(/\s+/);
+  
+  // Detect filler words with context
+  const fillerPatterns = [
+    { word: 'um', tip: 'Pause silently instead of saying "um"' },
+    { word: 'uh', tip: 'Take a breath instead of "uh"' },
+    { word: 'like', tip: 'Remove "like" - it weakens your message' },
+    { word: 'you know', tip: 'Trust that your listener understands' },
+    { word: 'actually', tip: 'Often unnecessary - just state your point' },
+    { word: 'basically', tip: 'Get straight to the point' }
+  ];
+  
+  fillerPatterns.forEach(({ word, tip }) => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    const matches = text.match(regex);
+    if (matches && matches.length > 0) {
+      analysis.fillerWords.push({
+        word,
+        count: matches.length,
+        tip
+      });
+    }
+  });
+  
+  // Detect difficult pronunciation patterns with examples
+  const difficultPatterns = [
+    { pattern: /\bth\w+/gi, sound: 'TH', example: 'the, think, through', tip: 'Put your tongue between your teeth' },
+    { pattern: /\w+ed\b/gi, sound: 'Past tense -ED', example: 'walked, played, wanted', tip: 'Pronounce as /t/, /d/, or /ɪd/ depending on the word' },
+    { pattern: /\w+s\b/gi, sound: 'Plural -S', example: 'cats, dogs, houses', tip: 'Clear /s/ or /z/ sound at the end' },
+    { pattern: /\bw\w+/gi, sound: 'W sound', example: 'want, would, work', tip: 'Round your lips like saying "oo"' }
+  ];
+  
+  difficultPatterns.forEach(({ pattern, sound, example, tip }) => {
+    const matches = text.match(pattern);
+    if (matches && matches.length > 0) {
+      const uniqueWords = [...new Set(matches.map(w => w.toLowerCase()))].slice(0, 3);
+      if (uniqueWords.length > 0) {
+        analysis.difficultWords.push({
+          sound,
+          words: uniqueWords,
+          tip
+        });
+      }
+    }
+  });
+  
+  // Analyze sentence structure
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  if (sentences.length === 1) {
+    analysis.sentenceStructure = 'single sentence';
+    analysis.specificTips.push('Try breaking longer thoughts into shorter sentences for clarity');
+  } else if (sentences.length > 3) {
+    analysis.sentenceStructure = 'multiple sentences';
+    analysis.specificTips.push('Good use of multiple sentences - keep varying your sentence length');
+  }
+  
+  // Check for questions
+  if (/\?/.test(text)) {
+    analysis.specificTips.push('Remember to raise your voice at the end of questions');
+  }
+  
+  return analysis;
+}
+
 // Analyze word-level pronunciation
 function analyzeWordLevel(wordTimestamps: any[], text: string) {
   if (!wordTimestamps || wordTimestamps.length === 0) {
@@ -310,8 +384,8 @@ function analyzeWordLevel(wordTimestamps: any[], text: string) {
     .slice(0, 5);
 }
 
-// Generate detailed feedback with specific scores
-function generateFeedback(pronunciation: number, rhythm: number, intonation: number, fluency: number, speakingRate: number, wordAnalysis: any[] = []) {
+// Generate detailed feedback with specific scores and context
+function generateFeedback(pronunciation: number, rhythm: number, intonation: number, fluency: number, speakingRate: number, wordAnalysis: any[] = [], text: string = '') {
   const feedback: any = {
     strengths: [],
     improvements: []
@@ -323,6 +397,9 @@ function generateFeedback(pronunciation: number, rhythm: number, intonation: num
   const intonPct = Math.round(intonation * 100);
   const fluencyPct = Math.round(fluency * 100);
   
+  // Analyze text for specific issues
+  const textAnalysis = analyzeTextContent(text);
+  
   // Find weakest area for targeted improvement
   const scores = [
     { name: 'pronunciation', value: pronunciation, pct: pronPct },
@@ -332,15 +409,26 @@ function generateFeedback(pronunciation: number, rhythm: number, intonation: num
   ];
   const weakest = scores.reduce((min, curr) => curr.value < min.value ? curr : min);
   
-  // Pronunciation feedback - specific to score
+  // Pronunciation feedback - specific to score and content
   if (pronunciation >= 0.85) {
     feedback.strengths.push(`Excellent pronunciation clarity (${pronPct}%)`);
   } else if (pronunciation >= 0.70) {
     feedback.strengths.push(`Good pronunciation overall (${pronPct}%)`);
   } else if (pronunciation >= 0.60) {
-    feedback.improvements.push(`Pronunciation at ${pronPct}% - Focus on consonant sounds at word endings`);
+    // Add specific tips based on difficult words found
+    if (textAnalysis.difficultWords.length > 0) {
+      const firstDifficult = textAnalysis.difficultWords[0];
+      feedback.improvements.push(`Pronunciation at ${pronPct}% - Focus on ${firstDifficult.sound} in words like "${firstDifficult.words.join(', ')}". ${firstDifficult.tip}`);
+    } else {
+      feedback.improvements.push(`Pronunciation at ${pronPct}% - Focus on consonant sounds at word endings`);
+    }
   } else {
-    feedback.improvements.push(`Pronunciation needs work (${pronPct}%) - Practice each word slowly and clearly`);
+    if (textAnalysis.difficultWords.length > 0) {
+      const firstDifficult = textAnalysis.difficultWords[0];
+      feedback.improvements.push(`Pronunciation needs work (${pronPct}%) - Start with ${firstDifficult.sound}: ${firstDifficult.tip}`);
+    } else {
+      feedback.improvements.push(`Pronunciation needs work (${pronPct}%) - Practice each word slowly and clearly`);
+    }
   }
   
   // Rhythm feedback - specific to speaking rate
@@ -365,13 +453,30 @@ function generateFeedback(pronunciation: number, rhythm: number, intonation: num
     feedback.improvements.push(`Intonation needs improvement (${intonPct}%) - Practice making your voice go up and down more`);
   }
   
-  // Fluency feedback - specific to score
+  // Fluency feedback - specific to score and filler words found
   if (fluency >= 0.80) {
     feedback.strengths.push(`Fluent speech with good flow (${fluencyPct}%)`);
   } else if (fluency >= 0.65) {
-    feedback.improvements.push(`Fluency at ${fluencyPct}% - Reduce filler words (um, uh, like)`);
+    if (textAnalysis.fillerWords.length > 0) {
+      const topFiller = textAnalysis.fillerWords[0];
+      feedback.improvements.push(`Fluency at ${fluencyPct}% - You said "${topFiller.word}" ${topFiller.count} time${topFiller.count > 1 ? 's' : ''}. ${topFiller.tip}`);
+    } else {
+      feedback.improvements.push(`Fluency at ${fluencyPct}% - Work on smoother transitions between ideas`);
+    }
   } else {
-    feedback.improvements.push(`Fluency needs work (${fluencyPct}%) - Reduce filler words and practice smoother transitions`);
+    if (textAnalysis.fillerWords.length > 0) {
+      const fillerList = textAnalysis.fillerWords.map((f: any) => `"${f.word}" (${f.count}x)`).join(', ');
+      feedback.improvements.push(`Fluency needs work (${fluencyPct}%) - Reduce filler words: ${fillerList}`);
+    } else {
+      feedback.improvements.push(`Fluency needs work (${fluencyPct}%) - Practice smoother transitions and reduce hesitations`);
+    }
+  }
+  
+  // Add specific tips from text analysis
+  if (textAnalysis.specificTips && textAnalysis.specificTips.length > 0) {
+    textAnalysis.specificTips.forEach((tip: string) => {
+      feedback.improvements.push(tip);
+    });
   }
   
   // Add priority improvement based on weakest area
