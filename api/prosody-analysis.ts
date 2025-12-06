@@ -219,7 +219,9 @@ function analyzeProsody(transcription: any) {
   const fluency = calculateFluencyScore(text, speakingRate);
   
   // Analyze word-level pronunciation
+  console.log('🔍 Word timestamps available:', !!wordTimestamps, 'Count:', wordTimestamps?.length || 0);
   const wordAnalysis = analyzeWordLevel(wordTimestamps, text);
+  console.log('📊 Word analysis results:', wordAnalysis.length, 'words found');
   
   // Calculate overall score
   const overall_score = (pronunciation * 0.3 + rhythm * 0.25 + intonation * 0.25 + fluency * 0.2);
@@ -412,10 +414,20 @@ function analyzeTextContent(text: string) {
 
 // Analyze word-level pronunciation
 function analyzeWordLevel(wordTimestamps: any[], text: string) {
+  console.log('🔍 analyzeWordLevel called with:', {
+    hasTimestamps: !!wordTimestamps,
+    timestampCount: wordTimestamps?.length || 0,
+    textLength: text.length,
+    firstWords: text.substring(0, 50)
+  });
+
   if (!wordTimestamps || wordTimestamps.length === 0) {
     // Fallback: analyze words from text even without timestamps
+    console.log('⚠️ No word timestamps, using fallback analysis');
     const words = text.trim().split(/\s+/).filter(w => w.length > 2);
-    return analyzeFallbackWords(words);
+    const result = analyzeFallbackWords(words);
+    console.log('📊 Fallback analysis found:', result.length, 'words');
+    return result;
   }
   
   const wordAnalysis: any[] = [];
@@ -486,13 +498,16 @@ function analyzeFallbackWords(words: string[]) {
   const wordAnalysis: any[] = [];
   
   const difficultPatterns = [
-    { pattern: /th/i, issue: 'TH sound', suggestion: 'Place tongue between teeth' },
-    { pattern: /r$/i, issue: 'Final R', suggestion: 'Curl tongue slightly' },
-    { pattern: /ed$/i, issue: 'Past tense', suggestion: 'Pronounce as /d/, /t/, or /ɪd/' },
-    { pattern: /tion$/i, issue: '-TION', suggestion: 'Say "shun" not "tee-on"' },
-    { pattern: /\w{9,}/i, issue: 'Long word', suggestion: 'Break into syllables' }
+    { pattern: /th/i, issue: 'TH sound', suggestion: 'Place tongue between teeth', score: 70 },
+    { pattern: /r$/i, issue: 'Final R', suggestion: 'Curl tongue slightly', score: 72 },
+    { pattern: /ed$/i, issue: 'Past tense -ED', suggestion: 'Pronounce as /d/, /t/, or /ɪd/', score: 75 },
+    { pattern: /tion$/i, issue: '-TION ending', suggestion: 'Say "shun" not "tee-on"', score: 73 },
+    { pattern: /\w{8,}/i, issue: 'Long word', suggestion: 'Break into syllables', score: 74 },
+    { pattern: /[aeiou]{2,}/i, issue: 'Vowel cluster', suggestion: 'Practice vowel combinations', score: 76 },
+    { pattern: /^[aeiou]/i, issue: 'Initial vowel', suggestion: 'Clear vowel sound at start', score: 78 }
   ];
   
+  // First pass: find words with specific patterns
   words.forEach(word => {
     const wordClean = word.toLowerCase().replace(/[^a-z]/g, '');
     if (wordClean.length <= 2) return;
@@ -500,10 +515,10 @@ function analyzeFallbackWords(words: string[]) {
     const issues = difficultPatterns.filter(p => p.pattern.test(wordClean));
     
     if (issues.length > 0) {
-      const baseScore = 75 - (issues.length * 8);
+      const avgScore = issues.reduce((sum, i) => sum + i.score, 0) / issues.length;
       wordAnalysis.push({
         word: word,
-        score: Math.max(50, baseScore),
+        score: Math.round(avgScore),
         issues: issues.map(i => ({
           type: i.issue,
           suggestion: i.suggestion
@@ -512,6 +527,49 @@ function analyzeFallbackWords(words: string[]) {
     }
   });
   
+  // If we found less than 3 words, add some longer words as practice targets
+  if (wordAnalysis.length < 3) {
+    const longerWords = words
+      .filter(w => {
+        const clean = w.toLowerCase().replace(/[^a-z]/g, '');
+        return clean.length >= 6 && !wordAnalysis.find(wa => wa.word === w);
+      })
+      .slice(0, 5 - wordAnalysis.length);
+    
+    longerWords.forEach(word => {
+      wordAnalysis.push({
+        word: word,
+        score: 75,
+        issues: [{
+          type: 'Multi-syllable word',
+          suggestion: 'Practice saying this word slowly, syllable by syllable'
+        }]
+      });
+    });
+  }
+  
+  // If still less than 3, just add any words
+  if (wordAnalysis.length < 3) {
+    const anyWords = words
+      .filter(w => {
+        const clean = w.toLowerCase().replace(/[^a-z]/g, '');
+        return clean.length >= 4 && !wordAnalysis.find(wa => wa.word === w);
+      })
+      .slice(0, 3 - wordAnalysis.length);
+    
+    anyWords.forEach(word => {
+      wordAnalysis.push({
+        word: word,
+        score: 80,
+        issues: [{
+          type: 'Practice word',
+          suggestion: 'Focus on clear pronunciation of each sound'
+        }]
+      });
+    });
+  }
+  
+  console.log('📊 Fallback analysis complete:', wordAnalysis.length, 'words');
   return wordAnalysis.slice(0, 10);
 }
 
