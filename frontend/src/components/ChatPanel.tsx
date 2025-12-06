@@ -164,15 +164,32 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           })
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
           .map(m => {
-            // Preserve prosodyAnalysis from existing messages if available
+            // Preserve prosodyAnalysis from existing messages if available, or load from database
             const existingMsg = messages.find(msg => msg.id === m.id);
+            
+            // Convert prosody_feedback from database to prosodyAnalysis format
+            let prosodyAnalysis = existingMsg?.prosodyAnalysis;
+            if (!prosodyAnalysis && m.prosody_feedback) {
+              prosodyAnalysis = {
+                overall_score: m.prosody_feedback.overall_score || 0,
+                pronunciation_score: m.prosody_feedback.pronunciation_score || 0,
+                rhythm_score: m.prosody_feedback.rhythm_score || 0,
+                intonation_score: m.prosody_feedback.intonation_score || 0,
+                fluency_score: m.prosody_feedback.fluency_score || 0,
+                detailed_feedback: m.prosody_feedback.detailed_feedback || { strengths: [], improvements: [], specific_issues: [] },
+                suggestions: m.prosody_feedback.suggestions || [],
+                next_focus_areas: [],
+                word_level_analysis: []
+              };
+            }
+            
             return {
               id: m.id,
               text: m.content,
               isUser: m.sender === 'user',
               isAudio: m.type === 'audio',
               timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              prosodyAnalysis: existingMsg?.prosodyAnalysis, // Preserve prosody data
+              prosodyAnalysis, // Load from database or preserve from state
               audioBlob: existingMsg?.audioBlob // Preserve audio blob for playback
             } as Message;
           });
