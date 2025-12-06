@@ -24,6 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return await handleUpdateConversation(req, res);
       case 'save-message':
         return await handleSaveMessage(req, res);
+      case 'update-message-prosody':
+        return await handleUpdateMessageProsody(req, res);
       case 'delete-conversation':
         return await handleDeleteConversation(req, res);
       case 'get-messages':
@@ -31,7 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case 'get-history':
         return await handleGetHistory(req, res);
       default:
-        return res.status(400).json({ error: 'Unknown action. Use ?action=save-conversation|update-conversation|save-message|delete-conversation|get-messages|get-history' });
+        return res.status(400).json({ error: 'Unknown action. Use ?action=save-conversation|update-conversation|save-message|update-message-prosody|delete-conversation|get-messages|get-history' });
     }
   } catch (error: any) {
     console.error('Data API error:', error);
@@ -421,4 +423,53 @@ async function handleGetHistory(req: VercelRequest, res: VercelResponse) {
     success: true,
     message: conversations.length > 0 ? 'Data loaded from database' : 'Using local store data'
   });
+}
+
+
+async function handleUpdateMessageProsody(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { messageId, prosodyFeedback, transcript } = req.body;
+
+  if (!messageId || !prosodyFeedback) {
+    return res.status(400).json({ error: 'Missing messageId or prosodyFeedback' });
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn('⚠️ Supabase not configured, skipping prosody update');
+    return res.status(200).json({ success: true, message: 'Supabase not configured' });
+  }
+
+  try {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const updateData: any = {
+      prosody_feedback: prosodyFeedback,
+      updated_at: new Date().toISOString()
+    };
+
+    // Update transcript if provided
+    if (transcript) {
+      updateData.transcript = transcript;
+      updateData.content = transcript; // Also update content field
+    }
+
+    const { error } = await supabase
+      .from('messages')
+      .update(updateData)
+      .eq('id', messageId);
+
+    if (error) {
+      console.error('❌ Error updating message prosody:', error);
+      return res.status(500).json({ error: 'Failed to update message prosody', details: error.message });
+    }
+
+    console.log('✅ Message prosody updated successfully:', messageId);
+    return res.status(200).json({ success: true });
+  } catch (error: any) {
+    console.error('❌ Error in handleUpdateMessageProsody:', error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
 }

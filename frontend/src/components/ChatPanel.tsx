@@ -761,6 +761,44 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
           // Update conversation history with analysis
           (newHistoryEntry as any).audio_analysis = prosodyAnalysis;
+
+          // Save prosody analysis to database
+          if (prosodyAnalysis) {
+            try {
+              const prosodyFeedback = {
+                overall_score: prosodyAnalysis.overall_score,
+                pronunciation_score: prosodyAnalysis.pronunciation_score,
+                rhythm_score: prosodyAnalysis.rhythm_score,
+                intonation_score: prosodyAnalysis.intonation_score,
+                fluency_score: prosodyAnalysis.fluency_score,
+                detailed_feedback: prosodyAnalysis.detailed_feedback,
+                suggestions: prosodyAnalysis.suggestions,
+                speaking_rate: (prosodyAnalysis as any).speaking_rate,
+                word_count: (prosodyAnalysis as any).word_count,
+                duration: (prosodyAnalysis as any).duration
+              };
+
+              fetch('/api/data?action=update-message-prosody', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  messageId,
+                  prosodyFeedback,
+                  transcript: (prosodyAnalysis as any)?.transcription
+                })
+              }).then(response => {
+                if (response.ok) {
+                  console.log('✅ Prosody analysis saved to database');
+                } else {
+                  console.error('❌ Failed to save prosody analysis to database');
+                }
+              }).catch(error => {
+                console.error('❌ Error saving prosody analysis:', error);
+              });
+            } catch (error) {
+              console.error('❌ Error preparing prosody data for database:', error);
+            }
+          }
           
         } catch (error) {
           console.error('❌ [ChatPanel] Audio analysis failed:', error);
