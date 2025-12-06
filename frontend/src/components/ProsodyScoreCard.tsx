@@ -489,6 +489,12 @@ function ProsodyDetailModal({
 
           {/* Tab 3: Word Analysis */}
           <TabsContent value="words" className="space-y-4 mt-4">
+            {(() => {
+              console.log('🔍 Word Analysis Tab - detailedFeedback:', detailedFeedback);
+              console.log('🔍 specific_issues:', detailedFeedback?.specific_issues);
+              console.log('🔍 specific_issues length:', detailedFeedback?.specific_issues?.length);
+              return null;
+            })()}
             {detailedFeedback?.specific_issues && detailedFeedback.specific_issues.length > 0 ? (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">Words that need attention:</p>

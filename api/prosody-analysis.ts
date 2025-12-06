@@ -575,9 +575,12 @@ function analyzeFallbackWords(words: string[]) {
 
 // Generate detailed feedback with specific scores and context
 function generateFeedback(pronunciation: number, rhythm: number, intonation: number, fluency: number, speakingRate: number, wordAnalysis: any[] = [], text: string = '') {
+  console.log('🎯 generateFeedback called with wordAnalysis:', wordAnalysis.length, 'words');
+  
   const feedback: any = {
     strengths: [],
-    improvements: []
+    improvements: [],
+    specific_issues: [] // Initialize empty array
   };
   
   // Convert to percentages for clearer feedback
@@ -682,7 +685,11 @@ function generateFeedback(pronunciation: number, rhythm: number, intonation: num
       feedback: `Pronunciation score: ${wa.score}%`,
       suggestion: wa.issues.map((i: any) => i.suggestion).join('; ')
     }));
+    console.log('✅ Added', feedback.specific_issues.length, 'specific issues to feedback');
+  } else {
+    console.log('⚠️ No word analysis to add to specific_issues');
   }
   
+  console.log('📤 Returning feedback with specific_issues:', feedback.specific_issues?.length || 0);
   return feedback;
 }
