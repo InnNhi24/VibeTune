@@ -413,39 +413,60 @@ function analyzeTextContent(text: string) {
 // Analyze word-level pronunciation
 function analyzeWordLevel(wordTimestamps: any[], text: string) {
   if (!wordTimestamps || wordTimestamps.length === 0) {
-    return [];
+    // Fallback: analyze words from text even without timestamps
+    const words = text.trim().split(/\s+/).filter(w => w.length > 2);
+    return analyzeFallbackWords(words);
   }
   
   const wordAnalysis: any[] = [];
   
-  // Common pronunciation issues for non-native speakers
+  // Common pronunciation issues for non-native speakers with scoring
   const difficultPatterns = [
-    { pattern: /th/i, issue: 'TH sound', suggestion: 'Place tongue between teeth' },
-    { pattern: /r$/i, issue: 'Final R', suggestion: 'Curl tongue slightly for R sound' },
-    { pattern: /ed$/i, issue: 'Past tense', suggestion: 'Pronounce -ed as /d/, /t/, or /ɪd/' },
-    { pattern: /s$/i, issue: 'Plural S', suggestion: 'Clear S sound at word end' },
-    { pattern: /v/i, issue: 'V sound', suggestion: 'Touch upper teeth to lower lip' },
-    { pattern: /w/i, issue: 'W sound', suggestion: 'Round lips for W' }
+    { pattern: /th/i, issue: 'TH sound', suggestion: 'Place tongue between teeth', penalty: 15 },
+    { pattern: /r$/i, issue: 'Final R', suggestion: 'Curl tongue slightly for R sound', penalty: 10 },
+    { pattern: /ed$/i, issue: 'Past tense -ED', suggestion: 'Pronounce as /d/, /t/, or /ɪd/ depending on the word', penalty: 8 },
+    { pattern: /s$/i, issue: 'Plural/Final S', suggestion: 'Clear /s/ or /z/ sound at word end', penalty: 8 },
+    { pattern: /v/i, issue: 'V sound', suggestion: 'Touch upper teeth to lower lip, vibrate', penalty: 12 },
+    { pattern: /w/i, issue: 'W sound', suggestion: 'Round lips like saying "oo"', penalty: 10 },
+    { pattern: /\w{8,}/i, issue: 'Long word', suggestion: 'Break into syllables and practice slowly', penalty: 5 },
+    { pattern: /tion$/i, issue: '-TION ending', suggestion: 'Pronounce as "shun" not "tee-on"', penalty: 10 },
+    { pattern: /ough/i, issue: 'OUGH pattern', suggestion: 'Multiple pronunciations - check dictionary', penalty: 15 },
+    { pattern: /^[aeiou]/i, issue: 'Initial vowel', suggestion: 'Clear vowel sound at start', penalty: 5 }
   ];
   
-  wordTimestamps.forEach((wordData, index) => {
+  wordTimestamps.forEach((wordData) => {
     const word = wordData.word || '';
     const wordClean = word.trim().toLowerCase();
+    
+    // Skip very short words and punctuation
+    if (wordClean.length <= 2 || !/[a-z]/.test(wordClean)) {
+      return;
+    }
     
     // Check for difficult patterns
     const issues = difficultPatterns.filter(p => p.pattern.test(wordClean));
     
+    // Calculate score based on word complexity and patterns
+    let baseScore = 85; // Start with good score
+    let totalPenalty = 0;
+    
     if (issues.length > 0) {
-      // Estimate pronunciation score based on word complexity
-      const baseScore = 0.75;
-      const penalty = issues.length * 0.05;
-      const score = Math.max(0.5, baseScore - penalty);
-      
+      totalPenalty = issues.reduce((sum, issue) => sum + issue.penalty, 0);
+      baseScore = Math.max(50, 85 - totalPenalty);
+    }
+    
+    // Add word length penalty for very long words
+    if (wordClean.length > 10) {
+      baseScore -= 5;
+    }
+    
+    // Only add words with issues or low scores
+    if (issues.length > 0 || baseScore < 80) {
       wordAnalysis.push({
         word: word.trim(),
         start: wordData.start,
         end: wordData.end,
-        score: Math.round(score * 100),
+        score: Math.round(baseScore),
         issues: issues.map(i => ({
           type: i.issue,
           suggestion: i.suggestion
@@ -454,10 +475,44 @@ function analyzeWordLevel(wordTimestamps: any[], text: string) {
     }
   });
   
-  // Limit to top 5 most problematic words
+  // Sort by score (lowest first) and limit to top 10
   return wordAnalysis
     .sort((a, b) => a.score - b.score)
-    .slice(0, 5);
+    .slice(0, 10);
+}
+
+// Fallback word analysis when no timestamps available
+function analyzeFallbackWords(words: string[]) {
+  const wordAnalysis: any[] = [];
+  
+  const difficultPatterns = [
+    { pattern: /th/i, issue: 'TH sound', suggestion: 'Place tongue between teeth' },
+    { pattern: /r$/i, issue: 'Final R', suggestion: 'Curl tongue slightly' },
+    { pattern: /ed$/i, issue: 'Past tense', suggestion: 'Pronounce as /d/, /t/, or /ɪd/' },
+    { pattern: /tion$/i, issue: '-TION', suggestion: 'Say "shun" not "tee-on"' },
+    { pattern: /\w{9,}/i, issue: 'Long word', suggestion: 'Break into syllables' }
+  ];
+  
+  words.forEach(word => {
+    const wordClean = word.toLowerCase().replace(/[^a-z]/g, '');
+    if (wordClean.length <= 2) return;
+    
+    const issues = difficultPatterns.filter(p => p.pattern.test(wordClean));
+    
+    if (issues.length > 0) {
+      const baseScore = 75 - (issues.length * 8);
+      wordAnalysis.push({
+        word: word,
+        score: Math.max(50, baseScore),
+        issues: issues.map(i => ({
+          type: i.issue,
+          suggestion: i.suggestion
+        }))
+      });
+    }
+  });
+  
+  return wordAnalysis.slice(0, 10);
 }
 
 // Generate detailed feedback with specific scores and context
