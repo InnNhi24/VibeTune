@@ -57,6 +57,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Step 2: Analyze prosody from transcription
     const analysis = analyzeProsody(transcription);
 
+    // Step 3: Generate AI-powered specific feedback
+    try {
+      const aiFeedback = await generateAIFeedback(transcription.text, analysis);
+      if (aiFeedback) {
+        analysis.detailed_feedback = {
+          ...analysis.detailed_feedback,
+          ...aiFeedback
+        };
+      }
+    } catch (aiError) {
+      console.warn('⚠️ AI feedback generation failed, using basic feedback:', aiError);
+    }
+
     console.log('✅ Prosody analysis completed:', {
       transcription: transcription.text.substring(0, 50) + '...',
       overall_score: analysis.overall_score
@@ -75,6 +88,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: 'Prosody analysis failed',
       message: error.message || 'Unknown error occurred'
     });
+  }
+}
+
+// Generate AI-powered specific feedback
+async function generateAIFeedback(text: string, analysis: any) {
+  try {
+    const prompt = `You are an English pronunciation coach. A student just said: "${text}"
+
+Their pronunciation scores are:
+- Overall: ${Math.round(analysis.overall_score)}%
+- Pronunciation: ${Math.round(analysis.pronunciation_score)}%
+- Rhythm: ${Math.round(analysis.rhythm_score)}%
+- Intonation: ${Math.round(analysis.intonation_score)}%
+- Fluency: ${Math.round(analysis.fluency_score)}%
+
+Provide SPECIFIC, ACTIONABLE feedback based on what they actually said. Focus on:
+1. Specific words they should practice (quote the exact words from their speech)
+2. Specific sounds or patterns they struggled with (with examples from their text)
+3. Concrete tips they can apply immediately
+
+Format your response as JSON:
+{
+  "strengths": ["specific strength 1", "specific strength 2"],
+  "improvements": ["specific improvement 1 with example from their speech", "specific improvement 2"]
+}
+
+Keep feedback concise, specific, and encouraging. Reference their actual words.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are a helpful English pronunciation coach who gives specific, actionable feedback.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const content = result.choices[0]?.message?.content || '';
+    
+    // Parse JSON response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const feedback = JSON.parse(jsonMatch[0]);
+      return feedback;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('AI feedback generation failed:', error);
+    return null;
   }
 }
 
