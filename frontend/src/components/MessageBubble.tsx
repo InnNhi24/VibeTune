@@ -21,6 +21,7 @@ import {
   Zap
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import * as React from "react";
 
 interface ProsodyFeedback {
   score: number;
@@ -64,42 +65,43 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showFullFeedback, setShowFullFeedback] = useState(false);
-
-  // Debug: Log audioBlob on render
-  console.log('💬 MessageBubble rendered:', {
-    isAudio,
-    hasAudioBlob: !!audioBlob,
-    audioBlobSize: audioBlob?.size,
-    messagePreview: message.substring(0, 30)
-  });
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   const handlePlayAudio = async () => {
-    console.log('🎵 Play audio clicked:', {
-      hasAudioBlob: !!audioBlob,
-      audioBlobType: audioBlob?.type,
-      audioBlobSize: audioBlob?.size,
-      isPlaying,
-      hasOnPlayback: !!onPlayback
-    });
+    // If already playing, stop it
+    if (isPlaying && audioRef.current) {
+      console.log('⏸️ Stopping current playback');
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+      setIsPlaying(false);
+      return;
+    }
 
-    if (audioBlob && !isPlaying) {
+    if (audioBlob) {
       try {
+        // Stop any existing audio first
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+
         const url = URL.createObjectURL(audioBlob);
-        console.log('✅ Created audio URL:', url);
-        
         const audio = new Audio(url);
+        audioRef.current = audio;
         
         audio.onended = () => {
-          console.log('✅ Audio playback ended');
+          console.log('✅ Audio ended');
           setIsPlaying(false);
           URL.revokeObjectURL(url);
+          audioRef.current = null;
         };
         
         audio.onerror = (e) => {
-          console.error('❌ Audio playback error:', e);
+          console.error('❌ Audio error:', e);
           setIsPlaying(false);
           URL.revokeObjectURL(url);
-          alert('Failed to play audio. The audio file may be corrupted.');
+          audioRef.current = null;
         };
         
         audio.onpause = () => {
@@ -111,20 +113,24 @@ export function MessageBubble({
         setIsPlaying(true);
         console.log('✅ Audio playing');
       } catch (error) {
-        console.error('❌ Failed to play audio:', error);
-        alert(`Cannot play audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error('❌ Failed to play:', error);
         setIsPlaying(false);
+        audioRef.current = null;
       }
     } else if (onPlayback) {
-      console.log('📞 Calling onPlayback callback');
       onPlayback();
-    } else {
-      console.warn('⚠️ No audio available, using mock playback');
-      // Fallback to mock playback
-      setIsPlaying(true);
-      setTimeout(() => setIsPlaying(false), 2000);
     }
   };
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const handleDownloadAudio = () => {
     if (audioBlob) {
@@ -274,7 +280,12 @@ export function MessageBubble({
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              Play your recorded audio
+                              <div className="text-center">
+                                <div>Play your recorded audio</div>
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  (Available in current session only)
+                                </div>
+                              </div>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
