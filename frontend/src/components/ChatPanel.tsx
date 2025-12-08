@@ -49,6 +49,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [selectedProsodyMessage, setSelectedProsodyMessage] = useState<Message | null>(null); // For prosody popup
   const [aiReady, setAiReady] = useState(false);
   const [isProcessingAudio, setIsProcessingAudio] = useState(false); // Track if processing audio message
+  const currentRequestIdRef = useRef<string | null>(null); // Track current request to prevent race conditions
 
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
@@ -396,6 +397,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       turnCount: userMessageCount // Track conversation progress for session management
     } as any;
     
+    // Generate unique request ID to prevent race conditions
+    const requestId = crypto.randomUUID();
+    currentRequestIdRef.current = requestId;
+    
     // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
       try {
@@ -404,6 +409,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
+        
+        // Check if this is still the current request (not outdated)
+        if (currentRequestIdRef.current !== requestId) {
+          logger.warn('Ignoring outdated API response');
+          return; // Ignore this response, user has moved on
+        }
         
         if (resp.ok) {
           const data = await resp.json();
@@ -416,6 +427,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             
             // Add AI response message
             setTimeout(() => {
+              // Double-check request is still current before adding message
+              if (currentRequestIdRef.current !== requestId) {
+                return; // User has moved on, don't add this message
+              }
               
               // Ensure AI message timestamp is AFTER user message (add 10ms buffer)
               const aiMessageCreatedAt = new Date(new Date(userMessageCreatedAt).getTime() + 10).toISOString();
@@ -735,6 +750,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         }
       }
 
+      // Check if request is still current before generating AI response
+      if (currentRequestIdRef.current !== requestId) {
+        logger.warn('Skipping AI response - request outdated');
+        setIsLoading(false);
+        return;
+      }
+
       // Generate AI response
       if (aiReady) {
         try {
@@ -744,6 +766,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             context,
             prosodyAnalysis
           );
+          
+          // Check again after async operation
+          if (currentRequestIdRef.current !== requestId) {
+            logger.warn('Ignoring AI response - request outdated');
+            setIsLoading(false);
+            return;
+          }
 
           // Update focus areas based on AI suggestions
           if (prosodyAnalysis && prosodyAnalysis.next_focus_areas.length > 0) {
@@ -785,6 +814,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
       // Add AI response message
       setTimeout(() => {
+        // Final check before adding message
+        if (currentRequestIdRef.current !== requestId) {
+          logger.warn('Not adding AI message - request outdated');
+          return;
+        }
+        
         // Ensure AI message timestamp is AFTER user message (add 10ms buffer)
         const aiMessageCreatedAt = new Date(new Date(userMessageCreatedAt).getTime() + 10).toISOString();
         
