@@ -764,22 +764,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     ...msg, 
                     // Update text with actual transcription from prosody analysis
                     text: (prosodyAnalysis as any)?.transcription || msg.text,
-                    prosodyAnalysis: (() => {
-                      // FORCE generate specific_issues if empty
-                      if (prosodyAnalysis && (!prosodyAnalysis.detailed_feedback.specific_issues || prosodyAnalysis.detailed_feedback.specific_issues.length === 0)) {
-                        const text = (prosodyAnalysis as any)?.transcription || msg.text;
-                        const words = text.split(/\s+/).filter((w: string) => w.length > 3);
-                        prosodyAnalysis.detailed_feedback.specific_issues = words.slice(0, 8).map((word: string, idx: number) => ({
-                          type: 'pronunciation',
-                          word: word.replace(/[^a-zA-Z]/g, ''),
-                          severity: idx < 3 ? 'high' : idx < 6 ? 'medium' : 'low',
-                          feedback: `Focus on clear pronunciation`,
-                          suggestion: `Practice saying "${word}" slowly and clearly`
-                        }));
-                        console.log('🔧 FORCED specific_issues generation:', prosodyAnalysis.detailed_feedback.specific_issues.length, 'words');
-                      }
-                      return prosodyAnalysis;
-                    })(),
+                    prosodyAnalysis,
                     isProcessing: false,
                     // IMPORTANT: Preserve audioBlob for playback!
                     audioBlob: msg.audioBlob,

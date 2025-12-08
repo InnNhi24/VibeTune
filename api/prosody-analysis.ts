@@ -57,14 +57,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Step 2: Analyze prosody from transcription
     const analysis = analyzeProsody(transcription);
 
-    // Step 3: Generate AI-powered specific feedback
+    // Step 3: Generate AI-powered specific feedback (merge with basic feedback)
     try {
       const aiFeedback = await generateAIFeedback(transcription.text, analysis);
       if (aiFeedback) {
+        // Merge AI feedback with basic feedback, keeping specific_issues from basic
         analysis.detailed_feedback = {
-          ...analysis.detailed_feedback,
-          ...aiFeedback
+          strengths: aiFeedback.strengths || analysis.detailed_feedback.strengths,
+          improvements: aiFeedback.improvements || analysis.detailed_feedback.improvements,
+          specific_issues: analysis.detailed_feedback.specific_issues || [] // Keep word analysis from basic
         };
+        console.log('✅ Merged AI feedback with basic feedback, specific_issues count:', analysis.detailed_feedback.specific_issues.length);
       }
     } catch (aiError) {
       console.warn('⚠️ AI feedback generation failed, using basic feedback:', aiError);
