@@ -112,14 +112,14 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     if (!activeConversationId && messages.length === 0 && topic === "New Conversation") {
       const welcomeMessage: Message = {
         id: `welcome_${Date.now()}_1`,
-        text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
+        text: `Hey there! 👋 I'm so excited to be your VibeTune conversation partner! Let's have some fun practicing English together at a ${safeLevel.toLowerCase()} level. I'll give you helpful pronunciation tips along the way! 🎯`,
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       const topicPrompt: Message = {
         id: `welcome_${Date.now()}_2`, 
-        text: "What would you like to talk about today? You can say something like 'I want to talk about music' or 'Let's discuss travel'.",
+        text: "So, what sounds interesting to you today? 😊 We could chat about music, travel, food, hobbies... anything you'd like! Just tell me what's on your mind and we'll dive right in! 🌟",
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -323,7 +323,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     if (analyses.length === 0) {
       const noDataMessage: Message = {
         id: crypto.randomUUID(),
-        text: "Thank you for practicing! Start a new conversation to continue improving your English pronunciation. 🚀",
+        text: "Thanks so much for spending time with me today! 💙 Whenever you're ready, start a new conversation and we'll continue this amazing journey together! 🚀✨",
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -352,30 +352,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     const uniqueVocab = [...new Set(allWords)].slice(0, 8);
     
     // Generate summary message
-    const summaryText = `🎉 **Session Complete!**
+    const summaryText = `🎉 **Amazing Work! You Did It!**
 
-You practiced ${analyses.length} voice message${analyses.length > 1 ? 's' : ''} in this session.
+Wow! You practiced ${analyses.length} voice message${analyses.length > 1 ? 's' : ''} with me today - that's fantastic! 🌟
 
-**📊 Your Performance:**
-• Overall: ${Math.round(avgOverall)}% ${avgOverall >= 80 ? '🌟 Excellent!' : avgOverall >= 70 ? '👍 Good!' : '💪 Keep going!'}
-• Pronunciation: ${Math.round(avgPronunciation)}%
-• Rhythm: ${Math.round(avgRhythm)}%
-• Intonation: ${Math.round(avgIntonation)}%
-• Fluency: ${Math.round(avgFluency)}%
+**📊 Here's How You Did:**
+• Overall: ${Math.round(avgOverall)}% ${avgOverall >= 80 ? '🌟 You absolutely crushed it!' : avgOverall >= 70 ? '👍 Really solid work!' : '💪 You\'re making great progress!'}
+• Pronunciation: ${Math.round(avgPronunciation)}% ${avgPronunciation >= 75 ? '✨' : ''}
+• Rhythm: ${Math.round(avgRhythm)}% ${avgRhythm >= 75 ? '🎵' : ''}
+• Intonation: ${Math.round(avgIntonation)}% ${avgIntonation >= 75 ? '🎭' : ''}
+• Fluency: ${Math.round(avgFluency)}% ${avgFluency >= 75 ? '🌊' : ''}
 
-**📝 Vocabulary Used:**
-${uniqueVocab.slice(0, 5).map(w => `• ${w}`).join('\n')}
+**📝 Cool Words You Used:**
+${uniqueVocab.slice(0, 5).map(w => `• ${w} ✨`).join('\n')}
 
-**🎯 Words to Practice:**
-${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w}`).join('\n') : '• Great job! No major issues found.'}
+**🎯 Let's Work On These Together:**
+${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w} - We'll get this one!`).join('\n') : '• Wow! You nailed everything! 🎉'}
 
-**💡 Recommendations:**
-• Review the pronunciation feedback in each message above
-• Practice the highlighted words daily
-• Record yourself and compare with native speakers
-• Focus on ${avgPronunciation < 75 ? 'pronunciation clarity' : avgRhythm < 75 ? 'speaking rhythm' : avgIntonation < 75 ? 'intonation patterns' : 'maintaining your excellent progress'}
+**💡 My Friendly Tips For You:**
+• Take a peek at the feedback I gave you above - lots of good stuff there! 👀
+• Try saying those tricky words out loud a few times each day 🗣️
+• Record yourself and listen back - you'll be amazed at your progress! 🎤
+• Let's focus on ${avgPronunciation < 75 ? 'making those sounds crystal clear 💎' : avgRhythm < 75 ? 'finding your natural speaking rhythm 🎵' : avgIntonation < 75 ? 'adding more expression to your voice 🎭' : 'keeping up this awesome momentum! 🚀'}
 
-**Ready for more?** Start a new conversation to continue your journey! 🚀`;
+**Want to keep going?** I'm always here when you're ready for another chat! Just start a new conversation and let's do this! 💪✨`;
 
     const summaryMessage: Message = {
       id: crypto.randomUUID(),
@@ -402,7 +402,7 @@ ${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w}`).join('\n') : '
         
         const continueMessage: Message = {
           id: crypto.randomUUID(),
-          text: "🚀 Awesome! Let's continue practicing. You have 5-8 more questions to go. Keep up the great work! 💪",
+          text: "Yay! 🎉 I love your enthusiasm! Let's keep this momentum going - we've got 5-8 more fun questions ahead. You're doing amazing, and I can't wait to see your progress! 💪✨",
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -416,7 +416,7 @@ ${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w}`).join('\n') : '
         
         const endingMessage: Message = {
           id: crypto.randomUUID(),
-          text: "🎉 Perfect! Let me prepare your comprehensive session summary...\n\nAnalyzing:\n• Your pronunciation progress\n• Vocabulary learned\n• Areas of improvement\n• Personalized recommendations\n\nPlease wait a moment... ⏳",
+          text: "Wonderful! 🎉 You did such a great job today! Let me put together a special summary just for you...\n\nI'm looking at:\n• How much your pronunciation has improved 📈\n• All the cool vocabulary you used 📝\n• Some friendly tips to help you grow 💡\n• Your personalized next steps 🎯\n\nGive me just a moment... ⏳",
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -963,8 +963,8 @@ ${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w}`).join('\n') : '
               const askContinueMessage: Message = {
                 id: crypto.randomUUID(),
                 text: sessionExtended 
-                  ? "🎯 You've practiced a lot today! Would you like to:\n\n• **Continue** - Practice 5-8 more questions\n• **End Session** - Get your comprehensive summary\n\nType 'continue' to keep going, or 'end' to finish and see your results! 📊"
-                  : "🎯 Great progress! You've completed 15 practice questions.\n\nWould you like to:\n\n• **Continue** - Practice 5-8 more questions\n• **End Session** - Get your comprehensive summary\n\nType 'continue' to keep going, or 'end' to finish and see your results! 📊",
+                  ? "Wow, you're on fire today! 🔥 You've practiced so much already - I'm really impressed!\n\nWhat would you like to do?\n\n• **Continue** - Let's keep the fun going with 5-8 more questions! 🚀\n• **End Session** - Time to celebrate with your awesome summary! 🎉\n\nJust type 'continue' or 'end' and let me know! 😊"
+                  : "Hey, you're doing fantastic! 🌟 You've already completed 15 practice questions - that's amazing!\n\nWhat sounds good to you?\n\n• **Continue** - I'm having fun, let's do 5-8 more! 💪\n• **End Session** - Show me my awesome results! 📊\n\nJust type 'continue' or 'end' - whatever feels right! 😊",
                 isUser: false,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               };
@@ -1011,7 +1011,7 @@ ${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w}`).join('\n') : '
         // Add user-friendly error message with helpful suggestions
         const errorMessage: Message = {
           id: crypto.randomUUID(),
-          text: "Oops! I couldn't process that message. This might be due to:\n\n• Network connection issues\n• AI service temporarily unavailable\n\nPlease try again in a moment, or check your internet connection. 🔄",
+          text: "Oh no! 😅 I'm having a little trouble understanding that. This could be:\n\n• A quick internet hiccup 📡\n• My AI brain taking a short break 🧠\n\nNo worries though! Just give it another try in a moment, and we'll be back on track! 💪✨",
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -1024,19 +1024,19 @@ ${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w}`).join('\n') : '
   const generateFallbackResponse = (_userMessage: string, userLevel: string): string => {
     const responses = {
       Beginner: [
-        "That's great! I can hear you're working hard on your pronunciation. Let's practice some more basic patterns.",
-        "Nice try! Your rhythm is improving. What would you like to practice next?",
-        "Good effort! I noticed your word stress is getting better. What interests you today?"
+        "You're doing wonderful! 🌟 I can really hear how hard you're working on your pronunciation. Let's keep building those skills together!",
+        "Nice job! Your rhythm is getting better and better! 🎵 What would you like to explore next?",
+        "I love your effort! 💪 Your word stress is improving so much. What topic sounds fun to you today?"
       ],
       Intermediate: [
-        "Excellent work on your intonation! Your question patterns are much clearer now. Let's discuss something more complex.",
-        "I can hear improvement in your connected speech. What would you like to explore today?",
-        "Your pronunciation has really developed! Let's practice with some more challenging vocabulary."
+        "Wow, excellent work! 🎯 Your intonation is getting so much clearer. Ready to dive into something more interesting?",
+        "I'm impressed! Your connected speech is really flowing nicely now. 🌊 What would you like to chat about?",
+        "Your pronunciation is really blossoming! 🌸 Let's challenge ourselves with some exciting new vocabulary!"
       ],
       Advanced: [
-        "Your prosody shows sophisticated control! Let's explore some nuanced expressions and idioms.",
-        "Impressive fluency! Your stress patterns are very natural. What would you like to discuss?",
-        "Your accent work is excellent! Let's discuss some abstract concepts to challenge your advanced skills."
+        "Outstanding! 🌟 Your prosody control is so sophisticated. Let's explore some fascinating expressions together!",
+        "Incredible fluency! Your stress patterns sound so natural and authentic. 🎭 What shall we discuss today?",
+        "Your accent work is truly impressive! 🎪 Ready to tackle some thought-provoking abstract concepts?"
       ]
     };
 
