@@ -145,15 +145,21 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             // Convert prosody_feedback from database to prosodyAnalysis format
             let prosodyAnalysis = existingMsg?.prosodyAnalysis;
             if (!prosodyAnalysis && m.prosody_feedback) {
-              const detailedFeedback = m.prosody_feedback.detailed_feedback || { strengths: [], improvements: [], specific_issues: [] };
+              // Ensure detailed_feedback exists with proper structure
+              const dbFeedback = m.prosody_feedback.detailed_feedback || {};
+              const detailedFeedback = {
+                strengths: Array.isArray(dbFeedback.strengths) ? dbFeedback.strengths : [],
+                improvements: Array.isArray(dbFeedback.improvements) ? dbFeedback.improvements : [],
+                specific_issues: Array.isArray(dbFeedback.specific_issues) ? dbFeedback.specific_issues : []
+              };
               
-              // Fallback: Generate specific_issues from text if empty
-              if (!detailedFeedback.specific_issues || detailedFeedback.specific_issues.length === 0) {
+              // Fallback: Generate specific_issues from text if empty (for old messages)
+              if (detailedFeedback.specific_issues.length === 0) {
                 const words = m.content.split(/\s+/).filter((w: string) => w.length > 4);
-                detailedFeedback.specific_issues = words.slice(0, 5).map((word: string) => ({
-                  type: 'pronunciation',
+                detailedFeedback.specific_issues = words.slice(0, 3).map((word: string) => ({
+                  type: 'pronunciation' as const,
                   word: word,
-                  severity: 'medium',
+                  severity: 'medium' as const,
                   feedback: 'Practice this word',
                   suggestion: 'Say it slowly and clearly'
                 }));
@@ -166,10 +172,17 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 intonation_score: m.prosody_feedback.intonation_score || 0,
                 fluency_score: m.prosody_feedback.fluency_score || 0,
                 detailed_feedback: detailedFeedback,
-                suggestions: m.prosody_feedback.suggestions || [],
+                suggestions: Array.isArray(m.prosody_feedback.suggestions) ? m.prosody_feedback.suggestions : [],
                 next_focus_areas: [],
                 word_level_analysis: []
               };
+              
+              console.log('📊 Loaded prosody feedback from DB:', {
+                messageId: m.id,
+                hasScores: !!m.prosody_feedback.overall_score,
+                issuesCount: detailedFeedback.specific_issues.length,
+                strengthsCount: detailedFeedback.strengths.length
+              });
             }
             
             return {
@@ -188,6 +201,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         const newIds = msgs.map(m => m.id).sort().join(',');
         
         if (currentIds !== newIds) {
+          console.log('📨 Loading messages from database:', {
+            count: msgs.length,
+            withProsody: msgs.filter(m => m.prosodyAnalysis).length,
+            audioMessages: msgs.filter(m => m.isAudio).length
+          });
           setMessages(msgs);
         }
         
@@ -1168,12 +1186,12 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
                 audioBlob={message.audioBlob}
                 prosodyFeedback={message.prosodyAnalysis ? {
                   score: message.prosodyAnalysis.overall_score,
-                  highlights: message.prosodyAnalysis.detailed_feedback.specific_issues.map(issue => ({
+                  highlights: (message.prosodyAnalysis.detailed_feedback?.specific_issues || []).map(issue => ({
                     text: issue.word,
-                    type: issue.severity === 'high' ? 'error' : 'suggestion',
+                    type: issue.severity === 'high' ? 'error' as const : 'suggestion' as const,
                     feedback: issue.feedback
                   })),
-                  suggestions: message.prosodyAnalysis.suggestions
+                  suggestions: message.prosodyAnalysis.suggestions || []
                 } : undefined}
                 timestamp={message.timestamp}
                 isProcessing={message.isProcessing}
