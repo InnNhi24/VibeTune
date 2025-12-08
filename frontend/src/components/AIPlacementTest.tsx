@@ -93,6 +93,7 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
   const [error, setError] = useState<string | null>(null);
   const [userInput, setUserInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Timer effect
@@ -122,18 +123,11 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
 
 I'll ask you about 5 different topics, and you can respond by typing or recording your voice. Try to be as natural and detailed as possible - imagine we're having a friendly conversation!
 
-Ready to begin?`,
+⚠️ **Important:** After completing this test, your level will be automatically set based on your performance. You won't be able to keep your current level or choose a different one.`,
         timestamp: new Date(),
         topic: 'introduction'
       };
       setMessages([initialMessage]);
-      
-      // After a brief pause, ask the first question
-      setTimeout(() => {
-        if (currentTopicIndex === 0) {
-          askCurrentQuestion();
-        }
-      }, 2000);
     };
 
     // Only run once on mount
@@ -403,6 +397,16 @@ Ready to begin?`,
     return Math.min((currentTopicIndex / CONVERSATION_TOPICS.length) * 100, 100);
   };
 
+  const handleBeginTest = () => {
+    setHasStarted(true);
+    // Ask the first question after user clicks begin
+    setTimeout(() => {
+      if (currentTopicIndex === 0) {
+        askCurrentQuestion();
+      }
+    }, 500);
+  };
+
   const handleVoiceResponse = async (audioBlob: Blob) => {
     setIsLoading(true);
     setIsAnalyzing(true);
@@ -657,8 +661,19 @@ Ready to begin?`,
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input - Text and Voice */}
-            {currentTopicIndex < CONVERSATION_TOPICS.length && !isCompleted && (
+            {/* Begin Test Button or Input */}
+            {!hasStarted && !isCompleted ? (
+              <div className="flex justify-center py-4">
+                <Button
+                  onClick={handleBeginTest}
+                  size="lg"
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-8 py-6"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  Begin Test
+                </Button>
+              </div>
+            ) : currentTopicIndex < CONVERSATION_TOPICS.length && !isCompleted ? (
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <Textarea
@@ -700,7 +715,7 @@ Ready to begin?`,
                   disabled={isLoading}
                 />
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       </div>
