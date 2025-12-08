@@ -14,13 +14,12 @@ import {
   TrendingUp,
   AlertCircle,
   Send,
-  Loader2,
-  Mic
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Profile } from "../services/supabaseClient";
 import { SimpleAuthService } from "../services/authServiceSimple";
-import { Textarea } from "./ui/textarea";
+import { Input } from "./ui/input";
 import { logger } from "../utils/logger";
 
 interface AIPlacementTestProps {
@@ -120,7 +119,7 @@ export function AIPlacementTest({ user, onComplete, onSkip, onBack }: AIPlacemen
         role: 'ai',
         content: `Hello! I'm your AI conversation partner for this placement test. We'll have a natural conversation covering different topics to assess your English prosody skills. This will help us determine the best learning level for you. 
 
-I'll ask you about 5 different topics, and you can respond by typing or recording your voice. Try to be as natural and detailed as possible - imagine we're having a friendly conversation!
+I'll ask you about 5 different topics, and you can respond by typing your answers. Try to be as natural and detailed as possible - imagine we're having a friendly conversation!
 
 Ready to begin?`,
         timestamp: new Date(),
@@ -130,17 +129,12 @@ Ready to begin?`,
       
       // After a brief pause, ask the first question
       setTimeout(() => {
-        if (currentTopicIndex === 0) {
-          askCurrentQuestion();
-        }
+        askCurrentQuestion();
       }, 2000);
     };
 
-    // Only run once on mount
-    if (messages.length === 0) {
-      startTest();
-    }
-  }, []); // Empty dependency array - run once
+    startTest();
+  }, []);
 
   const askCurrentQuestion = () => {
     if (currentTopicIndex >= CONVERSATION_TOPICS.length) {
@@ -161,7 +155,7 @@ Ready to begin?`,
     setMessages(prev => [...prev, questionMessage]);
   };
 
-  const handleUserResponse = async (response: string, isVoice: boolean = false) => {
+  const handleUserResponse = async (response: string) => {
     if (!response.trim()) return;
 
     setIsLoading(true);
@@ -176,7 +170,7 @@ Ready to begin?`,
         content: response,
         timestamp: new Date(),
         topic: CONVERSATION_TOPICS[currentTopicIndex].id,
-        isAudioResponse: isVoice
+        isAudioResponse: false
       };
 
       setMessages(prev => [...prev, userMessage]);
@@ -199,25 +193,9 @@ Ready to begin?`,
         setMessages(prev => [...prev, followUpMessage]);
         
         // Move to next topic after follow-up
-        const nextIndex = currentTopicIndex + 1;
-        setCurrentTopicIndex(nextIndex);
-        
         setTimeout(() => {
-          // Only ask next question if not at the end
-          if (nextIndex < CONVERSATION_TOPICS.length) {
-            const nextTopic = CONVERSATION_TOPICS[nextIndex];
-            const questionMessage: ConversationMessage = {
-              id: `question-${nextIndex}`,
-              role: 'ai',
-              content: nextTopic.prompt,
-              timestamp: new Date(),
-              topic: nextTopic.id
-            };
-            setMessages(prev => [...prev, questionMessage]);
-          } else {
-            // Test complete
-            completeTest();
-          }
+          setCurrentTopicIndex(prev => prev + 1);
+          askCurrentQuestion();
         }, 1500);
       }, 1000);
 
@@ -232,17 +210,18 @@ Ready to begin?`,
 
   const analyzeResponseWithAI = async (response: string, topic: any): Promise<{ score: number; feedback: string }> => {
     try {
-      // Use backend API for AI analysis - send to placement test endpoint
-      const response_data = await fetch('/api/placement-test', {
+      // Use backend API for AI analysis
+      const analysisPrompt = `Analyze this student response for a ${topic.difficulty} level topic about "${topic.name}": "${response}". Provide a JSON response with score (0-100) and feedback.`;
+
+      const response_data = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          conversationId: 'placement-test-temp',
           profileId: user.id,
-          response: response,
-          topic: topic.name,
-          difficulty: topic.difficulty,
+          text: analysisPrompt,
           deviceId: localStorage.getItem('device_id') || undefined
         })
       });
@@ -403,48 +382,15 @@ Ready to begin?`,
     return Math.min((currentTopicIndex / CONVERSATION_TOPICS.length) * 100, 100);
   };
 
-  const handleVoiceResponse = async (audioBlob: Blob) => {
-    setIsLoading(true);
-    setIsAnalyzing(true);
-    setError(null);
-
-    try {
-      // Transcribe audio first
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
-
-      const transcribeResponse = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!transcribeResponse.ok) {
-        throw new Error('Transcription failed');
-      }
-
-      const { text } = await transcribeResponse.json();
-      
-      if (!text || text.trim().length === 0) {
-        throw new Error('Could not transcribe audio. Please try again.');
-      }
-
-      // Process as normal response with transcribed text
-      await handleUserResponse(text, true);
-
-    } catch (err: any) {
-      logger.error('Voice response error:', err);
-      setError(err.message || 'Failed to process voice recording. Please try typing instead.');
-      setIsLoading(false);
-      setIsAnalyzing(false);
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey && userInput.trim() && !isLoading) {
+      e.preventDefault();
+      handleUserResponse(userInput);
     }
   };
 
   // Completion screen
   if (isCompleted && results) {
-    const userCurrentLevel = user.level;
-    const suggestedLevel = results.level;
-    const isDifferentLevel = userCurrentLevel && userCurrentLevel !== suggestedLevel;
-
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div
@@ -457,30 +403,13 @@ Ready to begin?`,
               <CheckCircle2 className="w-16 h-16 text-success mx-auto" />
               <div className="space-y-4">
                 <h2 className="text-3xl font-bold">Placement Test Complete!</h2>
-                
-                {/* Level Comparison Alert */}
-                {isDifferentLevel && (
-                  <Alert className="text-left">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      <strong>Level Recommendation:</strong> Based on your performance, we suggest <strong>{suggestedLevel}</strong> level.
-                      {userCurrentLevel === 'Beginner' && suggestedLevel !== 'Beginner' && (
-                        <span> You're doing better than expected! 🎉</span>
-                      )}
-                      {userCurrentLevel === 'Advanced' && suggestedLevel !== 'Advanced' && (
-                        <span> Starting at {suggestedLevel} will help build a stronger foundation.</span>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
-                
                 <div className="bg-accent/10 p-6 rounded-lg space-y-4">
                   <div className="flex items-center justify-center gap-4">
                     <Badge className="text-lg px-4 py-2 bg-accent text-accent-foreground">
-                      Suggested: {results.level}
+                      {results.level} Level
                     </Badge>
                     <Badge variant="outline" className="text-lg px-4 py-2">
-                      Score: {results.overallScore}%
+                      {results.overallScore}% Score
                     </Badge>
                   </div>
                   
@@ -511,28 +440,14 @@ Ready to begin?`,
                   </div>
                 </div>
                 
-                {/* Action Buttons */}
-                <div className="space-y-3">
-                  <Button 
-                    onClick={() => onComplete({ level: results.level, score: results.overallScore })}
-                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
-                    size="lg"
-                  >
-                    <Zap className="w-5 h-5 mr-2" />
-                    {isDifferentLevel ? `Switch to ${results.level} Level` : `Continue with ${results.level} Level`}
-                  </Button>
-                  
-                  {isDifferentLevel && userCurrentLevel && (
-                    <Button 
-                      onClick={() => onComplete({ level: userCurrentLevel, score: results.overallScore })}
-                      variant="outline"
-                      className="w-full text-lg py-6"
-                      size="lg"
-                    >
-                      Keep My Current Level ({userCurrentLevel})
-                    </Button>
-                  )}
-                </div>
+                <Button 
+                  onClick={() => onComplete({ level: results.level, score: results.overallScore })}
+                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
+                  size="lg"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  Start Learning at {results.level} Level
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -658,152 +573,33 @@ Ready to begin?`,
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input - Text and Voice */}
+            {/* Input */}
             {currentTopicIndex < CONVERSATION_TOPICS.length && !isCompleted && (
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Textarea
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && userInput.trim() && !isLoading) {
-                        e.preventDefault();
-                        handleUserResponse(userInput, false);
-                      }
-                    }}
-                    placeholder="Type your response here..."
-                    disabled={isLoading}
-                    className="flex-1 min-h-[80px] resize-none"
-                  />
-                  <Button
-                    onClick={() => handleUserResponse(userInput, false)}
-                    disabled={!userInput.trim() || isLoading}
-                    size="icon"
-                    className="h-[80px]"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                
-                {/* Voice Recording Button */}
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <div className="h-px flex-1 bg-border"></div>
-                  <span>or record your voice</span>
-                  <div className="h-px flex-1 bg-border"></div>
-                </div>
-                
-                <SimpleVoiceRecorder 
-                  onRecordingComplete={handleVoiceResponse}
+              <div className="flex gap-2">
+                <Input
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type your response here..."
                   disabled={isLoading}
+                  className="flex-1"
                 />
+                <Button
+                  onClick={() => handleUserResponse(userInput)}
+                  disabled={!userInput.trim() || isLoading}
+                  size="icon"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
-
-// Simple Voice Recorder Component
-interface SimpleVoiceRecorderProps {
-  onRecordingComplete: (audioBlob: Blob) => void;
-  disabled?: boolean;
-}
-
-function SimpleVoiceRecorder({ onRecordingComplete, disabled }: SimpleVoiceRecorderProps) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' });
-        onRecordingComplete(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-
-    } catch (error) {
-      logger.error('Failed to start recording:', error);
-      alert('Could not access microphone. Please check permissions.');
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="flex items-center justify-center">
-      {!isRecording ? (
-        <Button
-          onClick={startRecording}
-          disabled={disabled}
-          size="lg"
-          className="bg-accent hover:bg-accent/90 text-accent-foreground"
-        >
-          <Mic className="w-5 h-5 mr-2" />
-          Tap to Record Voice
-        </Button>
-      ) : (
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <motion.div
-              className="w-3 h-3 bg-destructive rounded-full"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-            <span className="text-sm font-medium">{formatTime(recordingTime)}</span>
-          </div>
-          <Button
-            onClick={stopRecording}
-            size="lg"
-            variant="destructive"
-          >
-            Stop Recording
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
