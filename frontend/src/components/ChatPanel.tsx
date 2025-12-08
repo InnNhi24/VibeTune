@@ -50,6 +50,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [aiReady, setAiReady] = useState(false);
   const [isProcessingAudio, setIsProcessingAudio] = useState(false); // Track if processing audio message
   const currentRequestIdRef = useRef<string | null>(null); // Track current request to prevent race conditions
+  const [sessionEnded, setSessionEnded] = useState(false); // Track if session has ended
+  const [sessionExtended, setSessionExtended] = useState(false); // Track if user extended session
+  const [awaitingUserDecision, setAwaitingUserDecision] = useState(false); // Track if waiting for user to decide
+  const INITIAL_TURN_LIMIT = 15; // Initial limit: 15-20 user messages
+  const EXTENSION_TURNS = 5; // Extension: 5-8 more turns
 
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
@@ -309,8 +314,121 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     };
   };
 
+  const generateSessionSummary = async () => {
+    // Collect all prosody analyses from the session
+    const analyses = messages
+      .filter(m => m.isUser && m.prosodyAnalysis)
+      .map(m => m.prosodyAnalysis!);
+    
+    if (analyses.length === 0) {
+      const noDataMessage: Message = {
+        id: crypto.randomUUID(),
+        text: "Thank you for practicing! Start a new conversation to continue improving your English pronunciation. 🚀",
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, noDataMessage]);
+      return;
+    }
+    
+    // Calculate average scores
+    const avgOverall = analyses.reduce((sum, a) => sum + a.overall_score, 0) / analyses.length;
+    const avgPronunciation = analyses.reduce((sum, a) => sum + a.pronunciation_score, 0) / analyses.length;
+    const avgRhythm = analyses.reduce((sum, a) => sum + a.rhythm_score, 0) / analyses.length;
+    const avgIntonation = analyses.reduce((sum, a) => sum + a.intonation_score, 0) / analyses.length;
+    const avgFluency = analyses.reduce((sum, a) => sum + a.fluency_score, 0) / analyses.length;
+    
+    // Collect all mistakes
+    const allMistakes = analyses.flatMap(a => 
+      a.detailed_feedback.specific_issues?.map(i => i.word) || []
+    );
+    const uniqueMistakes = [...new Set(allMistakes)].slice(0, 5);
+    
+    // Collect all vocabulary from conversation
+    const allWords = messages
+      .filter(m => m.isUser)
+      .flatMap(m => m.text.split(/\s+/))
+      .filter(w => w.length > 5);
+    const uniqueVocab = [...new Set(allWords)].slice(0, 8);
+    
+    // Generate summary message
+    const summaryText = `🎉 **Session Complete!**
+
+You practiced ${analyses.length} voice message${analyses.length > 1 ? 's' : ''} in this session.
+
+**📊 Your Performance:**
+• Overall: ${Math.round(avgOverall)}% ${avgOverall >= 80 ? '🌟 Excellent!' : avgOverall >= 70 ? '👍 Good!' : '💪 Keep going!'}
+• Pronunciation: ${Math.round(avgPronunciation)}%
+• Rhythm: ${Math.round(avgRhythm)}%
+• Intonation: ${Math.round(avgIntonation)}%
+• Fluency: ${Math.round(avgFluency)}%
+
+**📝 Vocabulary Used:**
+${uniqueVocab.slice(0, 5).map(w => `• ${w}`).join('\n')}
+
+**🎯 Words to Practice:**
+${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w}`).join('\n') : '• Great job! No major issues found.'}
+
+**💡 Recommendations:**
+• Review the pronunciation feedback in each message above
+• Practice the highlighted words daily
+• Record yourself and compare with native speakers
+• Focus on ${avgPronunciation < 75 ? 'pronunciation clarity' : avgRhythm < 75 ? 'speaking rhythm' : avgIntonation < 75 ? 'intonation patterns' : 'maintaining your excellent progress'}
+
+**Ready for more?** Start a new conversation to continue your journey! 🚀`;
+
+    const summaryMessage: Message = {
+      id: crypto.randomUUID(),
+      text: summaryText,
+      isUser: false,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    setMessages(prev => [...prev, summaryMessage]);
+    setIsLoading(false);
+  };
+
   const handleSendMessage = async (messageText: string, isAudio: boolean = false, audioBlob?: Blob) => {
     if (!messageText.trim()) return;
+    
+    // Handle user decision to continue or end session
+    if (awaitingUserDecision) {
+      const userInput = messageText.trim().toLowerCase();
+      
+      if (userInput.includes('continue') || userInput.includes('tiếp') || userInput.includes('yes')) {
+        // User wants to continue
+        setAwaitingUserDecision(false);
+        setSessionExtended(true);
+        
+        const continueMessage: Message = {
+          id: crypto.randomUUID(),
+          text: "🚀 Awesome! Let's continue practicing. You have 5-8 more questions to go. Keep up the great work! 💪",
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setMessages(prev => [...prev, continueMessage]);
+        return; // Don't process as normal message
+      } else if (userInput.includes('end') || userInput.includes('kết thúc') || userInput.includes('done') || userInput.includes('finish')) {
+        // User wants to end session
+        setAwaitingUserDecision(false);
+        setSessionEnded(true);
+        
+        const endingMessage: Message = {
+          id: crypto.randomUUID(),
+          text: "🎉 Perfect! Let me prepare your comprehensive session summary...\n\nAnalyzing:\n• Your pronunciation progress\n• Vocabulary learned\n• Areas of improvement\n• Personalized recommendations\n\nPlease wait a moment... ⏳",
+          isUser: false,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        setMessages(prev => [...prev, endingMessage]);
+        
+        // Generate summary after 2 seconds
+        setTimeout(() => generateSessionSummary(), 2000);
+        return; // Don't process as normal message
+      }
+      // If user says something else, treat as normal message and ask again
+    }
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const messageId = crypto.randomUUID(); // Use UUID instead of timestamp
@@ -830,7 +948,32 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           aiResponse
         };
-        setMessages(prev => [...prev, aiResponseMessage]);
+        
+        setMessages(prev => {
+          const newMessages = [...prev, aiResponseMessage];
+          
+          // Check if session should ask user to continue or end
+          const userMessageCount = newMessages.filter(m => m.isUser).length;
+          const currentLimit = sessionExtended ? INITIAL_TURN_LIMIT + EXTENSION_TURNS : INITIAL_TURN_LIMIT;
+          
+          // Ask user if they want to continue (at 15 messages, or 20 if extended)
+          if (userMessageCount >= currentLimit && !sessionEnded && !awaitingUserDecision) {
+            setTimeout(() => {
+              setAwaitingUserDecision(true);
+              const askContinueMessage: Message = {
+                id: crypto.randomUUID(),
+                text: sessionExtended 
+                  ? "🎯 You've practiced a lot today! Would you like to:\n\n• **Continue** - Practice 5-8 more questions\n• **End Session** - Get your comprehensive summary\n\nType 'continue' to keep going, or 'end' to finish and see your results! 📊"
+                  : "🎯 Great progress! You've completed 15 practice questions.\n\nWould you like to:\n\n• **Continue** - Practice 5-8 more questions\n• **End Session** - Get your comprehensive summary\n\nType 'continue' to keep going, or 'end' to finish and see your results! 📊",
+                isUser: false,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              };
+              setMessages(prev => [...prev, askContinueMessage]);
+            }, 1000);
+          }
+          
+          return newMessages;
+        });
         
         // Persist AI message to global store
         try {
@@ -904,6 +1047,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const sendTextFromInput = async () => {
     if (sendingRef.current) return;
     if (isComposing) return;
+    if (sessionEnded) return; // Prevent sending after session ends
     sendingRef.current = true;
     try {
       await handleSendMessage(textInput, false);
@@ -911,6 +1055,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       sendingRef.current = false;
     }
   };
+
+
 
 
 
