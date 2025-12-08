@@ -4,7 +4,7 @@ import { Progress } from "./ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
-import { TrendingUp, TrendingDown, Minus, Award, Volume2, Music, Zap, MessageCircle, Info, BarChart3, MessageSquare, FileText, Star } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Award, Volume2, Music, Zap, MessageCircle, Info, BarChart3, MessageSquare, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import * as React from "react";
@@ -445,7 +445,7 @@ function ProsodyDetailModal({
         </DialogHeader>
 
         <Tabs defaultValue="scores" className="mt-2">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="scores" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               Scores
@@ -453,10 +453,6 @@ function ProsodyDetailModal({
             <TabsTrigger value="feedback" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Feedback
-            </TabsTrigger>
-            <TabsTrigger value="words" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Word Analysis
             </TabsTrigger>
           </TabsList>
 
@@ -514,44 +510,7 @@ function ProsodyDetailModal({
             )}
           </TabsContent>
 
-          {/* Tab 3: Word Analysis */}
-          <TabsContent value="words" className="space-y-4 mt-4">
-            {(() => {
-              console.log('🔍 Word Analysis Tab - detailedFeedback:', detailedFeedback);
-              console.log('🔍 specific_issues:', detailedFeedback?.specific_issues);
-              console.log('🔍 specific_issues length:', detailedFeedback?.specific_issues?.length);
-              return null;
-            })()}
-            {detailedFeedback?.specific_issues && detailedFeedback.specific_issues.length > 0 ? (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">Words that need attention:</p>
-                {detailedFeedback.specific_issues.map((issue, idx) => (
-                  <div key={idx} className="p-4 rounded-lg bg-muted/30 border hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-lg">{issue.word}</span>
-                        <Badge variant={issue.severity === 'high' ? 'destructive' : issue.severity === 'medium' ? 'default' : 'secondary'} className="text-xs">
-                          {issue.severity}
-                        </Badge>
-                      </div>
-                      <span className="text-sm font-semibold text-muted-foreground">{issue.type}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">{issue.feedback}</p>
-                    <div className="flex items-start gap-2 p-2 rounded bg-primary/5 border border-primary/10">
-                      <span className="text-lg">💡</span>
-                      <p className="text-sm text-foreground flex-1">{issue.suggestion}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="w-16 h-16 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">No word-level issues detected</p>
-                <p className="text-sm mt-1">Great job! Your pronunciation is clear.</p>
-              </div>
-            )}
-          </TabsContent>
+
         </Tabs>
       </DialogContent>
     </Dialog>
