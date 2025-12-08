@@ -48,6 +48,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const [lastMistakes, setLastMistakes] = useState<string[]>([]); // Track pronunciation mistakes for AI context
   const [selectedProsodyMessage, setSelectedProsodyMessage] = useState<Message | null>(null); // For prosody popup
   const [aiReady, setAiReady] = useState(false);
+  const [isProcessingAudio, setIsProcessingAudio] = useState(false); // Track if processing audio message
 
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
@@ -370,6 +371,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // Track if processing audio for better loading message
+    setIsProcessingAudio(isAudio);
     
     // Prepare payload - always include topic if it's fixed
     const store = useAppStore.getState();
@@ -826,10 +830,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         logger.error('Message processing failed:', error);
         setIsLoading(false);
         
-        // Add error message
+        // Add user-friendly error message with helpful suggestions
         const errorMessage: Message = {
           id: crypto.randomUUID(),
-          text: "I'm having trouble processing your message right now. Let's try again!",
+          text: "Oops! I couldn't process that message. This might be due to:\n\n• Network connection issues\n• AI service temporarily unavailable\n\nPlease try again in a moment, or check your internet connection. 🔄",
           isUser: false,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -939,7 +943,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             );
           })}
 
-          {/* Loading indicator */}
+          {/* Enhanced Loading indicator with progress */}
           {isLoading && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -948,12 +952,34 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             >
               <div className="max-w-[85%]">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                  <div className="w-8 h-8 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
                   </div>
-                  <div className="bg-card border border-border rounded-lg p-3">
-                    <p className="text-sm text-muted-foreground">
-                      VibeTune AI is analyzing your speech and crafting a response...
+                  <div className="bg-card border border-border rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex gap-1">
+                        <motion.div
+                          className="w-2 h-2 bg-accent rounded-full"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+                        />
+                        <motion.div
+                          className="w-2 h-2 bg-accent rounded-full"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+                        />
+                        <motion.div
+                          className="w-2 h-2 bg-accent rounded-full"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-foreground">
+                        AI is thinking...
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {isProcessingAudio ? 'Analyzing your pronunciation and crafting feedback' : 'Preparing a thoughtful response'}
                     </p>
                   </div>
                 </div>

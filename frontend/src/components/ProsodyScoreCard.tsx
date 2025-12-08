@@ -450,7 +450,7 @@ function ProsodyDetailModal({
             </TabsTrigger>
             <TabsTrigger value="feedback" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Feedback
+              Detailed Feedback
             </TabsTrigger>
           </TabsList>
 
@@ -475,40 +475,75 @@ function ProsodyDetailModal({
             </div>
           </TabsContent>
 
-          {/* Tab 2: Detailed Feedback (Strengths + Improvements merged) */}
+          {/* Tab 2: Enhanced Detailed Feedback */}
           <TabsContent value="feedback" className="space-y-6 mt-4">
             {/* Strengths */}
             {detailedFeedback?.strengths && detailedFeedback.strengths.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2 text-success flex items-center gap-2">
+              <div className="p-4 rounded-lg bg-success/5 border border-success/20">
+                <h3 className="font-semibold mb-3 text-success flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" />
-                  Strengths
+                  What You're Doing Well
                 </h3>
-                <ul className="space-y-1 ml-7">
+                <ul className="space-y-2">
                   {detailedFeedback.strengths.map((strength, idx) => (
-                    <li key={idx} className="text-sm text-muted-foreground">• {strength}</li>
+                    <li key={idx} className="text-sm flex items-start gap-2">
+                      <span className="text-success mt-0.5">✓</span>
+                      <span>{strength}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Improvements (merged with suggestions) */}
-            {allImprovements.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2 text-accent flex items-center gap-2">
+            {/* Specific Issues with detailed feedback */}
+            {detailedFeedback?.specific_issues && detailedFeedback.specific_issues.length > 0 && (
+              <div className="p-4 rounded-lg bg-orange-500/5 border border-orange-500/20">
+                <h3 className="font-semibold mb-3 text-orange-600 dark:text-orange-400 flex items-center gap-2">
                   <Zap className="w-5 h-5" />
-                  Areas for Improvement & Practice Suggestions
+                  Specific Areas to Focus On
                 </h3>
-                <ul className="space-y-1 ml-7">
+                <div className="space-y-3">
+                  {detailedFeedback.specific_issues.slice(0, 5).map((issue, idx) => (
+                    <div key={idx} className="p-3 rounded-md bg-background/50 border">
+                      <div className="flex items-start gap-2 mb-1">
+                        <Badge variant={issue.severity === 'high' ? 'destructive' : issue.severity === 'medium' ? 'default' : 'secondary'} className="text-xs">
+                          {issue.severity}
+                        </Badge>
+                        <span className="font-medium text-sm">"{issue.word}"</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-1">{issue.feedback}</p>
+                      <p className="text-sm text-primary">💡 {issue.suggestion}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* General Improvements (merged with suggestions) */}
+            {allImprovements.length > 0 && (
+              <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                <h3 className="font-semibold mb-3 text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5" />
+                  Practice Suggestions
+                </h3>
+                <ul className="space-y-2">
                   {allImprovements.map((improvement, idx) => (
-                    <li key={idx} className="text-sm text-muted-foreground">• {improvement}</li>
+                    <li key={idx} className="text-sm flex items-start gap-2">
+                      <span className="text-blue-600 dark:text-blue-400 mt-0.5">→</span>
+                      <span>{improvement}</span>
+                    </li>
                   ))}
                 </ul>
               </div>
             )}
+
+            {/* Summary tip */}
+            <div className="p-4 rounded-lg bg-muted/30 border-l-4 border-primary">
+              <p className="text-sm text-muted-foreground italic">
+                💡 <strong>Pro Tip:</strong> Focus on one area at a time. Practice the specific words mentioned above slowly and clearly, then gradually increase your speed.
+              </p>
+            </div>
           </TabsContent>
-
-
         </Tabs>
       </DialogContent>
     </Dialog>
