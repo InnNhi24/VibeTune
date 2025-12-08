@@ -7,6 +7,7 @@ import { Button } from "./ui/button";
 import { TrendingUp, TrendingDown, Minus, Award, Volume2, Music, Zap, MessageCircle, Info, BarChart3, MessageSquare, FileText, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import * as React from "react";
 import { supabase } from "../services/supabaseClient";
 import { useAppStore } from "../store/appStore";
 
@@ -268,92 +269,118 @@ function FeedbackRating({ messageId }: { messageId?: string }) {
   const [rating, setRating] = useState<number | null>(null);
   const [hoveredRating, setHoveredRating] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
   const user = useAppStore((state) => state.user);
 
+  // Load existing rating on mount
+  React.useEffect(() => {
+    const loadRating = async () => {
+      if (messageId && user?.id) {
+        try {
+          const { data } = await supabase
+            .from('feedback_rating')
+            .select('rating')
+            .eq('message_id', messageId)
+            .eq('profile_id', user.id)
+            .single();
+          
+          if (data) {
+            setRating(data.rating);
+            console.log('✅ Loaded existing rating:', data.rating);
+          }
+        } catch {
+          console.log('ℹ️ No existing rating found');
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    
+    loadRating();
+  }, [messageId, user?.id]);
+
   const handleRating = async (value: number) => {
-    console.log('🌟 Rating clicked:', { value, messageId, userId: user?.id });
-
-    if (!messageId) {
-      console.error('❌ Cannot save rating: messageId is missing');
-      alert('Cannot save rating: Message ID is missing');
-      return;
-    }
-
-    if (!user?.id) {
-      console.error('❌ Cannot save rating: user is not logged in');
-      alert('Cannot save rating: Please log in first');
-      return;
-    }
+    if (!messageId || !user?.id) return;
+    if (rating !== null) return; // Already rated
 
     setRating(value);
     setIsSaving(true);
 
     try {
-      console.log('📤 Inserting feedback rating:', {
-        message_id: messageId,
-        profile_id: user.id,
-        rating: value
-      });
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('feedback_rating')
         .insert({
           message_id: messageId,
           profile_id: user.id,
           rating: value
-        })
-        .select();
+        });
 
-      if (error) {
-        console.error('❌ Supabase error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('✅ Feedback rating saved successfully:', data);
-      // Optional: Show success message
-      // alert('Thank you for your feedback!');
+      console.log('✅ Feedback rating saved:', value);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error: any) {
-      console.error('❌ Failed to save feedback rating:', error);
-      alert(`Failed to save rating: ${error.message || 'Unknown error'}`);
-      setRating(null); // Reset on error
+      console.error('❌ Failed to save rating:', error);
+      setRating(null);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Debug: Log when component renders
-  console.log('🌟 FeedbackRating rendered:', { messageId, userId: user?.id, rating });
+  if (!messageId) return null;
 
-  if (!messageId) {
+  if (isLoading) {
     return (
-      <div className="text-xs text-muted-foreground">
-        No message ID
+      <div className="flex items-center gap-1">
+        <div className="text-xs text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((value) => (
-        <Button
-          key={value}
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 hover:bg-transparent"
-          disabled={isSaving}
-          onClick={() => handleRating(value)}
-          onMouseEnter={() => setHoveredRating(value)}
-          onMouseLeave={() => setHoveredRating(null)}
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((value) => (
+          <Button
+            key={value}
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 hover:bg-transparent disabled:opacity-50"
+            disabled={isSaving || rating !== null}
+            onClick={() => handleRating(value)}
+            onMouseEnter={() => !rating && setHoveredRating(value)}
+            onMouseLeave={() => setHoveredRating(null)}
+            title={rating !== null ? 'Already rated' : `Rate ${value} stars`}
+          >
+            <Star
+              className={`w-4 h-4 transition-colors ${
+                (hoveredRating !== null ? value <= hoveredRating : value <= (rating || 0))
+                  ? 'fill-yellow-400 text-yellow-400'
+                  : 'text-muted-foreground'
+              }`}
+            />
+          </Button>
+        ))}
+      </div>
+      {showSuccess && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className="text-xs text-green-600 dark:text-green-400"
         >
-          <Star
-            className={`w-4 h-4 transition-colors ${
-              (hoveredRating !== null ? value <= hoveredRating : value <= (rating || 0))
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-muted-foreground'
-            }`}
-          />
-        </Button>
-      ))}
+          ✓ Thank you for your feedback!
+        </motion.div>
+      )}
+      {rating !== null && !showSuccess && (
+        <div className="text-xs text-muted-foreground">
+          You rated {rating} star{rating > 1 ? 's' : ''}
+        </div>
+      )}
     </div>
   );
 }
