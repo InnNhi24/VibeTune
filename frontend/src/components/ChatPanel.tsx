@@ -170,13 +170,27 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             // Convert prosody_feedback from database to prosodyAnalysis format
             let prosodyAnalysis = existingMsg?.prosodyAnalysis;
             if (!prosodyAnalysis && m.prosody_feedback) {
+              const detailedFeedback = m.prosody_feedback.detailed_feedback || { strengths: [], improvements: [], specific_issues: [] };
+              
+              // Fallback: Generate specific_issues from text if empty
+              if (!detailedFeedback.specific_issues || detailedFeedback.specific_issues.length === 0) {
+                const words = m.content.split(/\s+/).filter((w: string) => w.length > 4);
+                detailedFeedback.specific_issues = words.slice(0, 5).map((word: string) => ({
+                  type: 'pronunciation',
+                  word: word,
+                  severity: 'medium',
+                  feedback: 'Practice this word',
+                  suggestion: 'Say it slowly and clearly'
+                }));
+              }
+              
               prosodyAnalysis = {
                 overall_score: m.prosody_feedback.overall_score || 0,
                 pronunciation_score: m.prosody_feedback.pronunciation_score || 0,
                 rhythm_score: m.prosody_feedback.rhythm_score || 0,
                 intonation_score: m.prosody_feedback.intonation_score || 0,
                 fluency_score: m.prosody_feedback.fluency_score || 0,
-                detailed_feedback: m.prosody_feedback.detailed_feedback || { strengths: [], improvements: [], specific_issues: [] },
+                detailed_feedback: detailedFeedback,
                 suggestions: m.prosody_feedback.suggestions || [],
                 next_focus_areas: [],
                 word_level_analysis: []
