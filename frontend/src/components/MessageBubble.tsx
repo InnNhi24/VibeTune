@@ -65,25 +65,61 @@ export function MessageBubble({
   const [isPlaying, setIsPlaying] = useState(false);
   const [showFullFeedback, setShowFullFeedback] = useState(false);
 
-  const handlePlayAudio = () => {
+  // Debug: Log audioBlob on render
+  console.log('💬 MessageBubble rendered:', {
+    isAudio,
+    hasAudioBlob: !!audioBlob,
+    audioBlobSize: audioBlob?.size,
+    messagePreview: message.substring(0, 30)
+  });
+
+  const handlePlayAudio = async () => {
+    console.log('🎵 Play audio clicked:', {
+      hasAudioBlob: !!audioBlob,
+      audioBlobType: audioBlob?.type,
+      audioBlobSize: audioBlob?.size,
+      isPlaying,
+      hasOnPlayback: !!onPlayback
+    });
+
     if (audioBlob && !isPlaying) {
-      const url = URL.createObjectURL(audioBlob);
-      const audio = new Audio(url);
-      
-      audio.onended = () => {
+      try {
+        const url = URL.createObjectURL(audioBlob);
+        console.log('✅ Created audio URL:', url);
+        
+        const audio = new Audio(url);
+        
+        audio.onended = () => {
+          console.log('✅ Audio playback ended');
+          setIsPlaying(false);
+          URL.revokeObjectURL(url);
+        };
+        
+        audio.onerror = (e) => {
+          console.error('❌ Audio playback error:', e);
+          setIsPlaying(false);
+          URL.revokeObjectURL(url);
+          alert('Failed to play audio. The audio file may be corrupted.');
+        };
+        
+        audio.onpause = () => {
+          console.log('⏸️ Audio paused');
+          setIsPlaying(false);
+        };
+        
+        await audio.play();
+        setIsPlaying(true);
+        console.log('✅ Audio playing');
+      } catch (error) {
+        console.error('❌ Failed to play audio:', error);
+        alert(`Cannot play audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
         setIsPlaying(false);
-        URL.revokeObjectURL(url);
-      };
-      
-      audio.onpause = () => {
-        setIsPlaying(false);
-      };
-      
-      audio.play();
-      setIsPlaying(true);
+      }
     } else if (onPlayback) {
+      console.log('📞 Calling onPlayback callback');
       onPlayback();
     } else {
+      console.warn('⚠️ No audio available, using mock playback');
       // Fallback to mock playback
       setIsPlaying(true);
       setTimeout(() => setIsPlaying(false), 2000);
