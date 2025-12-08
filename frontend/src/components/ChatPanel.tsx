@@ -314,6 +314,68 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     };
   };
 
+  const generatePersonalizedTips = (
+    analyses: ProsodyAnalysis[], 
+    avgPronunciation: number, 
+    avgRhythm: number, 
+    avgIntonation: number, 
+    avgFluency: number,
+    mistakes: string[]
+  ): string => {
+    const tips: string[] = [];
+    
+    // Collect all improvement suggestions from AI feedback
+    const allImprovements = analyses.flatMap(a => 
+      a.detailed_feedback.improvements || []
+    );
+    const uniqueImprovements = [...new Set(allImprovements)].slice(0, 3);
+    
+    // Add AI-generated improvements as tips
+    if (uniqueImprovements.length > 0) {
+      uniqueImprovements.forEach(improvement => {
+        tips.push(`• ${improvement} 💡`);
+      });
+    }
+    
+    // Add specific practice tips based on weakest area
+    const scores = [
+      { name: 'pronunciation', score: avgPronunciation, emoji: '🗣️' },
+      { name: 'rhythm', score: avgRhythm, emoji: '🎵' },
+      { name: 'intonation', score: avgIntonation, emoji: '🎭' },
+      { name: 'fluency', score: avgFluency, emoji: '🌊' }
+    ];
+    const weakestArea = scores.reduce((min, curr) => curr.score < min.score ? curr : min);
+    
+    if (weakestArea.score < 75) {
+      const areaTips: Record<string, string> = {
+        pronunciation: `Practice these words slowly: ${mistakes.slice(0, 3).join(', ')}. Say each syllable clearly! ${weakestArea.emoji}`,
+        rhythm: `Try clapping along as you speak to feel the natural rhythm of English sentences ${weakestArea.emoji}`,
+        intonation: `Record yourself asking questions - your voice should go UP at the end! ${weakestArea.emoji}`,
+        fluency: `Don't worry about perfection - focus on speaking smoothly without long pauses ${weakestArea.emoji}`
+      };
+      tips.push(`• ${areaTips[weakestArea.name]}`);
+    }
+    
+    // Add mistake-specific practice tip
+    if (mistakes.length > 0) {
+      tips.push(`• Practice these challenging words daily: ${mistakes.slice(0, 3).join(', ')} - say them 5 times slowly, then 5 times at normal speed! 🎯`);
+    }
+    
+    // Add recording tip
+    tips.push(`• Record yourself reading a short paragraph, then listen back - you'll spot patterns I mentioned! 🎤`);
+    
+    // Add encouragement based on overall performance
+    if (avgPronunciation + avgRhythm + avgIntonation + avgFluency >= 320) {
+      tips.push(`• You're doing amazing! Keep challenging yourself with longer, more complex sentences! 🚀`);
+    } else if (avgPronunciation + avgRhythm + avgIntonation + avgFluency >= 280) {
+      tips.push(`• Great progress! Try reading English articles out loud to build confidence! 📚`);
+    } else {
+      tips.push(`• You're on the right track! Practice a little bit every day - consistency is key! 💪`);
+    }
+    
+    return tips.join('\n');
+  };
+
   const generateSessionSummary = async () => {
     // Collect all prosody analyses from the session
     const analyses = messages
@@ -369,11 +431,8 @@ ${uniqueVocab.slice(0, 5).map(w => `• ${w} ✨`).join('\n')}
 **🎯 Let's Work On These Together:**
 ${uniqueMistakes.length > 0 ? uniqueMistakes.map(w => `• ${w} - We'll get this one!`).join('\n') : '• Wow! You nailed everything! 🎉'}
 
-**💡 My Friendly Tips For You:**
-• Take a peek at the feedback I gave you above - lots of good stuff there! 👀
-• Try saying those tricky words out loud a few times each day 🗣️
-• Record yourself and listen back - you'll be amazed at your progress! 🎤
-• Let's focus on ${avgPronunciation < 75 ? 'making those sounds crystal clear 💎' : avgRhythm < 75 ? 'finding your natural speaking rhythm 🎵' : avgIntonation < 75 ? 'adding more expression to your voice 🎭' : 'keeping up this awesome momentum! 🚀'}
+**💡 My Personalized Tips For You:**
+${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation, avgFluency, uniqueMistakes)}
 
 **Want to keep going?** I'm always here when you're ready for another chat! Just start a new conversation and let's do this! 💪✨`;
 
