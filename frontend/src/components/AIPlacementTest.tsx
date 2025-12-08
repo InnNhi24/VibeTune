@@ -442,8 +442,8 @@ Ready to begin?`,
   // Completion screen
   if (isCompleted && results) {
     const userCurrentLevel = user.level;
-    const suggestedLevel = results.level;
-    const isDifferentLevel = userCurrentLevel && userCurrentLevel !== suggestedLevel;
+    const assessedLevel = results.level;
+    const isDifferentLevel = userCurrentLevel && userCurrentLevel !== assessedLevel;
 
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -458,17 +458,23 @@ Ready to begin?`,
               <div className="space-y-4">
                 <h2 className="text-3xl font-bold">Placement Test Complete!</h2>
                 
-                {/* Level Comparison Alert */}
+                {/* Level Assessment Result */}
                 {isDifferentLevel && (
                   <Alert className="text-left">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Level Recommendation:</strong> Based on your performance, we suggest <strong>{suggestedLevel}</strong> level.
-                      {userCurrentLevel === 'Beginner' && suggestedLevel !== 'Beginner' && (
-                        <span> You're doing better than expected! 🎉</span>
+                      <strong>Your Assessed Level:</strong> Based on your performance, your level has been set to <strong>{assessedLevel}</strong>.
+                      {userCurrentLevel === 'Beginner' && assessedLevel !== 'Beginner' && (
+                        <span> Great job! You're performing above your initial level! 🎉</span>
                       )}
-                      {userCurrentLevel === 'Advanced' && suggestedLevel !== 'Advanced' && (
-                        <span> Starting at {suggestedLevel} will help build a stronger foundation.</span>
+                      {userCurrentLevel === 'Advanced' && assessedLevel !== 'Advanced' && (
+                        <span> This level will help you build a stronger foundation before advancing.</span>
+                      )}
+                      {userCurrentLevel === 'Intermediate' && assessedLevel === 'Beginner' && (
+                        <span> Let's strengthen the basics first - you'll progress quickly!</span>
+                      )}
+                      {userCurrentLevel === 'Intermediate' && assessedLevel === 'Advanced' && (
+                        <span> Excellent! You're ready for advanced challenges!</span>
                       )}
                     </AlertDescription>
                   </Alert>
@@ -477,7 +483,7 @@ Ready to begin?`,
                 <div className="bg-accent/10 p-6 rounded-lg space-y-4">
                   <div className="flex items-center justify-center gap-4">
                     <Badge className="text-lg px-4 py-2 bg-accent text-accent-foreground">
-                      Suggested: {results.level}
+                      Your Level: {results.level}
                     </Badge>
                     <Badge variant="outline" className="text-lg px-4 py-2">
                       Score: {results.overallScore}%
@@ -511,28 +517,21 @@ Ready to begin?`,
                   </div>
                 </div>
                 
-                {/* Action Buttons */}
-                <div className="space-y-3">
-                  <Button 
-                    onClick={() => onComplete({ level: results.level, score: results.overallScore })}
-                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
-                    size="lg"
-                  >
-                    <Zap className="w-5 h-5 mr-2" />
-                    {isDifferentLevel ? `Switch to ${results.level} Level` : `Continue with ${results.level} Level`}
-                  </Button>
-                  
-                  {isDifferentLevel && userCurrentLevel && (
-                    <Button 
-                      onClick={() => onComplete({ level: userCurrentLevel, score: results.overallScore })}
-                      variant="outline"
-                      className="w-full text-lg py-6"
-                      size="lg"
-                    >
-                      Keep My Current Level ({userCurrentLevel})
-                    </Button>
-                  )}
-                </div>
+                {/* Single Action Button - Must Accept AI Level */}
+                <Button 
+                  onClick={() => onComplete({ level: results.level, score: results.overallScore })}
+                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
+                  size="lg"
+                >
+                  <Zap className="w-5 h-5 mr-2" />
+                  Start Learning at {results.level} Level
+                </Button>
+                
+                {isDifferentLevel && (
+                  <p className="text-xs text-muted-foreground">
+                    Your level has been updated based on your test performance
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
