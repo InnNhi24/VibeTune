@@ -79,7 +79,11 @@ export function useLiveASR(): ASRController {
 
     ws.onerror = (e) => console.warn('WS error', e);
     ws.onclose = () => {
-      try { media.stop(); } catch (e) {}
+      try { 
+        media.stop(); 
+      } catch {
+        // Media recorder already stopped
+      }
       stream.getTracks().forEach(t => t.stop());
       setIsRunning(false);
     };

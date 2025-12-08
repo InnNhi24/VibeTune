@@ -287,10 +287,9 @@ function FeedbackRating({ messageId }: { messageId?: string }) {
           
           if (data) {
             setRating(data.rating);
-            console.log('✅ Loaded existing rating:', data.rating);
           }
         } catch {
-          console.log('ℹ️ No existing rating found');
+          // No existing rating found - this is normal
         } finally {
           setIsLoading(false);
         }
@@ -320,11 +319,10 @@ function FeedbackRating({ messageId }: { messageId?: string }) {
 
       if (error) throw error;
 
-      console.log('✅ Feedback rating saved:', value);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error: any) {
-      console.error('❌ Failed to save rating:', error);
+      // Failed to save rating - reset state
       setRating(null);
     } finally {
       setIsSaving(false);

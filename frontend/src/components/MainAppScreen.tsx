@@ -87,24 +87,13 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
     }
     
     // Attempt server-side deletion (non-blocking)
-    console.log('🗑️ Deleting conversation from server:', conversationId);
     fetch(`/api/data?action=delete-conversation&id=${conversationId}`, { method: 'DELETE' })
-      .then(async response => {
-        const data = await response.json();
-        if (response.ok) {
-          console.log('✅ Conversation deleted from server:', conversationId, data);
-        } else {
-          console.error('❌ Failed to delete from server:', response.status, data);
-        }
-      })
-      .catch(error => {
-        console.error('❌ Delete request failed:', error);
+      .catch(() => {
+        // Deletion failed - already removed from local state
       });
   };
 
   const handleConversationRename = (conversationId: string, newName: string) => {
-    console.log('✏️ Renaming conversation:', conversationId, 'to:', newName);
-    
     // Update in local store
     const currentConversations = useAppStore.getState().conversations;
     const updatedConversations = currentConversations.map(conv =>
@@ -128,14 +117,8 @@ export function MainAppScreen({ user, onLogout, onStartPlacementTest, onUserUpda
         topic: newName,
         title: newName
       })
-    }).then(async response => {
-      if (response.ok) {
-        console.log('✅ Conversation renamed in database');
-      } else {
-        console.warn('⚠️ Failed to rename conversation in database:', response.status);
-      }
-    }).catch(error => {
-      console.warn('⚠️ Error renaming conversation:', error.message);
+    }).catch(() => {
+      // Rename failed - already updated in local state
     });
   };
 

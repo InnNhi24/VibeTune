@@ -408,9 +408,8 @@ app.post("/make-server-b2083953/api/ai-prosody-analysis", requireAuth, async (c)
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
-      serverLogger.warn('OpenAI API key not configured, falling back to mock analysis');
-      const mockAnalysis = await generateMockProsodyAnalysis(text, level || 'Intermediate');
-      return c.json({ data: mockAnalysis });
+      serverLogger.error('OpenAI API key not configured');
+      return c.json({ error: 'AI service not configured. Please contact administrator.' }, 503);
     }
 
     // Call OpenAI API for prosody analysis
@@ -461,17 +460,17 @@ app.post("/make-server-b2083953/api/ai-prosody-analysis", requireAuth, async (c)
     });
 
     if (!response.ok) {
-      serverLogger.error('OpenAI API error:', response.status, await response.text());
-      const fallbackAnalysis = await generateMockProsodyAnalysis(text, level || 'Intermediate');
-      return c.json({ data: fallbackAnalysis, note: 'Using fallback analysis due to API error' });
+      const errorText = await response.text();
+      serverLogger.error('OpenAI API error:', response.status, errorText);
+      return c.json({ error: 'AI analysis failed. Please try again.' }, 500);
     }
 
     const aiResponse = await response.json();
     const analysisText = aiResponse.choices[0]?.message?.content;
 
     if (!analysisText) {
-      const fallbackAnalysis = await generateMockProsodyAnalysis(text, level || 'Intermediate');
-      return c.json({ data: fallbackAnalysis, note: 'Using fallback analysis - no AI response' });
+      serverLogger.error('No AI response received');
+      return c.json({ error: 'AI analysis failed. Please try again.' }, 500);
     }
 
     try {
@@ -479,14 +478,12 @@ app.post("/make-server-b2083953/api/ai-prosody-analysis", requireAuth, async (c)
       return c.json({ data: analysis, powered_by: 'OpenAI GPT-4' });
     } catch (parseError) {
       serverLogger.error('Failed to parse AI response:', parseError);
-      const fallbackAnalysis = await generateMockProsodyAnalysis(text, level || 'Intermediate');
-      return c.json({ data: fallbackAnalysis, note: 'Using fallback analysis - parsing error' });
+      return c.json({ error: 'Failed to process AI response. Please try again.' }, 500);
     }
 
   } catch (error) {
     serverLogger.error('AI prosody analysis error:', error);
-    const fallbackAnalysis = await generateMockProsodyAnalysis(text, level || 'Intermediate');
-    return c.json({ data: fallbackAnalysis, note: 'Using fallback analysis due to error' });
+    return c.json({ error: 'AI analysis failed. Please try again.' }, 500);
   }
 });
 
@@ -508,9 +505,8 @@ app.post("/make-server-b2083953/api/ai-conversation", requireAuth, async (c) => 
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
-      serverLogger.warn('OpenAI API key not configured, using mock response');
-      const mockResponse = generateMockConversationResponse(userInput, context);
-      return c.json({ data: mockResponse });
+      serverLogger.error('OpenAI API key not configured');
+      return c.json({ error: 'AI service not configured. Please contact administrator.' }, 503);
     }
 
     const conversationHistory = context?.conversation_history || [];
@@ -553,17 +549,17 @@ app.post("/make-server-b2083953/api/ai-conversation", requireAuth, async (c) => 
     });
 
     if (!response.ok) {
-      serverLogger.error('OpenAI API error for conversation:', response.status);
-      const mockResponse = generateMockConversationResponse(userInput, context);
-      return c.json({ data: mockResponse, note: 'Using fallback response' });
+      const errorText = await response.text();
+      serverLogger.error('OpenAI API error for conversation:', response.status, errorText);
+      return c.json({ error: 'AI conversation failed. Please try again.' }, 500);
     }
 
     const aiResponse = await response.json();
     const aiMessage = aiResponse.choices[0]?.message?.content;
 
     if (!aiMessage) {
-      const mockResponse = generateMockConversationResponse(userInput, context);
-      return c.json({ data: mockResponse, note: 'Using fallback response' });
+      serverLogger.error('No AI response received');
+      return c.json({ error: 'AI conversation failed. Please try again.' }, 500);
     }
 
     // Detect topic confirmation tag in AI reply
@@ -605,92 +601,9 @@ app.post("/make-server-b2083953/api/ai-conversation", requireAuth, async (c) => 
 
   } catch (error) {
     serverLogger.error('AI conversation error:', error);
-    const mockResponse = generateMockConversationResponse(userInput, context);
-    return c.json({ data: mockResponse, note: 'Using fallback response due to error' });
+    return c.json({ error: 'AI conversation failed. Please try again.' }, 500);
   }
 });
-
-// Mock conversation response generator
-function generateMockConversationResponse(userInput: string, context: any) {
-  const responses = [
-    "That's really interesting! Can you tell me more about that?",
-    "I see what you mean. What do you think about it?",
-    "That sounds great! How did that make you feel?",
-    "Wow, that's fascinating! I'd love to hear more details.",
-    "That's a good point. Have you experienced something similar before?"
-  ];
-  
-  return {
-    text_response: responses[Math.floor(Math.random() * responses.length)],
-    conversation_flow: {
-      next_topic_suggestions: ['Travel', 'Food', 'Hobbies', 'Work'],
-      difficulty_adjustment: 'maintain',
-      engagement_level: 0.8
-    },
-    practice_suggestions: {
-      immediate: ['Try adding more details', 'Use descriptive words'],
-      session_goals: ['Improve conversation flow'],
-      homework: ['Practice storytelling']
-    }
-  };
-}
-// Mock prosody analysis function (fallback)
-async function generateMockProsodyAnalysis(text: string, level: string) {
-  const words = text.toLowerCase().split(' ');
-  const score = Math.floor(Math.random() * 30) + 70; // 70-100%
-  
-  const prosodyErrors = [];
-  const vocabSuggestions = [];
-  
-  // Add some mock analysis based on text content
-  if (words.some(w => ['really', 'very', 'quite'].includes(w))) {
-    prosodyErrors.push({
-      word: 'really',
-      type: 'stress',
-      suggestion: 'Emphasize this intensifier with stronger stress'
-    });
-  }
-  
-  if (words.some(w => ['important', 'interesting', 'communication'].includes(w))) {
-    prosodyErrors.push({
-      word: words.find(w => ['important', 'interesting', 'communication'].includes(w)),
-      type: 'syllable_stress',
-      suggestion: 'Focus on primary stress placement in multisyllabic words'
-    });
-  }
-  
-  // Vocabulary suggestions based on level
-  if (level === 'Beginner' && words.some(w => w.length > 8)) {
-    const complexWord = words.find(w => w.length > 8);
-    if (complexWord) {
-      vocabSuggestions.push({
-        word: complexWord,
-        simpler_alternative: 'Try using simpler words',
-        definition: 'Complex vocabulary for your level'
-      });
-    }
-  }
-  
-  const guidance = score >= 85 
-    ? "Excellent prosody! Keep practicing with more complex sentences."
-    : score >= 70 
-    ? "Good effort! Focus on stress patterns and intonation."
-    : "Keep practicing! Try speaking more slowly and emphasize key words.";
-  
-  return {
-    overall_score: score,
-    pronunciation_score: score + (Math.random() * 10 - 5),
-    rhythm_score: score + (Math.random() * 10 - 5), 
-    intonation_score: score + (Math.random() * 10 - 5),
-    fluency_score: score + (Math.random() * 10 - 5),
-    detailed_feedback: {
-      strengths: ['Clear pronunciation', 'Good pace'],
-      improvements: ['Work on intonation', 'Practice word stress']
-    },
-    suggestions: ['Practice with audio recordings', 'Focus on sentence stress'],
-    next_focus_areas: ['Question intonation', 'Connected speech']
-  };
-}
 
 // Speech service endpoints using Deepgram API
 app.post("/make-server-b2083953/api/speech/transcribe", requireAuth, async (c) => {
@@ -703,27 +616,8 @@ app.post("/make-server-b2083953/api/speech/transcribe", requireAuth, async (c) =
     }
 
     if (!deepgramApiKey) {
-      serverLogger.warn('Deepgram API key not configured, falling back to mock transcription');
-      return c.json({ 
-        data: {
-          text: "Hello, this is a mock transcription for testing purposes.",
-          
-          words: [
-            { word: "Hello", start: 0.0, end: 0.5, confidence: 0.98 },
-            { word: "this", start: 0.6, end: 0.8, confidence: 0.95 },
-            { word: "is", start: 0.9, end: 1.0, confidence: 0.97 },
-            { word: "a", start: 1.1, end: 1.2, confidence: 0.93 },
-            { word: "mock", start: 1.3, end: 1.6, confidence: 0.94 },
-            { word: "transcription", start: 1.7, end: 2.5, confidence: 0.96 }
-          ],
-          prosody_hints: {
-            pace: 'normal',
-            volume: 'normal',
-            clarity: 'good'
-          }
-        },
-        note: 'Using mock transcription - API key not configured'
-      });
+      serverLogger.error('Deepgram API key not configured');
+      return c.json({ error: 'Speech service not configured. Please contact administrator.' }, 503);
     }
 
     const formData = await c.req.formData();

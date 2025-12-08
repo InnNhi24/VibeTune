@@ -431,7 +431,6 @@ export function RecordingControls({
       
       if (!hasValidAudio || !hasValidTranscript) {
         // No valid recording - reset to idle state
-        console.warn('⚠️ No valid audio or transcription, resetting to idle');
         setRecordingState('idle');
         setRecordedMessage('');
         setAudioBlob(null);

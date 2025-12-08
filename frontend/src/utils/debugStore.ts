@@ -241,36 +241,10 @@ export const debugStore = {
     setActiveConversation(musicConvId);
     setCurrentTopic('music');
     
-    // Add some sample messages for music topic
-    const welcomeMsg = {
-      id: `msg_${Date.now()}_1`,
-      conversation_id: musicConvId,
-      sender: 'ai' as const,
-      type: 'text' as const,
-      content: "So let's talk about music! What kind of music do you like?",
-      created_at: new Date().toISOString(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    const userMsg = {
-      id: `msg_${Date.now()}_2`,
-      conversation_id: musicConvId,
-      sender: 'user' as const,
-      type: 'text' as const,
-      content: "I love music! I like pop and rock music.",
-      created_at: new Date().toISOString(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    // Add messages to store
-    useAppStore.setState(state => ({
-      messages: [...state.messages, welcomeMsg, userMsg]
-    }));
-    
     // Force save
     debugStore.forceSave();
     
-    console.log('✅ Fixed music conversation with sample messages');
+    console.log('✅ Fixed music conversation');
     return true;
   }
 };

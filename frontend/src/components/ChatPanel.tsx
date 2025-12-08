@@ -7,11 +7,11 @@ import { Textarea } from "./ui/textarea";
 
 import { MessageBubble } from "./MessageBubble";
 import { RecordingControls } from "./RecordingControls";
-import { ProsodyFeedback } from "./ProsodyFeedback";
+
 import { ProsodyScoreCard } from "./ProsodyScoreCard";
 import { AIConnectionStatus } from "./AIConnectionStatus";
-import { Send, Loader2, Star } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Send, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { aiProsodyService, ConversationContext, ProsodyAnalysis, AIResponse } from "../services/aiProsodyService";
 import { useAppStore } from "../store/appStore";
 import { logger } from "../utils/logger";
@@ -39,31 +39,16 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // Handle null/undefined level gracefully
   const safeLevel = (level || "Beginner") as 'Beginner' | 'Intermediate' | 'Advanced';
   const [messages, setMessages] = useState<Message[]>([]);
-  
-  // Debug: Track all messages state changes
-  useEffect(() => {
-    console.log('🔍 MESSAGES STATE CHANGED:', {
-      count: messages.length,
-      messages: messages.map(m => ({
-        id: m.id,
-        text: m.text.substring(0, 30) + '...',
-        isUser: m.isUser,
-        timestamp: m.timestamp
-      }))
-    });
-  }, [messages]);
   const [textInput, setTextInput] = useState("");
   const [isComposing, setIsComposing] = useState(false);
   const sendingRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<ConversationContext['conversation_history']>([]);
   const [focusAreas, setFocusAreas] = useState<string[]>(['basic pronunciation', 'sentence stress']);
-  const [currentAnalysis, setCurrentAnalysis] = useState<ProsodyAnalysis | null>(null);
-  const [showAnalysisOverlay, setShowAnalysisOverlay] = useState(false);
-  const [selectedMessageForAnalysis, setSelectedMessageForAnalysis] = useState<Message | null>(null);
+  const [lastMistakes, setLastMistakes] = useState<string[]>([]); // Track pronunciation mistakes for AI context
   const [selectedProsodyMessage, setSelectedProsodyMessage] = useState<Message | null>(null); // For prosody popup
   const [aiReady, setAiReady] = useState(false);
-  const [isTextareaMode, setIsTextareaMode] = useState(false);
+
   const [waitingForTopic, setWaitingForTopic] = useState(true);
   const [currentTopic, setCurrentTopic] = useState(topic);
   const [topicLocked, setTopicLocked] = useState(false); // Prevent topic changes after confirmation
@@ -98,7 +83,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const addMessageToStore = useAppStore(state => state.addMessage);
   const setActiveConversation = useAppStore(state => state.setActiveConversation);
   const addConversation = useAppStore(state => state.addConversation);
-  const syncData = useAppStore(state => state.syncData);
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const storeMessages = useAppStore(state => state.messages);
 
@@ -119,8 +103,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   useEffect(() => {
     // Show welcome message when no active conversation and no messages
     if (!activeConversationId && messages.length === 0 && topic === "New Conversation") {
-      console.log('🎉 [ChatPanel] Showing welcome message for new conversation');
-      
       const welcomeMessage: Message = {
         id: `welcome_${Date.now()}_1`,
         text: `Hi! I'm your VibeTune AI conversation partner. Let's practice English at a ${safeLevel.toLowerCase()} level with AI-powered pronunciation feedback!`,
@@ -146,22 +128,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   useEffect(() => {
     try {
       if (activeConversationId) {
-        console.log('🔍 [ChatPanel] Loading conversation:', activeConversationId);
-        console.log('🔍 [ChatPanel] Store has', storeMessages.length, 'total messages');
-        
-        // Debug: Log all conversation IDs in store
-        const allConvIds = [...new Set(storeMessages.map(m => m.conversation_id))];
-        console.log('🔍 [ChatPanel] All conversation IDs in store:', allConvIds);
-        console.log('🔍 [ChatPanel] Looking for conversation ID:', activeConversationId);
-        
         const msgs = storeMessages
-          .filter(m => {
-            const matches = m.conversation_id === activeConversationId;
-            if (!matches && storeMessages.length < 20) {
-              console.log('🔍 [ChatPanel] Message', m.id, 'has conversation_id:', m.conversation_id);
-            }
-            return matches;
-          })
+          .filter(m => m.conversation_id === activeConversationId)
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
           .map(m => {
             // Preserve prosodyAnalysis from existing messages if available, or load from database
@@ -208,18 +176,12 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             } as Message;
           });
 
-        console.log('🔍 [ChatPanel] Found', msgs.length, 'messages for this conversation');
-        
         // Only update messages if they're different (to preserve prosodyAnalysis)
-        // Compare by checking if all message IDs match
         const currentIds = messages.map(m => m.id).sort().join(',');
         const newIds = msgs.map(m => m.id).sort().join(',');
         
         if (currentIds !== newIds) {
-          console.log('🔄 [ChatPanel] Loading messages from store (conversation changed)');
           setMessages(msgs);
-        } else {
-          console.log('✅ [ChatPanel] Messages already loaded, skipping to preserve prosodyAnalysis');
         }
         
         if (msgs.length > 0) {
@@ -241,14 +203,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             setWaitingForTopic(false);
           }
         } else {
-          // No messages found - clear conversation history
-          console.log('🔍 [ChatPanel] No messages found, clearing conversation history');
           setConversationHistory([]);
         }
       } else {
         // No active conversation - clear messages if they exist
         if (messages.length > 0) {
-          console.log('🔍 [ChatPanel] No active conversation, clearing messages');
           setMessages([]);
           setConversationHistory([]);
         }
@@ -259,7 +218,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           const existingConv = store.conversations.find(c => c.topic === currentTopic);
           
           if (!existingConv && store.user) {
-            console.log('🔧 Creating missing conversation for topic:', currentTopic);
             const newConvId = crypto.randomUUID(); // Use UUID for database compatibility
             const newConv = {
               id: newConvId,
@@ -362,7 +320,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       // Create conversation ID immediately
       convId = crypto.randomUUID();
       setConversationId(convId);
-      console.log('🆔 Created new conversation ID:', convId);
       
       // CREATE CONVERSATION IMMEDIATELY with placeholder name
       // This allows messages to be saved to database right away
@@ -379,8 +336,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           started_at: new Date().toISOString()
         };
         
-        console.log('✅ Creating conversation with placeholder name:', placeholderTopic);
-        
         // Add to local store
         addConversation(newConv);
         
@@ -393,13 +348,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newConv)
         }).then(async response => {
-          if (response.ok) {
-            console.log('✅ Conversation created in database:', convId);
-          } else {
-            console.error('❌ Failed to create conversation in database:', await response.text());
+          if (!response.ok) {
+            logger.error('Failed to create conversation in database', await response.text());
           }
         }).catch(error => {
-          console.error('❌ Error creating conversation:', error);
+          logger.error('Error creating conversation', error);
         });
       }
     }
@@ -416,12 +369,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       prosodyAnalysis: undefined // Will be filled after analysis
     };
 
-    console.log('🔍 Adding user message:', userMessage);
-    setMessages(prev => {
-      const newMessages = [...prev, userMessage];
-      console.log('🔍 Messages after adding user message:', newMessages.length);
-      return newMessages;
-    });
+    setMessages(prev => [...prev, userMessage]);
     
     // Prepare payload - always include topic if it's fixed
     const store = useAppStore.getState();
@@ -440,47 +388,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       profileId: profile?.id || null,
       level: safeLevel,
       conversationHistory: conversationHistory,
-      lastMistakes: [], // TODO: Track pronunciation mistakes
+      lastMistakes: lastMistakes, // Track pronunciation mistakes for AI context
       turnCount: userMessageCount // Track conversation progress for session management
     } as any;
     
     // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
       try {
-
-        console.log('📤 Sending to API:', { 
-          text: messageText.substring(0, 50) + '...', 
-          stage: payload.stage,
-          topic: payload.topic,
-          conversationId: payload.conversationId
-        });
-        
         const resp = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-
-        console.log('🔍 API Response status:', resp.status);
         
         if (resp.ok) {
           const data = await resp.json();
-          console.log('🔍 API Response data:', data);
-          console.log('🔍 Topic from API:', data.topic_confirmed);
-          console.log('🔍 Will create conversation?', !!data.topic_confirmed);
           if (data) {
             // Get AI response text - no control tags expected
             let aiResponseText = data.replyText || data.text_response || "I'm thinking...";
-            console.log('✅ AI response received:', aiResponseText.substring(0, 100) + '...');
             
             // Clean text (remove any unexpected control tags)
             const cleanText = aiResponseText.replace(/\[\[.*?\]\]/gi, '').trim();
-            console.log('📝 Topic confirmed from API:', data.topic_confirmed);
             
             // Add AI response message
-            console.log('🔍 Setting setTimeout for AI response...');
             setTimeout(() => {
-              console.log('🔍 setTimeout executed - adding AI response message');
               
               // Ensure AI message timestamp is AFTER user message (add 10ms buffer)
               const aiMessageCreatedAt = new Date(new Date(userMessageCreatedAt).getTime() + 10).toISOString();
@@ -492,12 +423,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               };
               
-              console.log('🔍 AI response message created:', aiResponseMessage);
-              setMessages(prev => {
-                const newMessages = [...prev, aiResponseMessage];
-                console.log('🔍 Messages after adding AI response:', newMessages.length);
-                return newMessages;
-              });
+              setMessages(prev => [...prev, aiResponseMessage]);
               
               // Force scroll to bottom for new AI messages
               setTimeout(() => scrollToBottom(true), 100);
@@ -519,7 +445,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 
                 // Save to local store immediately
                 addMessageToStore(aiMessageData);
-                console.log('✅ AI message saved to local store:', aiResponseMessage.id);
                 
                 // Save to database (conversation already exists)
                 fetch('/api/data?action=save-message', {
@@ -528,32 +453,25 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   body: JSON.stringify(aiMessageData)
                 }).then(async response => {
                   const result = await response.json();
-                  if (response.ok) {
-                    if (result.supabase_error) {
-                      console.error('❌ AI message saved locally but database sync failed:', result.supabase_error);
-                    } else {
-                      console.log('✅ AI message saved to database:', aiResponseMessage.id, result);
-                    }
-                  } else {
-                    console.warn('⚠️ Failed to save AI message to database:', response.status, result);
+                  if (response.ok && result.supabase_error) {
+                    logger.error('AI message saved locally but database sync failed', result.supabase_error);
+                  } else if (!response.ok) {
+                    logger.warn('Failed to save AI message to database', result);
                   }
                 }).catch(error => {
-                  console.warn('⚠️ Error saving AI message:', error.message);
+                  logger.warn('Error saving AI message', error);
                 });
                 
               } catch (e) {
-                console.error('❌ Failed to persist AI message:', e);
+                logger.error('Failed to persist AI message', e);
               }
             }, 800);
 
             // AI will return topic_confirmed when it's confident about the topic
             if (data.topic_confirmed) {
               if (topicLocked) {
-                console.log('⚠️ Topic already locked - ignoring topic update request');
                 return;
               }
-              
-              console.log('✅ Topic confirmed! Updating conversation name to:', data.topic_confirmed);
 
               // Topic is now locked for this session - prevent further updates
               setWaitingForTopic(false);
@@ -582,8 +500,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                     title: data.topic_confirmed
                   };
                   
-                  console.log('✅ Updating conversation topic in store:', data.topic_confirmed);
-                  
                   // Update in store (replace old conversation)
                   const updatedConversations = conversations.map(c => 
                     c.id === finalConvId ? updatedConv : c
@@ -600,13 +516,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                       title: data.topic_confirmed
                     })
                   }).then(async response => {
-                    if (response.ok) {
-                      console.log('✅ Conversation topic updated in database');
-                    } else {
-                      console.warn('⚠️ Failed to update conversation in database:', response.status);
+                    if (!response.ok) {
+                      logger.warn('Failed to update conversation in database', response.status);
                     }
                   }).catch(error => {
-                    console.warn('⚠️ Error updating conversation:', error.message);
+                    logger.warn('Error updating conversation', error);
                   });
                   
                   // Update localStorage
@@ -627,9 +541,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                         }
                       };
                       localStorage.setItem('vibetune-app-store', JSON.stringify({ state: storeData, version: 0 }));
-                      console.log('✅ Conversation updated in localStorage');
                     } catch (e) {
-                      console.error('❌ Failed to update localStorage:', e);
+                      logger.error('Failed to update localStorage', e);
                     }
                   }, 100);
                 }
@@ -640,10 +553,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   onTopicChange(data.topic_confirmed);
                 }
                 
-                console.log('✅ Conversation topic updated:', finalConvId, 'Topic:', data.topic_confirmed);
-                
               } catch (e) {
-                console.error('❌ Failed to update conversation:', e);
+                logger.error('Failed to update conversation', e);
               }
             }
             // If no topic_confirmed, AI is still asking questions to clarify topic
@@ -689,7 +600,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     
     // Save to local store immediately
     addMessageToStore(messageData);
-    console.log('✅ User message saved to local store:', messageId);
     
     // Save to database (conversation already exists with placeholder name)
     fetch('/api/data?action=save-message', {
@@ -701,17 +611,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       })
     }).then(async response => {
       const result = await response.json();
-      if (response.ok) {
-        if (result.supabase_error) {
-          console.error('❌ User message saved locally but database sync failed:', result.supabase_error);
-        } else {
-          console.log('✅ User message saved to database:', messageId, result);
-        }
-      } else {
-        console.warn('⚠️ Failed to save user message to database:', response.status, result);
+      if (response.ok && result.supabase_error) {
+        logger.error('User message saved locally but database sync failed', result.supabase_error);
+      } else if (!response.ok) {
+        logger.warn('Failed to save user message to database', result);
       }
     }).catch(error => {
-      console.warn('⚠️ Error saving user message:', error.message);
+      logger.warn('Error saving user message', error);
     });
     setTextInput("");
     setIsLoading(true);
@@ -730,17 +636,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
         let aiResponse: AIResponse;
 
         // If it's audio and AI is ready, analyze it
-        console.log('🔍 [ChatPanel] Checking prosody analysis conditions:', {
-          isAudio,
-          hasAudioBlob: !!audioBlob,
-          audioBlobSize: audioBlob?.size,
-          aiReady,
-          willAnalyze: isAudio && audioBlob && aiReady
-        });
-        
         if (isAudio && audioBlob && aiReady) {
         const context = buildConversationContext();
-        console.log('✅ [ChatPanel] Starting prosody analysis...');
         
           try {
           prosodyAnalysis = await aiProsodyService.analyzeAudio(
@@ -750,46 +647,38 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           );
 
           // Update the message with analysis AND transcription
-          console.log('✅ [ChatPanel] Prosody analysis complete, updating message:', {
-            messageId,
-            hasAnalysis: !!prosodyAnalysis,
-            overallScore: prosodyAnalysis?.overall_score,
-            transcription: (prosodyAnalysis as any)?.transcription?.substring(0, 50)
-          });
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId 
+              ? { 
+                  ...msg, 
+                  // Update text with actual transcription from prosody analysis
+                  text: (prosodyAnalysis as any)?.transcription || msg.text,
+                  prosodyAnalysis,
+                  isProcessing: false,
+                  // IMPORTANT: Preserve audioBlob for playback!
+                  audioBlob: msg.audioBlob,
+                  isAudio: msg.isAudio,
+                  // Also update prosodyFeedback for MessageBubble display
+                  prosodyFeedback: prosodyAnalysis ? {
+                    overall_score: prosodyAnalysis.overall_score,
+                    pronunciation_score: prosodyAnalysis.pronunciation_score,
+                    rhythm_score: prosodyAnalysis.rhythm_score,
+                    intonation_score: prosodyAnalysis.intonation_score,
+                    fluency_score: prosodyAnalysis.fluency_score,
+                    feedback: prosodyAnalysis.detailed_feedback,
+                    suggestions: prosodyAnalysis.suggestions
+                  } : undefined
+                }
+              : msg
+          ));
           
-          setMessages(prev => {
-            const updated = prev.map(msg => 
-              msg.id === messageId 
-                ? { 
-                    ...msg, 
-                    // Update text with actual transcription from prosody analysis
-                    text: (prosodyAnalysis as any)?.transcription || msg.text,
-                    prosodyAnalysis,
-                    isProcessing: false,
-                    // IMPORTANT: Preserve audioBlob for playback!
-                    audioBlob: msg.audioBlob,
-                    isAudio: msg.isAudio,
-                    // Also update prosodyFeedback for MessageBubble display
-                    prosodyFeedback: prosodyAnalysis ? {
-                      overall_score: prosodyAnalysis.overall_score,
-                      pronunciation_score: prosodyAnalysis.pronunciation_score,
-                      rhythm_score: prosodyAnalysis.rhythm_score,
-                      intonation_score: prosodyAnalysis.intonation_score,
-                      fluency_score: prosodyAnalysis.fluency_score,
-                      feedback: prosodyAnalysis.detailed_feedback,
-                      suggestions: prosodyAnalysis.suggestions
-                    } : undefined
-                  }
-                : msg
-            );
-            console.log('✅ [ChatPanel] Updated message with prosodyAnalysis:', {
-              messageId,
-              hasProsodyAnalysis: !!updated.find(m => m.id === messageId)?.prosodyAnalysis,
-              overallScore: updated.find(m => m.id === messageId)?.prosodyAnalysis?.overall_score,
-              specificIssuesCount: updated.find(m => m.id === messageId)?.prosodyAnalysis?.detailed_feedback?.specific_issues?.length || 0
-            });
-            return updated;
-          });
+          // Track pronunciation mistakes for AI context
+          if (prosodyAnalysis?.detailed_feedback?.specific_issues) {
+            const mistakes = prosodyAnalysis.detailed_feedback.specific_issues
+              .filter(issue => issue.severity === 'high' || issue.severity === 'medium')
+              .map(issue => issue.word);
+            setLastMistakes(prev => [...new Set([...prev, ...mistakes])].slice(-10)); // Keep last 10 mistakes
+          }
 
           // Update conversation history with analysis
           (newHistoryEntry as any).audio_analysis = prosodyAnalysis;
@@ -819,13 +708,11 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                   transcript: (prosodyAnalysis as any)?.transcription
                 })
               }).then(response => {
-                if (response.ok) {
-                  console.log('✅ Prosody analysis saved to database');
-                } else {
-                  console.error('❌ Failed to save prosody analysis to database');
+                if (!response.ok) {
+                  logger.error('Failed to save prosody analysis to database');
                 }
               }).catch(error => {
-                console.error('❌ Error saving prosody analysis:', error);
+                logger.error('Error saving prosody analysis', error);
               });
             } catch (error) {
               console.error('❌ Error preparing prosody data for database:', error);
@@ -904,13 +791,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           aiResponse
         };
-        setMessages(prev => {
-          console.log('🤖 [ChatPanel] Adding AI response, checking user message prosody:', {
-            userMessageId: messageId,
-            userMessageHasProsody: !!prev.find(m => m.id === messageId)?.prosodyAnalysis
-          });
-          return [...prev, aiResponseMessage];
-        });
+        setMessages(prev => [...prev, aiResponseMessage]);
+        
         // Persist AI message to global store
         try {
           // Use store user to ensure consistency with conversation profile_id
@@ -925,9 +807,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             created_at: aiMessageCreatedAt, // Use timestamp AFTER user message
             timestamp: aiResponseMessage.timestamp
           });
-          console.log('✅ AI response message persisted to store:', aiResponseMessage.id);
         } catch (e) {
-          console.error('❌ Failed to persist AI response message:', e);
+          logger.error('Failed to persist AI response message', e);
         }
         setIsLoading(false);
 
@@ -981,11 +862,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     return levelResponses[Math.floor(Math.random() * levelResponses.length)];
   };
 
-  const handleTextSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    void sendTextFromInput();
-  };
-
   const sendTextFromInput = async () => {
     if (sendingRef.current) return;
     if (isComposing) return;
@@ -997,23 +873,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   };
 
-  const handleAnalysisView = (analysis: ProsodyAnalysis) => {
-    setCurrentAnalysis(analysis);
-    setShowAnalysisOverlay(true);
-  };
 
-  const handleRetryRecording = (messageId: string) => {
-    // Find the message and trigger retry
-    const message = messages.find(m => m.id === messageId);
-    if (message) {
-      // Remove the message and allow user to record again
-      setMessages(prev => prev.filter(m => m.id !== messageId));
-    }
-  };
-
-  const toggleInputMode = () => {
-    setIsTextareaMode(!isTextareaMode);
-  };
 
   return (
   // ChatGPT-style layout: Use absolute positioning for reliable layout
@@ -1074,7 +934,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 timestamp={message.timestamp}
                 isProcessing={message.isProcessing}
                 onAnalysisView={message.prosodyAnalysis ? () => setSelectedProsodyMessage(message) : undefined}
-                onRetry={() => handleRetryRecording(message.id)}
               />
             </div>
             );
@@ -1161,45 +1020,6 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           </div>
         </div>
       </div>
-
-      {/* Prosody Analysis Popup - Click on voice message to view */}
-      <AnimatePresence>
-        {selectedMessageForAnalysis && selectedMessageForAnalysis.prosodyAnalysis && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedMessageForAnalysis(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-background rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto custom-scrollbar"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Pronunciation Analysis</h2>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedMessageForAnalysis(null)}
-                  >
-                    ✕
-                  </Button>
-                </div>
-                <ProsodyFeedback
-                  analysis={selectedMessageForAnalysis.prosodyAnalysis}
-                  originalText={selectedMessageForAnalysis.text}
-                  onRetry={() => setSelectedMessageForAnalysis(null)}
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Prosody Feedback Popup Modal */}
       {selectedProsodyMessage && selectedProsodyMessage.prosodyAnalysis && (

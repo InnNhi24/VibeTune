@@ -127,7 +127,9 @@ export class LiveTranscriptionService {
       try {
         // eslint-disable-next-line no-console
         console.debug('transcribeChunk: size=', audioBlob.size, 'content-type=', contentTypeHeader);
-      } catch (e) {}
+      } catch {
+        // Debug logging failed - not critical
+      }
 
       const response = await fetch('/api/live-transcribe', {
         method: 'POST',
@@ -142,7 +144,9 @@ export class LiveTranscriptionService {
         let detail = '';
         try {
           detail = await response.text();
-        } catch {}
+        } catch {
+          // Failed to read error details
+        }
         throw new Error(`Transcription failed: ${response.status}${detail ? ' - ' + detail : ''}`);
       }
 

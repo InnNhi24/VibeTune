@@ -22,7 +22,9 @@ export async function* streamChat(url: string, body: any) {
       try {
         const { delta } = JSON.parse(payload);
         if (delta) yield delta;
-      } catch {}
+      } catch {
+        // Invalid JSON chunk - skip
+      }
     }
   }
 }

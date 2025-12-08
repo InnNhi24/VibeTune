@@ -5,22 +5,15 @@ import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 import { 
   User, 
-  Bot, 
   Volume2, 
   TrendingUp, 
-  BookOpen, 
-  Star, 
-  AlertCircle,
-  Play,
   Pause,
   Download,
-  Eye,
-  RotateCcw,
-  ThumbsUp,
   Loader2,
-  Zap
+  Zap,
+  Star
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import * as React from "react";
 
 interface ProsodyFeedback {
@@ -47,7 +40,6 @@ interface MessageBubbleProps {
   timestamp: string;
   isProcessing?: boolean;
   onAnalysisView?: () => void;
-  onRetry?: () => void;
   onPlayback?: () => void;
 }
 
@@ -60,17 +52,14 @@ export function MessageBubble({
   timestamp,
   isProcessing = false,
   onAnalysisView,
-  onRetry,
   onPlayback
 }: MessageBubbleProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showFullFeedback, setShowFullFeedback] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   const handlePlayAudio = async () => {
     // If already playing, stop it
     if (isPlaying && audioRef.current) {
-      console.log('⏸️ Stopping current playback');
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       audioRef.current = null;
@@ -91,29 +80,24 @@ export function MessageBubble({
         audioRef.current = audio;
         
         audio.onended = () => {
-          console.log('✅ Audio ended');
           setIsPlaying(false);
           URL.revokeObjectURL(url);
           audioRef.current = null;
         };
         
-        audio.onerror = (e) => {
-          console.error('❌ Audio error:', e);
+        audio.onerror = () => {
           setIsPlaying(false);
           URL.revokeObjectURL(url);
           audioRef.current = null;
         };
         
         audio.onpause = () => {
-          console.log('⏸️ Audio paused');
           setIsPlaying(false);
         };
         
         await audio.play();
         setIsPlaying(true);
-        console.log('✅ Audio playing');
       } catch (error) {
-        console.error('❌ Failed to play:', error);
         setIsPlaying(false);
         audioRef.current = null;
       }
@@ -145,13 +129,6 @@ export function MessageBubble({
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 85) return "text-success";
-    if (score >= 70) return "text-accent";
-    if (score >= 55) return "text-secondary";
-    return "text-destructive";
-  };
-
   const getScoreBgColor = (score: number) => {
     if (score >= 85) return "bg-success/10 border-success/20";
     if (score >= 70) return "bg-accent/10 border-accent/20";
@@ -159,18 +136,6 @@ export function MessageBubble({
     return "bg-destructive/10 border-destructive/20";
   };
 
-  const getHighlightStyle = (type: string) => {
-    switch (type) {
-      case 'error':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'good':
-        return 'bg-success/10 text-success border-success/20';
-      case 'suggestion':
-        return 'bg-accent/10 text-accent border-accent/20';
-      default:
-        return 'bg-muted/50 text-muted-foreground border-muted/20';
-    }
-  };
   const renderHighlightedText = (text: string, highlights: ProsodyFeedback['highlights']) => {
     if (!highlights || highlights.length === 0) return text;
     

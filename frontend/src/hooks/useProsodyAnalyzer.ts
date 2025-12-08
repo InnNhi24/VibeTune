@@ -121,20 +121,36 @@ export function useProsodyAnalyzer(opts: UseProsodyOpts = {}) {
 
     // stop audio processing
     if (procRef.current) {
-      try { procRef.current.disconnect(); } catch (e) {}
+      try { 
+        procRef.current.disconnect(); 
+      } catch {
+        // Already disconnected
+      }
       procRef.current.onaudioprocess = null as any;
       procRef.current = null;
     }
     if (srcRef.current) {
-      try { srcRef.current.disconnect(); } catch (e) {}
+      try { 
+        srcRef.current.disconnect(); 
+      } catch {
+        // Already disconnected
+      }
       srcRef.current = null;
     }
     if (stream) {
-      try { stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+      try { 
+        stream.getTracks().forEach(t => t.stop()); 
+      } catch {
+        // Tracks already stopped
+      }
       streamRef.current = null;
     }
     if (ac) {
-      try { ac.close(); } catch (e) {}
+      try { 
+        ac.close(); 
+      } catch {
+        // Audio context already closed
+      }
       audioCtxRef.current = null;
     }
 
