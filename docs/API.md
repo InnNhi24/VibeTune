@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-Production: https://your-domain.vercel.app
+Production: https://vibe-tune-two.vercel.app
 Development: http://localhost:3000
 ```
 

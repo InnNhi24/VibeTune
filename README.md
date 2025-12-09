@@ -2,6 +2,8 @@
 
 VibeTune is an intelligent English pronunciation learning platform that uses AI to provide real-time feedback on your speaking skills. Practice conversations, get detailed prosody analysis, and improve your English pronunciation with personalized AI coaching.
 
+🌐 **Live Demo:** [https://vibe-tune-two.vercel.app](https://vibe-tune-two.vercel.app)
+
 ## ✨ Features
 
 ### 🎯 Core Features
@@ -180,8 +182,8 @@ Contributions are welcome! Please read [CONTRIBUTING.md](./docs/CONTRIBUTING.md)
 ## 📧 Support
 
 For issues and questions:
-- GitHub Issues: [Create an issue](https://github.com/yourusername/vibetune/issues)
-- Email: support@vibetune.com
+- GitHub Issues: [Create an issue](https://github.com/InnNhi24/VibeTune/issues)
+- Live App: [https://vibe-tune-two.vercel.app](https://vibe-tune-two.vercel.app)
 
 ## 🙏 Acknowledgments
 

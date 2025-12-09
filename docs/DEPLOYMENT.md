@@ -93,8 +93,8 @@ APP_ENV=production
 
 1. Go to Supabase Dashboard > Authentication > URL Configuration
 2. Add your Vercel domain:
-   - Site URL: `https://your-domain.vercel.app`
-   - Redirect URLs: `https://your-domain.vercel.app/**`
+   - Site URL: `https://vibe-tune-two.vercel.app`
+   - Redirect URLs: `https://vibe-tune-two.vercel.app/**`
 
 ### Test Deployment
 
@@ -118,7 +118,7 @@ APP_ENV=production
 
 Update `ALLOWED_ORIGINS` with your custom domain:
 ```env
-ALLOWED_ORIGINS=https://your-custom-domain.com,https://your-domain.vercel.app
+ALLOWED_ORIGINS=https://your-custom-domain.com,https://vibe-tune-two.vercel.app
 ```
 
 ---
