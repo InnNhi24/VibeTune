@@ -222,8 +222,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           const storeIds = new Set(msgs.map(m => m.id));
           const localOnlyMessages = messages.filter(m => !storeIds.has(m.id));
           
-          // Combine store messages with local-only messages
-          setMessages([...msgs, ...localOnlyMessages]);
+          // Combine and sort by ID (which contains timestamp) to maintain order
+          const allMessages = [...msgs, ...localOnlyMessages];
+          
+          // Sort by message ID (which is UUID with timestamp) to ensure chronological order
+          // For messages with same timestamp, maintain insertion order
+          allMessages.sort((a, b) => {
+            // Extract timestamp from message ID if it contains one
+            // Otherwise use the order they appear in the array
+            const indexA = msgs.findIndex(m => m.id === a.id);
+            const indexB = msgs.findIndex(m => m.id === b.id);
+            
+            if (indexA !== -1 && indexB !== -1) {
+              return indexA - indexB; // Both from store, use store order
+            }
+            if (indexA !== -1) return -1; // a from store, b local - store first
+            if (indexB !== -1) return 1; // b from store, a local - store first
+            
+            // Both local - maintain current order
+            const localIndexA = messages.findIndex(m => m.id === a.id);
+            const localIndexB = messages.findIndex(m => m.id === b.id);
+            return localIndexA - localIndexB;
+          });
+          
+          setMessages(allMessages);
         }
         
         if (msgs.length > 0) {
