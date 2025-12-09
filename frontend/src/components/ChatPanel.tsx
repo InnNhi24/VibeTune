@@ -139,11 +139,13 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           .filter(m => m.conversation_id === activeConversationId)
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
           .map(m => {
-            // Preserve prosodyAnalysis from existing messages if available, or load from database
+            // ALWAYS preserve prosodyAnalysis from existing messages if available (priority)
             const existingMsg = messages.find(msg => msg.id === m.id);
             
-            // Convert prosody_feedback from database to prosodyAnalysis format
+            // Priority 1: Use existing prosodyAnalysis from local state (most up-to-date)
+            // Priority 2: Load from database if not in local state
             let prosodyAnalysis = existingMsg?.prosodyAnalysis;
+            
             if (!prosodyAnalysis && m.prosody_feedback) {
               // Ensure detailed_feedback exists with proper structure
               const dbFeedback = m.prosody_feedback.detailed_feedback || {};
@@ -191,22 +193,37 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
               isUser: m.sender === 'user',
               isAudio: m.type === 'audio',
               timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              prosodyAnalysis, // Load from database or preserve from state
-              audioBlob: existingMsg?.audioBlob // Preserve audio blob for playback
+              prosodyAnalysis, // ALWAYS preserve from local state first, then DB
+              audioBlob: existingMsg?.audioBlob, // Preserve audio blob for playback
+              isProcessing: existingMsg?.isProcessing || false // Preserve processing state
             } as Message;
           });
 
-        // Only update messages if they're different (to preserve prosodyAnalysis)
+        // Only update messages if they're different (to preserve prosodyAnalysis and prevent duplicates)
         const currentIds = messages.map(m => m.id).sort().join(',');
         const newIds = msgs.map(m => m.id).sort().join(',');
         
-        if (currentIds !== newIds) {
-          console.log('📨 Loading messages from database:', {
+        // Also check if we need to UPDATE existing messages (e.g., prosody analysis added)
+        const needsUpdate = msgs.some(newMsg => {
+          const existing = messages.find(m => m.id === newMsg.id);
+          // Update if message exists but prosody analysis was added
+          return existing && !existing.prosodyAnalysis && newMsg.prosodyAnalysis;
+        });
+        
+        if (currentIds !== newIds || needsUpdate) {
+          console.log('📨 Syncing messages:', {
             count: msgs.length,
             withProsody: msgs.filter(m => m.prosodyAnalysis).length,
-            audioMessages: msgs.filter(m => m.isAudio).length
+            audioMessages: msgs.filter(m => m.isAudio).length,
+            reason: currentIds !== newIds ? 'new messages' : 'prosody update'
           });
-          setMessages(msgs);
+          
+          // Merge: keep local messages that aren't in store yet (being processed)
+          const storeIds = new Set(msgs.map(m => m.id));
+          const localOnlyMessages = messages.filter(m => !storeIds.has(m.id));
+          
+          // Combine store messages with local-only messages
+          setMessages([...msgs, ...localOnlyMessages]);
         }
         
         if (msgs.length > 0) {
