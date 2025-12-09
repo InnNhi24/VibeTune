@@ -140,6 +140,7 @@ export function RecordingControls({
       setInterim("");
       setView("");
       setRecordedMessage("");
+      setTranscribeError(null); // Clear previous errors
       
       // Clear live transcription in parent
       if (onLiveTranscription) {
@@ -765,9 +766,34 @@ export function RecordingControls({
         </div>
       )}
       {transcribeError && (
-        <div className="text-center mt-2">
-          <p className="text-xs text-destructive">Transcription: {transcribeError}</p>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg"
+        >
+          <div className="flex items-start gap-2">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-destructive mb-1">
+                {transcribeError === 'aborted' ? 'Recording Cancelled' : 
+                 transcribeError.includes('permission') ? 'Microphone Access Needed' :
+                 transcribeError.includes('No audio') ? 'No Audio Detected' :
+                 'Transcription Issue'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {transcribeError === 'aborted' ? 'Your recording was stopped. Please try again and speak clearly.' :
+                 transcribeError.includes('permission') ? 'Please allow microphone access to record your voice.' :
+                 transcribeError.includes('No audio') ? 'We couldn\'t hear anything. Make sure your microphone is working.' :
+                 transcribeError.includes('server transcription') ? 'Switched to backup transcription service.' :
+                 'Something went wrong. Please try recording again.'}
+              </p>
+            </div>
+          </div>
+        </motion.div>
       )}
     </div>
   );
