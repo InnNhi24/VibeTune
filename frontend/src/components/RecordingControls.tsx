@@ -417,6 +417,12 @@ export function RecordingControls({
       };
 
       const blob = await waitForBlobRef(3000);
+      
+      // Ensure audioBlob state is synchronized with lastBlobRef
+      if (blob && blob !== audioBlob) {
+        setAudioBlob(blob);
+      }
+      
       // If we have a final audio blob, try the OpenAI final transcription endpoint
       if (blob) {
         try {
@@ -470,8 +476,10 @@ export function RecordingControls({
   };
 
   const handlePlayback = () => {
-    if (audioBlob && !isPlaying) {
-      const url = URL.createObjectURL(audioBlob);
+    // Use lastBlobRef.current for consistency with handleSend
+    const currentBlob = lastBlobRef.current || audioBlob;
+    if (currentBlob && !isPlaying) {
+      const url = URL.createObjectURL(currentBlob);
       const audio = new Audio(url);
       audioRef.current = audio;
       
@@ -495,6 +503,8 @@ export function RecordingControls({
     setView("");
     setRecordedMessage("");
     setAudioBlob(null);
+    // IMPORTANT: Clear the lastBlobRef to prevent sending old audio
+    lastBlobRef.current = null;
     setRecordingState('idle');
     setAnalysisProgress(0);
     
@@ -520,10 +530,10 @@ export function RecordingControls({
     const payload = view || recordedMessage;
     if (!payload) return;
 
-    // Defensive: pass a shallow copy of the Blob to avoid race where parent
-    // reads the blob after we cleared local state. slice() creates a new Blob
-    // referencing the same underlying data but yields a distinct object.
-    const blobCopy = audioBlob ? audioBlob.slice(0, audioBlob.size, audioBlob.type) : undefined;
+    // Use lastBlobRef.current instead of audioBlob state to avoid race conditions
+    // This ensures we always get the most recent blob, even if React state hasn't updated yet
+    const currentBlob = lastBlobRef.current || audioBlob;
+    const blobCopy = currentBlob ? currentBlob.slice(0, currentBlob.size, currentBlob.type) : undefined;
 
     // Send immediately. Delay clearing local state briefly so parent can
     // capture/store the blob reference without racing with this component
