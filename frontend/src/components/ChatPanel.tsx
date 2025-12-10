@@ -183,7 +183,9 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
                 messageId: m.id,
                 hasScores: !!m.prosody_feedback.overall_score,
                 issuesCount: detailedFeedback.specific_issues.length,
-                strengthsCount: detailedFeedback.strengths.length
+                strengthsCount: detailedFeedback.strengths.length,
+                overallScore: prosodyAnalysis.overall_score,
+                rawFeedback: m.prosody_feedback
               });
             }
             
@@ -1223,15 +1225,24 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
                 isUser={message.isUser}
                 isAudio={message.isAudio}
                 audioBlob={message.audioBlob}
-                prosodyFeedback={message.prosodyAnalysis ? {
-                  score: message.prosodyAnalysis.overall_score,
-                  highlights: (message.prosodyAnalysis.detailed_feedback?.specific_issues || []).map(issue => ({
-                    text: issue.word,
-                    type: issue.severity === 'high' ? 'error' as const : 'suggestion' as const,
-                    feedback: issue.feedback
-                  })),
-                  suggestions: message.prosodyAnalysis.suggestions || []
-                } : undefined}
+                prosodyFeedback={message.prosodyAnalysis ? (() => {
+                  const feedback = {
+                    score: message.prosodyAnalysis.overall_score,
+                    highlights: (message.prosodyAnalysis.detailed_feedback?.specific_issues || []).map(issue => ({
+                      text: issue.word,
+                      type: issue.severity === 'high' ? 'error' as const : 'suggestion' as const,
+                      feedback: issue.feedback
+                    })),
+                    suggestions: message.prosodyAnalysis.suggestions || []
+                  };
+                  console.log('🎯 Passing prosodyFeedback to MessageBubble:', {
+                    messageId: message.id,
+                    hasAnalysis: !!message.prosodyAnalysis,
+                    score: feedback.score,
+                    highlightsCount: feedback.highlights.length
+                  });
+                  return feedback;
+                })() : undefined}
                 timestamp={message.timestamp}
                 isProcessing={message.isProcessing}
                 onAnalysisView={message.prosodyAnalysis ? () => setSelectedProsodyMessage(message) : undefined}
