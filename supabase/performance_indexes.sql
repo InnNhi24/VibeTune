@@ -3,6 +3,9 @@
 -- Additional composite indexes for complex queries and analytics
 -- ============================================================================
 
+-- Enable required extensions (if not already enabled)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 -- Advanced conversation analytics indexes
 CREATE INDEX IF NOT EXISTS idx_conversations_profile_status_date 
 ON public.conversations(profile_id, status, started_at DESC) 
@@ -67,9 +70,21 @@ CREATE INDEX IF NOT EXISTS idx_vocab_suggestions_words
 ON public.messages USING gin((vocab_suggestions->'vocabulary')) 
 WHERE vocab_suggestions IS NOT NULL;
 
--- Content search optimization
-CREATE INDEX IF NOT EXISTS idx_messages_content_trgm 
-ON public.messages USING gin(content gin_trgm_ops);
+-- Content search optimization (requires pg_trgm extension)
+DO $$
+BEGIN
+  -- Try to create trigram index, skip if extension not available
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm') THEN
+    CREATE INDEX IF NOT EXISTS idx_messages_content_trgm 
+    ON public.messages USING gin(content gin_trgm_ops);
+    RAISE NOTICE 'Created trigram index for content search';
+  ELSE
+    RAISE NOTICE 'Skipping trigram index - pg_trgm extension not available';
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Could not create trigram index: %', SQLERRM;
+END $$;
 
 -- Feedback rating analytics
 CREATE INDEX IF NOT EXISTS idx_feedback_rating_analytics 
