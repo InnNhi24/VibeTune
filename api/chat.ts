@@ -639,42 +639,10 @@ Generate ${level}-appropriate feedback for "${text}" based on these scores!`;
         }
       }
 
-      // Insert user message
-      if (SUPABASE_URL && SUPABASE_KEY) {
-        const userMsg = {
-          conversation_id: conversationId,
-          sender: 'user',
-          type: body.audioUrl ? 'audio' : 'text',
-          content: text,
-          audio_url: body.audioUrl || null,
-          retry_of_message_id: body.retryOfMessageId || null,
-          version: body.version || 1,
-          device_id: body.deviceId || null,
-          profile_id: profileId || null,
-          created_at: new Date().toISOString()
-        };
-        userMsgInsertResult = await supabaseInsert('messages', [userMsg]);
-        console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_user_message: userMsgInsertResult }));
-      }
-
-      // Insert AI message
-      if (SUPABASE_URL && SUPABASE_KEY) {
-        const aiMsg = {
-          conversation_id: conversationId,
-          sender: 'ai',
-          type: 'text',
-          content: replyText,
-          prosody_feedback: data.turn_feedback?.prosody || null,
-          vocab_suggestions: data.turn_feedback?.vocab || null,
-          guidance: guidance || null,
-          scores: data.scores || null,
-          device_id: body.deviceId || null,
-          profile_id: profileId || null,
-          created_at: new Date().toISOString()
-        };
-        aiMsgInsertResult = await supabaseInsert('messages', [aiMsg]);
-        console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', supabase_ai_message: aiMsgInsertResult }));
-      }
+      // NOTE: Message persistence is handled by the frontend via /api/data?action=save-message
+      // This prevents duplicate messages being saved (frontend controls message IDs for UI sync)
+      // The frontend saves both user and AI messages after receiving the response
+      console.log(JSON.stringify({ lvl: 'debug', ts: new Date().toISOString(), endpoint: '/api/chat', note: 'Message persistence delegated to frontend' }));
     } catch (e) {
       console.warn('Supabase persistence failed:', e);
     }

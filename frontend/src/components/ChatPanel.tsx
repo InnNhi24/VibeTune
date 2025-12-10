@@ -295,28 +295,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           const allMessages = [...msgs, ...localOnlyMessages];
           
           // Sort by created_at timestamp for proper chronological order
-          allMessages.sort((a, b) => {
-            // For messages from store, use created_at timestamp
-            if (msgs.find(m => m.id === a.id) && msgs.find(m => m.id === b.id)) {
-              const aMsg = msgs.find(m => m.id === a.id)!;
-              const bMsg = msgs.find(m => m.id === b.id)!;
-              return new Date(aMsg.timestamp).getTime() - new Date(bMsg.timestamp).getTime();
-            }
-            
-            // For local messages, use current order
-            const localIndexA = localOnlyMessages.findIndex(m => m.id === a.id);
-            const localIndexB = localOnlyMessages.findIndex(m => m.id === b.id);
-            
-            if (localIndexA !== -1 && localIndexB !== -1) {
-              return localIndexA - localIndexB;
-            }
-            
-            // Store messages come first, then local messages
-            if (msgs.find(m => m.id === a.id)) return -1;
-            if (msgs.find(m => m.id === b.id)) return 1;
-            
-            return 0;
-          });
+          // Messages are already sorted from store, just append local messages at the end
+          // No need to re-sort since store messages have correct created_at order
           
           setMessages(allMessages);
         }
@@ -747,6 +727,31 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
     
     // Only allow topic discovery when waiting for topic
     if (waitingForTopic) {
+      // Save user message to store and database FIRST (before AI response)
+      const storeUser = useAppStore.getState().user || user;
+      const userMessageData = {
+        id: messageId,
+        conversation_id: convId || '',
+        profile_id: storeUser?.id || null,
+        sender: 'user' as 'user',
+        type: (isAudio ? 'audio' : 'text') as 'audio' | 'text',
+        content: messageText.trim(),
+        created_at: userMessageCreatedAt,
+        timestamp
+      };
+      
+      // Save to local store
+      addMessageToStore(userMessageData);
+      
+      // Save to database
+      fetch('/api/data?action=save-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userMessageData)
+      }).catch(error => {
+        logger.warn('Error saving user message in topic discovery', error);
+      });
+      
       try {
         const resp = await fetch('/api/chat', {
           method: 'POST',
@@ -934,9 +939,12 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
       } catch (err) {
         logger.warn('Failed to send message for topic discovery', err);
         setIsLoading(false);
+        sendingRef.current = false; // Reset to allow future sends
       } finally {
         // Set loading to false after AI response is processed
         setTimeout(() => setIsLoading(false), 1000);
+        // Always reset sendingRef in topic discovery mode
+        sendingRef.current = false;
       }
       
       // IMPORTANT: Return here to prevent practice mode from running during topic discovery
@@ -1253,19 +1261,36 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
           return newMessages;
         });
         
-        // Persist AI message to global store
+        // Persist AI message to global store AND database
         try {
           // Use store user to ensure consistency with conversation profile_id
           const storeUser = useAppStore.getState().user || user;
-          addMessageToStore({
+          const aiMessageData = {
             id: aiResponseMessage.id,
             conversation_id: convId || activeConversationId || '',
             profile_id: storeUser?.id || null,
-            sender: 'ai',
-            type: 'text',
+            sender: 'ai' as const,
+            type: 'text' as const,
             content: aiResponseMessage.text,
             created_at: aiMessageCreatedAt, // Use timestamp AFTER user message
             timestamp: aiResponseMessage.timestamp
+          };
+          
+          // Save to local store immediately
+          addMessageToStore(aiMessageData);
+          
+          // Save to database (prevents data loss on reload)
+          fetch('/api/data?action=save-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(aiMessageData)
+          }).then(async response => {
+            if (!response.ok) {
+              const result = await response.json();
+              logger.warn('Failed to save AI message to database', result);
+            }
+          }).catch(error => {
+            logger.warn('Error saving AI message to database', error);
           });
         } catch (e) {
           logger.error('Failed to persist AI response message', e);
