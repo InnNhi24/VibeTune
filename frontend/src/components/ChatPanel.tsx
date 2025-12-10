@@ -132,8 +132,10 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
   // Initialize with welcome message when starting new conversation
   useEffect(() => {
-    // Only show welcome message for truly new conversations (no active conversation, no existing messages)
-    if (!activeConversationId && messages.length === 0 && topic === "New Conversation") {
+    // Only show welcome message for truly new conversations (no active conversation, no existing messages, no welcome messages already)
+    const hasWelcomeMessages = messages.some(m => m.id.startsWith('welcome_'));
+    
+    if (!activeConversationId && !hasWelcomeMessages && topic === "New Conversation") {
       console.log('🎉 Initializing welcome messages for new conversation');
       
       const baseTimestamp = Date.now();
@@ -156,7 +158,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setFocusAreas(getFocusAreasForLevel(safeLevel));
       setWaitingForTopic(true);
     }
-  }, [activeConversationId, topic, safeLevel]); // Remove messages.length dependency to prevent loops
+  }, [activeConversationId, topic, safeLevel, messages]); // Add messages dependency to check for welcome messages
 
   // Sync messages from global store when activeConversationId changes
   useEffect(() => {
@@ -308,8 +310,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
           setConversationHistory([]);
         }
       } else {
-        // No active conversation - clear messages if they exist
-        if (messages.length > 0) {
+        // No active conversation - clear messages if they exist (but preserve welcome messages)
+        if (messages.length > 0 && !messages.some(m => m.id.startsWith('welcome_'))) {
           setMessages([]);
           setConversationHistory([]);
         }
