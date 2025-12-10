@@ -133,22 +133,22 @@ CREATE OR REPLACE FUNCTION refresh_user_progress_summary()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $$
 BEGIN
   REFRESH MATERIALIZED VIEW CONCURRENTLY user_progress_summary;
 END;
-$;
+$$;
 
 -- Function to refresh daily analytics
 CREATE OR REPLACE FUNCTION refresh_daily_analytics_summary()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $$
 BEGIN
   REFRESH MATERIALIZED VIEW CONCURRENTLY daily_analytics_summary;
 END;
-$;
+$$;
 
 -- ============================================================================
 -- QUERY OPTIMIZATION FUNCTIONS
@@ -159,7 +159,7 @@ CREATE OR REPLACE FUNCTION get_user_learning_analytics(p_profile_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $$
 DECLARE
   result JSONB;
 BEGIN
@@ -192,14 +192,14 @@ BEGIN
   
   RETURN result;
 END;
-$;
+$$;
 
 -- Function to get conversation performance metrics
 CREATE OR REPLACE FUNCTION get_conversation_metrics(p_conversation_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $$
 DECLARE
   result JSONB;
 BEGIN
@@ -224,7 +224,7 @@ BEGIN
   
   RETURN result;
 END;
-$;
+$$;
 
 -- ============================================================================
 -- PERFORMANCE MONITORING
@@ -240,7 +240,7 @@ RETURNS TABLE(
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $
+AS $$
 BEGIN
   -- This would integrate with pg_stat_statements if available
   -- For now, return a placeholder structure
@@ -257,16 +257,16 @@ BEGIN
     5000::BIGINT,
     1500.0::NUMERIC;
 END;
-$;
+$$;
 
 -- ============================================================================
 -- COMPLETION MESSAGE
 -- ============================================================================
 
-DO $
+DO $$
 BEGIN
   RAISE NOTICE '⚡ Advanced performance indexes created successfully!';
   RAISE NOTICE '📊 Materialized views for analytics ready';
   RAISE NOTICE '🔍 Query optimization functions available';
   RAISE NOTICE '📈 Database performance significantly enhanced!';
-END $;
+END $$;
