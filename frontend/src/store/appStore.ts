@@ -198,6 +198,13 @@ export const useAppStore = create<AppStore>()(
         setActiveConversation: (conversationId) => set({ activeConversationId: conversationId }),
         
         addMessage: (message) => {
+          // Check for duplicate message by ID to prevent double-adding
+          const existingMessages = get().messages;
+          if (existingMessages.some(m => m.id === message.id)) {
+            console.log('⚠️ Duplicate message prevented:', message.id);
+            return; // Don't add duplicate
+          }
+          
           set((state) => ({
             messages: [...state.messages, message]
           }));

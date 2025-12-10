@@ -688,7 +688,15 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
       prosodyAnalysis: undefined // Will be filled after analysis
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    // Add user message to UI - check for duplicate first
+    setMessages(prev => {
+      // Prevent duplicate messages
+      if (prev.some(m => m.id === userMessage.id)) {
+        console.log('⚠️ Duplicate user message prevented in UI:', userMessage.id);
+        return prev;
+      }
+      return [...prev, userMessage];
+    });
     
     // Safety timeout to clear processing state if analysis gets stuck
     if (isAudio) {
@@ -778,7 +786,14 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
                 timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
               };
               
-              setMessages(prev => [...prev, aiResponseMessage]);
+              // Add AI message to UI - check for duplicate first
+              setMessages(prev => {
+                if (prev.some(m => m.id === aiResponseMessage.id)) {
+                  console.log('⚠️ Duplicate AI message prevented in UI:', aiResponseMessage.id);
+                  return prev;
+                }
+                return [...prev, aiResponseMessage];
+              });
               
               // Force scroll to bottom for new AI messages
               setTimeout(() => scrollToBottom(true), 100);
@@ -1207,6 +1222,12 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
         };
         
         setMessages(prev => {
+          // Check for duplicate AI message
+          if (prev.some(m => m.id === aiResponseMessage.id)) {
+            console.log('⚠️ Duplicate AI message prevented in UI:', aiResponseMessage.id);
+            return prev;
+          }
+          
           const newMessages = [...prev, aiResponseMessage];
           
           // Check if session should ask user to continue or end
