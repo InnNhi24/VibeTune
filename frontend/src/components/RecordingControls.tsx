@@ -664,8 +664,13 @@ export function RecordingControls({
                   className="flex-shrink-0"
                   aria-label={isPlaying ? "Pause playback" : "Play recording"}
                   title={isPlaying ? "Pause playback" : "Play recording"}
+                  aria-pressed={isPlaying}
+                  role="button"
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  <span className="sr-only">
+                    {isPlaying ? "Currently playing" : "Currently paused"}
+                  </span>
                 </Button>
               )}
               
@@ -716,6 +721,8 @@ export function RecordingControls({
                 ? 'Send message'
                 : 'Start recording'
             }
+            aria-pressed={recordingState === 'recording'}
+            aria-describedby="recording-status"
           >
             {/* Pulse animation for recording - MINIMAL */}
             {recordingState === 'recording' && (
