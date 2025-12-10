@@ -160,6 +160,39 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   }, [activeConversationId, topic, safeLevel, messages]); // Add messages dependency to check for welcome messages
 
+  // Fetch messages from Supabase when switching to a different conversation
+  useEffect(() => {
+    const fetchMessagesFromSupabase = async () => {
+      if (!activeConversationId) return;
+      
+      try {
+        console.log('🔄 Fetching messages for conversation:', activeConversationId);
+        const response = await fetch(`/api/data?action=get-conversation-messages&conversation_id=${activeConversationId}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.messages && data.messages.length > 0) {
+            console.log(`✅ Loaded ${data.messages.length} messages from Supabase for conversation:`, activeConversationId);
+            
+            // Update the global store with fetched messages
+            const currentMessages = useAppStore.getState().messages;
+            const otherMessages = currentMessages.filter(m => m.conversation_id !== activeConversationId);
+            const newMessages = [...otherMessages, ...data.messages];
+            useAppStore.setState({ messages: newMessages });
+          } else {
+            console.log('📭 No messages found for conversation:', activeConversationId);
+          }
+        } else {
+          console.warn('⚠️ Failed to fetch messages:', response.status);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching messages from Supabase:', error);
+      }
+    };
+    
+    fetchMessagesFromSupabase();
+  }, [activeConversationId]);
+
   // Sync messages from global store when activeConversationId changes
   useEffect(() => {
     try {

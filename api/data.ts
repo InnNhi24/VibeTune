@@ -64,10 +64,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return await handleDeleteConversation(req, res);
       case 'get-messages':
         return await handleGetMessages(req, res);
+      case 'get-conversation-messages':
+        return await handleGetConversationMessages(req, res);
       case 'get-history':
         return await handleGetHistory(req, res);
       default:
-        return res.status(400).json({ error: 'Unknown action. Use ?action=save-conversation|update-conversation|save-message|update-message-prosody|delete-conversation|get-messages|get-history' });
+        return res.status(400).json({ error: 'Unknown action. Use ?action=save-conversation|update-conversation|save-message|update-message-prosody|delete-conversation|get-messages|get-conversation-messages|get-history' });
     }
   } catch (error: any) {
     console.error('Data API error:', error);
@@ -379,6 +381,49 @@ async function handleGetMessages(req: VercelRequest, res: VercelResponse) {
   }
 
   console.log(`✅ Fetched ${messages?.length || 0} messages`);
+  
+  return res.status(200).json({ 
+    ok: true,
+    messages: messages || [],
+    count: messages?.length || 0
+  });
+}
+
+async function handleGetConversationMessages(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return res.status(503).json({ 
+      error: 'Database not configured',
+      messages: []
+    });
+  }
+
+  const { conversation_id } = req.query;
+  
+  if (!conversation_id) {
+    return res.status(400).json({ error: 'conversation_id is required' });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversation_id)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('❌ Error fetching conversation messages:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch messages',
+      detail: error.message 
+    });
+  }
+
+  console.log(`✅ Fetched ${messages?.length || 0} messages for conversation: ${conversation_id}`);
   
   return res.status(200).json({ 
     ok: true,
