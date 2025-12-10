@@ -55,6 +55,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
     const rl = await rateLimit(ip, 30, 60);
+    
+    // Add rate limit headers
+    res.setHeader('X-RateLimit-Limit', '30');
+    res.setHeader('X-RateLimit-Remaining', rl.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', Math.floor(Date.now() / 1000 + 60).toString());
+    
     if (!rl.ok) return res.status(429).json({ error: 'Too many requests' });
 
     const body = req.body as {

@@ -35,7 +35,7 @@
 3. (Optional) Enable Google/GitHub OAuth
 4. Configure email templates
 5. Set redirect URLs:
-   - `https://your-domain.vercel.app/auth/callback`
+   - `https://vibe-tune-two.vercel.app/auth/callback`
    - `http://localhost:3000/auth/callback` (for development)
 
 ---
@@ -58,21 +58,21 @@
 Add these in Vercel Dashboard > Settings > Environment Variables:
 
 ```env
-# Supabase
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJxxx...
+# Supabase (get from your Supabase project settings)
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# OpenAI
-OPENAI_API_KEY=sk-xxx...
+# OpenAI (get from platform.openai.com)
+OPENAI_API_KEY=sk-proj-...
 
-# CORS (your production domain)
-ALLOWED_ORIGINS=https://your-domain.vercel.app
+# CORS (production domain)
+ALLOWED_ORIGINS=https://vibe-tune-two.vercel.app
 
-# Optional: Rate Limiting
-UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
-UPSTASH_REDIS_REST_TOKEN=xxx
+# Optional: Rate Limiting (get from upstash.com)
+UPSTASH_REDIS_REST_URL=https://your-redis-id.upstash.io
+UPSTASH_REDIS_REST_TOKEN=AXXXAAIncDEyMzQ1Njc4...
 
 # Environment
 NODE_ENV=production
@@ -116,9 +116,9 @@ APP_ENV=production
 
 ### Update Environment Variables
 
-Update `ALLOWED_ORIGINS` with your custom domain:
+If you have a custom domain, update `ALLOWED_ORIGINS`:
 ```env
-ALLOWED_ORIGINS=https://your-custom-domain.com,https://vibe-tune-two.vercel.app
+ALLOWED_ORIGINS=https://vibe-tune-two.vercel.app
 ```
 
 ---

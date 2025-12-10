@@ -1,4 +1,4 @@
-# � VibeTTune - AI-Powered English Pronunciation Learning Platform
+# 🎵 VibeTune - AI-Powered English Pronunciation Learning Platform
 
 VibeTune is an intelligent English pronunciation learning platform that uses AI to provide real-time feedback on your speaking skills. Practice conversations, get detailed prosody analysis, and improve your English pronunciation with personalized AI coaching.
 
@@ -30,7 +30,7 @@ VibeTune is an intelligent English pronunciation learning platform that uses AI 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ and npm
+- Node.js 20.x and npm
 - Supabase account
 - OpenAI API key
 
@@ -38,8 +38,8 @@ VibeTune is an intelligent English pronunciation learning platform that uses AI 
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/vibetune.git
-cd vibetune
+git clone https://github.com/InnNhi24/VibeTune.git
+cd VibeTune
 ```
 
 2. Install dependencies
@@ -54,20 +54,20 @@ cd ../backend && npm install
 cp .env.example .env
 ```
 
-Edit `.env` with your credentials:
+Edit `.env` with your credentials (get from respective service dashboards):
 ```env
-# Supabase
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_anon_key
+# Supabase (from supabase.com project settings)
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# OpenAI
-OPENAI_API_KEY=your_openai_api_key
+# OpenAI (from platform.openai.com)
+OPENAI_API_KEY=sk-proj-...
 
-# Optional: Upstash Redis for rate limiting
-UPSTASH_REDIS_REST_URL=your_redis_url
-UPSTASH_REDIS_REST_TOKEN=your_redis_token
+# Optional: Upstash Redis for rate limiting (from upstash.com)
+UPSTASH_REDIS_REST_URL=https://your-redis-id.upstash.io
+UPSTASH_REDIS_REST_TOKEN=AXXXAAIncDEyMzQ1Njc4...
 ```
 
 4. Run database migrations
@@ -90,7 +90,7 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-vibetune/
+VibeTune/
 ├── api/                    # Serverless API endpoints
 │   ├── chat.ts            # AI conversation endpoint
 │   ├── prosody-analysis.ts # Voice analysis endpoint
@@ -107,6 +107,10 @@ vibetune/
 ├── supabase/              # Database schema
 │   └── schema.sql         # Database tables & policies
 └── docs/                  # Documentation
+    ├── API.md             # API documentation
+    ├── DEPLOYMENT.md      # Deployment guide
+    ├── ARCHITECTURE.md    # System architecture
+    └── DEVELOPMENT.md     # Development guide
 ```
 
 ## 🔧 Tech Stack
@@ -147,17 +151,12 @@ vibetune/
 
 See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for detailed development guide.
 
-## 📖 API Documentation
+## 📖 Documentation
 
-### Main Endpoints
-
-- `POST /api/chat` - AI conversation
-- `POST /api/prosody-analysis` - Voice analysis
-- `POST /api/placement-test` - Level assessment
-- `POST /api/transcribe` - Audio transcription
-- `GET/POST /api/data` - Database operations
-
-See [API.md](./docs/API.md) for complete API documentation.
+- **[API.md](./docs/API.md)** - Complete API reference
+- **[DEPLOYMENT.md](./docs/DEPLOYMENT.md)** - Deployment guide
+- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)** - System architecture
+- **[DEVELOPMENT.md](./docs/DEVELOPMENT.md)** - Development guide
 
 ## 🔐 Security
 
@@ -171,19 +170,16 @@ See [API.md](./docs/API.md) for complete API documentation.
 
 See [.env.example](./.env.example) for all required environment variables.
 
-## � Lipcense
+## 📄 License
 
 MIT License - see [LICENSE](./LICENSE) for details.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read [CONTRIBUTING.md](./docs/CONTRIBUTING.md) first.
 
 ## 📧 Support
 
 For issues and questions:
-- GitHub Issues: [Create an issue](https://github.com/InnNhi24/VibeTune/issues)
-- Live App: [https://vibe-tune-two.vercel.app](https://vibe-tune-two.vercel.app)
+- **GitHub Issues**: [Create an issue](https://github.com/InnNhi24/VibeTune/issues)
+- **Email**: almira.ynh@gmail.com
+- **Live App**: [https://vibe-tune-two.vercel.app](https://vibe-tune-two.vercel.app)
 
 ## 🙏 Acknowledgments
 

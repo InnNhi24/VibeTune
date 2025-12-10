@@ -227,10 +227,7 @@ function AppContent() {
     [dispatch, trackEvent, user]
   );
 
-  const handleStartLevelSelection = () => {
-    setCurrentState("level-selection");
-    trackEvent("level_selection_started", { userId: user?.id });
-  };
+
 
   const handleLogout = useCallback(async () => {
     try {

@@ -3,9 +3,43 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Use OpenAI for final-file transcription. Disable bodyParser to read raw audio stream.
 export const config = { api: { bodyParser: false } };
 
+// Rate limiting setup
+const UP_URL = process.env.UPSTASH_REDIS_REST_URL || '';
+const UP_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || '';
+
+async function rateLimit(ip: string, limit = 100, windowSec = 60) {
+  if (!UP_URL || !UP_TOKEN) return { ok: true, remaining: -1 };
+  const rk = `rl:transcribe:${ip}`;
+  try {
+    const incr = await fetch(`${UP_URL}/incr/${encodeURIComponent(rk)}`, {
+      headers: { Authorization: `Bearer ${UP_TOKEN}` }
+    });
+    const count = Number(await incr.text());
+    if (count === 1) {
+      await fetch(`${UP_URL}/expire/${encodeURIComponent(rk)}/${windowSec}`, {
+        headers: { Authorization: `Bearer ${UP_TOKEN}` }
+      });
+    }
+    return { ok: count <= limit, remaining: Math.max(0, limit - count) };
+  } catch {
+    return { ok: true, remaining: -1 };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Rate limiting
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 'unknown';
+  const rl = await rateLimit(ip, 100, 60);
+  
+  // Add rate limit headers
+  res.setHeader('X-RateLimit-Limit', '100');
+  res.setHeader('X-RateLimit-Remaining', rl.remaining.toString());
+  res.setHeader('X-RateLimit-Reset', Math.floor(Date.now() / 1000 + 60).toString());
+  
+  if (!rl.ok) return res.status(429).json({ error: 'Too many requests' });
 
   try {
     const OPENAI_KEY = process.env.OPENAI_API_KEY;

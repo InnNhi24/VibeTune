@@ -41,6 +41,14 @@ export class SimpleAnalyticsService {
     }
   }
 
+  // Cleanup method to clear interval
+  static cleanup() {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+  }
+
   // Track an event (localStorage only)
   static track(eventType: string, metadata: Record<string, any> = {}, profileId?: string) {
     try {
