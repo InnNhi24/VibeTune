@@ -173,13 +173,23 @@ class AIProsodyService {
       console.log('📡 [PROSODY] Calling /api/prosody-analysis endpoint...');
       logger.debug('Calling /api/prosody-analysis endpoint...');
       
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.log('⏰ [PROSODY] Request timed out after 30 seconds');
+      }, 30000); // 30 second timeout
+
       const response = await fetch('/api/prosody-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': audioBlob.type || 'audio/webm'
         },
-        body: audioBlob
+        body: audioBlob,
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
       
       console.log('📡 [PROSODY] API response status:', response.status);
       logger.debug('Prosody API response status:', response.status);

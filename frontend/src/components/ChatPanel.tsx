@@ -93,6 +93,30 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   const activeConversationId = useAppStore(state => state.activeConversationId);
   const storeMessages = useAppStore(state => state.messages);
 
+  // Helper function for fallback responses
+  const generateFallbackResponse = (_userMessage: string, userLevel: string): string => {
+    const responses = {
+      Beginner: [
+        "You're doing wonderful! 🌟 I can really hear how hard you're working on your pronunciation. Let's keep building those skills together!",
+        "Nice job! Your rhythm is getting better and better! 🎵 What would you like to explore next?",
+        "I love your effort! 💪 Your word stress is improving so much. What topic sounds fun to you today?"
+      ],
+      Intermediate: [
+        "Wow, excellent work! 🎯 Your intonation is getting so much clearer. Ready to dive into something more interesting?",
+        "I'm impressed! Your connected speech is really flowing nicely now. 🌊 What would you like to chat about?",
+        "Your pronunciation is really blossoming! 🌸 Let's challenge ourselves with some exciting new vocabulary!"
+      ],
+      Advanced: [
+        "Outstanding! 🌟 Your prosody control is so sophisticated. Let's explore some fascinating expressions together!",
+        "Incredible fluency! Your stress patterns sound so natural and authentic. 🎭 What shall we discuss today?",
+        "Your accent work is truly impressive! 🎪 Ready to tackle some thought-provoking abstract concepts?"
+      ]
+    };
+
+    const levelResponses = responses[userLevel as keyof typeof responses] || responses.Beginner;
+    return levelResponses[Math.floor(Math.random() * levelResponses.length)];
+  };
+
   // Check AI service status
   useEffect(() => {
     const checkAI = () => {
@@ -108,20 +132,23 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
 
   // Initialize with welcome message when starting new conversation
   useEffect(() => {
-    // Show welcome message when no active conversation and no messages
+    // Only show welcome message for truly new conversations (no active conversation, no existing messages)
     if (!activeConversationId && messages.length === 0 && topic === "New Conversation") {
+      console.log('🎉 Initializing welcome messages for new conversation');
+      
+      const baseTimestamp = Date.now();
       const welcomeMessage: Message = {
-        id: `welcome_${Date.now()}_1`,
+        id: `welcome_${baseTimestamp}_1`,
         text: `Hey there! 👋 I'm so excited to be your VibeTune conversation partner! Let's have some fun practicing English together at a ${safeLevel.toLowerCase()} level. I'll give you helpful pronunciation tips along the way! 🎯`,
         isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date(baseTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       const topicPrompt: Message = {
-        id: `welcome_${Date.now()}_2`, 
+        id: `welcome_${baseTimestamp}_2`, 
         text: "So, what sounds interesting to you today? 😊 We could chat about music, travel, food, hobbies... anything you'd like! Just tell me what's on your mind and we'll dive right in! 🌟",
         isUser: false,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date(baseTimestamp + 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       setMessages([welcomeMessage, topicPrompt]);
@@ -129,7 +156,7 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
       setFocusAreas(getFocusAreasForLevel(safeLevel));
       setWaitingForTopic(true);
     }
-  }, [activeConversationId, topic, messages.length, safeLevel]); // Re-run when these change
+  }, [activeConversationId, topic, safeLevel]); // Remove messages.length dependency to prevent loops
 
   // Sync messages from global store when activeConversationId changes
   useEffect(() => {
@@ -217,34 +244,43 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
             count: msgs.length,
             withProsody: msgs.filter(m => m.prosodyAnalysis).length,
             audioMessages: msgs.filter(m => m.isAudio).length,
-            reason: currentIds !== newIds ? 'new messages' : 'prosody update'
+            reason: currentIds !== newIds ? 'new messages' : 'prosody update',
+            currentIds: currentIds.substring(0, 50) + '...',
+            newIds: newIds.substring(0, 50) + '...'
           });
+          
+          // Filter out welcome messages from local state to prevent duplication
+          const nonWelcomeLocal = messages.filter(m => !m.id.startsWith('welcome_'));
           
           // Merge: keep local messages that aren't in store yet (being processed)
           const storeIds = new Set(msgs.map(m => m.id));
-          const localOnlyMessages = messages.filter(m => !storeIds.has(m.id));
+          const localOnlyMessages = nonWelcomeLocal.filter(m => !storeIds.has(m.id));
           
-          // Combine and sort by ID (which contains timestamp) to maintain order
+          // Combine store messages with local-only messages
           const allMessages = [...msgs, ...localOnlyMessages];
           
-          // Sort by message ID (which is UUID with timestamp) to ensure chronological order
-          // For messages with same timestamp, maintain insertion order
+          // Sort by created_at timestamp for proper chronological order
           allMessages.sort((a, b) => {
-            // Extract timestamp from message ID if it contains one
-            // Otherwise use the order they appear in the array
-            const indexA = msgs.findIndex(m => m.id === a.id);
-            const indexB = msgs.findIndex(m => m.id === b.id);
-            
-            if (indexA !== -1 && indexB !== -1) {
-              return indexA - indexB; // Both from store, use store order
+            // For messages from store, use created_at timestamp
+            if (msgs.find(m => m.id === a.id) && msgs.find(m => m.id === b.id)) {
+              const aMsg = msgs.find(m => m.id === a.id)!;
+              const bMsg = msgs.find(m => m.id === b.id)!;
+              return new Date(aMsg.timestamp).getTime() - new Date(bMsg.timestamp).getTime();
             }
-            if (indexA !== -1) return -1; // a from store, b local - store first
-            if (indexB !== -1) return 1; // b from store, a local - store first
             
-            // Both local - maintain current order
-            const localIndexA = messages.findIndex(m => m.id === a.id);
-            const localIndexB = messages.findIndex(m => m.id === b.id);
-            return localIndexA - localIndexB;
+            // For local messages, use current order
+            const localIndexA = localOnlyMessages.findIndex(m => m.id === a.id);
+            const localIndexB = localOnlyMessages.findIndex(m => m.id === b.id);
+            
+            if (localIndexA !== -1 && localIndexB !== -1) {
+              return localIndexA - localIndexB;
+            }
+            
+            // Store messages come first, then local messages
+            if (msgs.find(m => m.id === a.id)) return -1;
+            if (msgs.find(m => m.id === b.id)) return 1;
+            
+            return 0;
           });
           
           setMessages(allMessages);
@@ -509,6 +545,13 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
   const handleSendMessage = async (messageText: string, isAudio: boolean = false, audioBlob?: Blob) => {
     if (!messageText.trim()) return;
     
+    // Prevent duplicate sends
+    if (sendingRef.current) {
+      console.log('🚫 Preventing duplicate message send');
+      return;
+    }
+    sendingRef.current = true;
+    
     // Handle user decision to continue or end session
     if (awaitingUserDecision) {
       const userInput = messageText.trim().toLowerCase();
@@ -526,6 +569,7 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
         };
         
         setMessages(prev => [...prev, continueMessage]);
+        sendingRef.current = false;
         return; // Don't process as normal message
       } else if (userInput.includes('end') || userInput.includes('kết thúc') || userInput.includes('done') || userInput.includes('finish')) {
         // User wants to end session
@@ -543,14 +587,16 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
         
         // Generate summary after 2 seconds
         setTimeout(() => generateSessionSummary(), 2000);
+        sendingRef.current = false;
         return; // Don't process as normal message
       }
       // If user says something else, treat as normal message and ask again
     }
 
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const messageId = crypto.randomUUID(); // Use UUID instead of timestamp
-    const userMessageCreatedAt = new Date().toISOString(); // Save timestamp for ordering
+    try {
+      const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const messageId = crypto.randomUUID(); // Use UUID instead of timestamp
+      const userMessageCreatedAt = new Date().toISOString(); // Save timestamp for ordering
     
     // Get or create conversation ID - needed for saving messages
     let convId = conversationId || activeConversationId;
@@ -608,6 +654,25 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
     };
 
     setMessages(prev => [...prev, userMessage]);
+    
+    // Safety timeout to clear processing state if analysis gets stuck
+    if (isAudio) {
+      const processingTimeoutId = setTimeout(() => {
+        console.log('⏰ Clearing stuck processing state for message:', messageId);
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, isProcessing: false }
+            : msg
+        ));
+      }, 45000); // 45 seconds max processing time
+      
+      // Clear timeout if analysis completes normally
+      const originalSetMessages = setMessages;
+      const clearTimeoutOnUpdate = (updateFn: any) => {
+        clearTimeout(processingTimeoutId);
+        originalSetMessages(updateFn);
+      };
+    }
     
     // Track if processing audio for better loading message
     setIsProcessingAudio(isAudio);
@@ -886,7 +951,6 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
 
     // Only generate normal AI response if NOT in topic discovery mode
     if (!waitingForTopic) {
-      try {
         let prosodyAnalysis: ProsodyAnalysis | undefined;
         let aiResponse: AIResponse;
 
@@ -895,11 +959,22 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
         const context = buildConversationContext();
         
           try {
-          prosodyAnalysis = await aiProsodyService.analyzeAudio(
+          console.log('🎯 Starting prosody analysis with 30s timeout...');
+          
+          // Add additional timeout wrapper for extra safety
+          const analysisPromise = aiProsodyService.analyzeAudio(
             audioBlob,
             messageText.trim(),
             context
           );
+          
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Prosody analysis timeout after 35 seconds'));
+            }, 35000); // 35 seconds - slightly longer than service timeout
+          });
+          
+          prosodyAnalysis = await Promise.race([analysisPromise, timeoutPromise]);
 
           // Update the message with analysis AND transcription
           setMessages(prev => prev.map(msg => 
@@ -977,12 +1052,41 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
         } catch (error) {
           console.error('❌ [ChatPanel] Audio analysis failed:', error);
           logger.error('Audio analysis failed:', error);
-          // Continue without analysis - clear processing state
+          
+          // Determine error type for user-friendly message
+          const isTimeout = error instanceof Error && (
+            error.name === 'AbortError' || 
+            error.message.includes('timeout') ||
+            error.message.includes('timed out')
+          );
+          
+          const errorMessage = isTimeout 
+            ? 'Analysis took too long - continuing without detailed feedback'
+            : 'Analysis temporarily unavailable - continuing conversation';
+          
+          // Clear processing state and show error message
           setMessages(prev => prev.map(msg => 
             msg.id === messageId 
-              ? { ...msg, isProcessing: false, prosodyAnalysis: undefined }
+              ? { 
+                  ...msg, 
+                  isProcessing: false, 
+                  prosodyAnalysis: undefined,
+                  // Add a small error indicator
+                  text: msg.text + (isTimeout ? ' ⏰' : ' ⚠️')
+                }
               : msg
           ));
+          
+          // Add a subtle error message for user
+          setTimeout(() => {
+            const errorNotice: Message = {
+              id: crypto.randomUUID(),
+              text: `💭 ${errorMessage}. Your message was received perfectly! Let's keep chatting! 😊`,
+              isUser: false,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            setMessages(prev => [...prev, errorNotice]);
+          }, 1000);
         }
       }
 
@@ -1122,56 +1226,27 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
         setConversationHistory(prev => [...prev, newHistoryEntry, responseHistoryEntry]);
       }, aiReady ? 1500 : 800);
 
-      } catch (error) {
-        logger.error('Message processing failed:', error);
-        setIsLoading(false);
-        
-        // Add user-friendly error message with helpful suggestions
-        const errorMessage: Message = {
-          id: crypto.randomUUID(),
-          text: "Oh no! 😅 I'm having a little trouble understanding that. This could be:\n\n• A quick internet hiccup 📡\n• My AI brain taking a short break 🧠\n\nNo worries though! Just give it another try in a moment, and we'll be back on track! 💪✨",
-          isUser: false,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-        
-        setMessages(prev => [...prev, errorMessage]);
-      }
+      
+      // Always reset sendingRef to allow future sends
+      sendingRef.current = false;
     } // End of !waitingForTopic block
-  };
-
-  const generateFallbackResponse = (_userMessage: string, userLevel: string): string => {
-    const responses = {
-      Beginner: [
-        "You're doing wonderful! 🌟 I can really hear how hard you're working on your pronunciation. Let's keep building those skills together!",
-        "Nice job! Your rhythm is getting better and better! 🎵 What would you like to explore next?",
-        "I love your effort! 💪 Your word stress is improving so much. What topic sounds fun to you today?"
-      ],
-      Intermediate: [
-        "Wow, excellent work! 🎯 Your intonation is getting so much clearer. Ready to dive into something more interesting?",
-        "I'm impressed! Your connected speech is really flowing nicely now. 🌊 What would you like to chat about?",
-        "Your pronunciation is really blossoming! 🌸 Let's challenge ourselves with some exciting new vocabulary!"
-      ],
-      Advanced: [
-        "Outstanding! 🌟 Your prosody control is so sophisticated. Let's explore some fascinating expressions together!",
-        "Incredible fluency! Your stress patterns sound so natural and authentic. 🎭 What shall we discuss today?",
-        "Your accent work is truly impressive! 🎪 Ready to tackle some thought-provoking abstract concepts?"
-      ]
-    };
-
-    const levelResponses = responses[userLevel as keyof typeof responses] || responses.Beginner;
-    return levelResponses[Math.floor(Math.random() * levelResponses.length)];
-  };
-
-  const sendTextFromInput = async () => {
-    if (sendingRef.current) return;
-    if (isComposing) return;
-    if (sessionEnded) return; // Prevent sending after session ends
-    sendingRef.current = true;
-    try {
-      await handleSendMessage(textInput, false);
-    } finally {
+    } catch (error) {
+      logger.error('Message processing failed:', error);
+      setIsLoading(false);
+      
+      // Always reset sendingRef to allow future sends
       sendingRef.current = false;
     }
+  };
+
+
+
+  const sendTextFromInput = async () => {
+    if (isComposing) return;
+    if (sessionEnded) return; // Prevent sending after session ends
+    
+    // handleSendMessage now handles sendingRef internally
+    await handleSendMessage(textInput, false);
   };
 
 
