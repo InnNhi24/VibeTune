@@ -112,6 +112,10 @@ export function RecordingControls({
       interval = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
+      
+      // Clear any existing errors when starting to record
+      setTranscribeError(null);
+      setListeningHint(null);
     } else {
       setRecordingTime(0);
     }
@@ -119,7 +123,7 @@ export function RecordingControls({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [recordingState, recordingTime, aiReady, conversationContext]);
+  }, [recordingState]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -141,6 +145,7 @@ export function RecordingControls({
       setView("");
       setRecordedMessage("");
       setTranscribeError(null); // Clear previous errors
+      setListeningHint(null); // Clear any previous hints
       
       // Clear live transcription in parent
       if (onLiveTranscription) {
@@ -361,6 +366,12 @@ export function RecordingControls({
       
       setRecordingState('recording');
       setRecordingTime(0);
+      
+      // Reset error counters and states when successfully starting recording
+      setSrFailures(0);
+      srFailuresRef.current = 0;
+      noSpeechRetriesRef.current = 0;
+      stopReasonRef.current = 'user';
     } catch (error) {
       logger.error('Failed to start recording:', error);
     }
@@ -486,6 +497,13 @@ export function RecordingControls({
     setAudioBlob(null);
     setRecordingState('idle');
     setAnalysisProgress(0);
+    
+    // Clear all error states and hints when retrying
+    setTranscribeError(null);
+    setListeningHint(null);
+    setSrFailures(0);
+    srFailuresRef.current = 0;
+    noSpeechRetriesRef.current = 0;
     
     // Clear live transcription in parent
     if (onLiveTranscription) {
