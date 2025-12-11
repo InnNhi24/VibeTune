@@ -163,47 +163,99 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
   // Track previous conversation ID to detect switches
   const prevConversationIdRef = useRef<string | null>(null);
   
-  // Fetch messages from Supabase when switching to a different conversation
+  // Fetch messages DIRECTLY from Supabase when conversation changes
+  // This is the ONLY source of truth for messages - no local store sync needed
   useEffect(() => {
+    const targetConversationId = activeConversationId;
+    
     // Detect conversation switch
     const isConversationSwitch = prevConversationIdRef.current !== null && 
-                                  prevConversationIdRef.current !== activeConversationId;
+                                  prevConversationIdRef.current !== targetConversationId;
     
-    if (isConversationSwitch) {
-      console.log('🔄 Conversation switched from', prevConversationIdRef.current, 'to', activeConversationId);
-      // CRITICAL: Clear messages immediately when switching to prevent showing wrong conversation
+    if (isConversationSwitch || !targetConversationId) {
+      console.log('🔄 Conversation switched:', prevConversationIdRef.current, '->', targetConversationId);
+      // Clear messages immediately when switching
       setMessages([]);
+      setConversationHistory([]);
     }
     
-    prevConversationIdRef.current = activeConversationId;
+    prevConversationIdRef.current = targetConversationId;
+    
+    if (!targetConversationId) return;
     
     const fetchMessagesFromSupabase = async () => {
-      if (!activeConversationId) return;
-      
-      const targetConversationId = activeConversationId; // Capture for async check
-      
       try {
-        console.log('🔄 Fetching messages for conversation:', targetConversationId);
+        console.log('🔄 Fetching messages from Supabase for:', targetConversationId);
         const response = await fetch(`/api/data?action=get-conversation-messages&conversation_id=${targetConversationId}`);
         
         // Check if user switched to another conversation while fetching
         if (prevConversationIdRef.current !== targetConversationId) {
-          console.log('⚠️ Conversation changed during fetch, ignoring results for:', targetConversationId);
+          console.log('⚠️ Conversation changed during fetch, ignoring results');
           return;
         }
         
         if (response.ok) {
           const data = await response.json();
+          
           if (data.messages && data.messages.length > 0) {
-            console.log(`✅ Loaded ${data.messages.length} messages from Supabase for conversation:`, targetConversationId);
+            console.log(`✅ Loaded ${data.messages.length} messages from Supabase`);
             
-            // Update the global store with fetched messages
-            const currentMessages = useAppStore.getState().messages;
-            const otherMessages = currentMessages.filter(m => m.conversation_id !== targetConversationId);
-            const newMessages = [...otherMessages, ...data.messages];
-            useAppStore.setState({ messages: newMessages });
+            // Convert database messages to UI format and set DIRECTLY to local state
+            const uiMessages: Message[] = data.messages.map((m: any) => {
+              let prosodyAnalysis = undefined;
+              
+              if (m.prosody_feedback) {
+                const dbFeedback = m.prosody_feedback.detailed_feedback || {};
+                prosodyAnalysis = {
+                  overall_score: m.prosody_feedback.overall_score || 0,
+                  pronunciation_score: m.prosody_feedback.pronunciation_score || 0,
+                  rhythm_score: m.prosody_feedback.rhythm_score || 0,
+                  intonation_score: m.prosody_feedback.intonation_score || 0,
+                  fluency_score: m.prosody_feedback.fluency_score || 0,
+                  detailed_feedback: {
+                    strengths: Array.isArray(dbFeedback.strengths) ? dbFeedback.strengths : [],
+                    improvements: Array.isArray(dbFeedback.improvements) ? dbFeedback.improvements : [],
+                    specific_issues: Array.isArray(dbFeedback.specific_issues) ? dbFeedback.specific_issues : []
+                  },
+                  suggestions: Array.isArray(m.prosody_feedback.suggestions) ? m.prosody_feedback.suggestions : [],
+                  next_focus_areas: [],
+                  word_level_analysis: []
+                };
+              }
+              
+              return {
+                id: m.id,
+                text: m.content,
+                isUser: m.sender === 'user',
+                isAudio: m.type === 'audio',
+                timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                prosodyAnalysis,
+                isProcessing: false
+              } as Message;
+            });
+            
+            // Set messages DIRECTLY - no store sync needed
+            setMessages(uiMessages);
+            
+            // Update conversation history for AI context
+            const historyEntries = uiMessages.map(msg => ({
+              role: (msg.isUser ? 'user' : 'assistant') as 'user' | 'assistant',
+              content: msg.text,
+              timestamp: new Date().toISOString()
+            }));
+            setConversationHistory(historyEntries);
+            
+            // Update topic from conversation
+            const conversations = useAppStore.getState().conversations;
+            const currentConv = conversations.find(c => c.id === targetConversationId);
+            if (currentConv?.topic) {
+              setCurrentTopic(currentConv.topic);
+              setWaitingForTopic(false);
+              setTopicLocked(true);
+            }
           } else {
-            console.log('📭 No messages found for conversation:', targetConversationId);
+            console.log('📭 No messages found for conversation');
+            setMessages([]);
           }
         } else {
           console.warn('⚠️ Failed to fetch messages:', response.status);
@@ -216,176 +268,8 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     fetchMessagesFromSupabase();
   }, [activeConversationId]);
 
-  // Sync messages from global store when activeConversationId changes
-  useEffect(() => {
-    try {
-      if (activeConversationId) {
-        const msgs = storeMessages
-          .filter(m => m.conversation_id === activeConversationId)
-          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort by creation time
-          .map(m => {
-            // ALWAYS preserve prosodyAnalysis from existing messages if available (priority)
-            const existingMsg = messages.find(msg => msg.id === m.id);
-            
-            // Priority 1: Use existing prosodyAnalysis from local state (most up-to-date)
-            // Priority 2: Load from database if not in local state
-            let prosodyAnalysis = existingMsg?.prosodyAnalysis;
-            
-            if (!prosodyAnalysis && m.prosody_feedback) {
-              // Ensure detailed_feedback exists with proper structure
-              const dbFeedback = m.prosody_feedback.detailed_feedback || {};
-              const detailedFeedback = {
-                strengths: Array.isArray(dbFeedback.strengths) ? dbFeedback.strengths : [],
-                improvements: Array.isArray(dbFeedback.improvements) ? dbFeedback.improvements : [],
-                specific_issues: Array.isArray(dbFeedback.specific_issues) ? dbFeedback.specific_issues : []
-              };
-              
-              // Fallback: Generate specific_issues from text if empty (for old messages)
-              if (detailedFeedback.specific_issues.length === 0) {
-                const words = m.content.split(/\s+/).filter((w: string) => w.length > 4);
-                detailedFeedback.specific_issues = words.slice(0, 3).map((word: string) => ({
-                  type: 'pronunciation' as const,
-                  word: word,
-                  severity: 'medium' as const,
-                  feedback: 'Practice this word',
-                  suggestion: 'Say it slowly and clearly'
-                }));
-              }
-              
-              prosodyAnalysis = {
-                overall_score: m.prosody_feedback.overall_score || 0,
-                pronunciation_score: m.prosody_feedback.pronunciation_score || 0,
-                rhythm_score: m.prosody_feedback.rhythm_score || 0,
-                intonation_score: m.prosody_feedback.intonation_score || 0,
-                fluency_score: m.prosody_feedback.fluency_score || 0,
-                detailed_feedback: detailedFeedback,
-                suggestions: Array.isArray(m.prosody_feedback.suggestions) ? m.prosody_feedback.suggestions : [],
-                next_focus_areas: [],
-                word_level_analysis: []
-              };
-              
-              console.log('📊 Loaded prosody feedback from DB:', {
-                messageId: m.id,
-                hasScores: !!m.prosody_feedback.overall_score,
-                issuesCount: detailedFeedback.specific_issues.length,
-                strengthsCount: detailedFeedback.strengths.length,
-                overallScore: prosodyAnalysis.overall_score,
-                rawFeedback: m.prosody_feedback
-              });
-            }
-            
-            return {
-              id: m.id,
-              text: m.content,
-              isUser: m.sender === 'user',
-              isAudio: m.type === 'audio',
-              timestamp: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              prosodyAnalysis, // ALWAYS preserve from local state first, then DB
-              audioBlob: existingMsg?.audioBlob, // Preserve audio blob for playback
-              isProcessing: existingMsg?.isProcessing || false // Preserve processing state
-            } as Message;
-          });
-
-        // Only update messages if they're different (to preserve prosodyAnalysis and prevent duplicates)
-        const currentIds = messages.map(m => m.id).sort().join(',');
-        const newIds = msgs.map(m => m.id).sort().join(',');
-        
-        // Also check if we need to UPDATE existing messages (e.g., prosody analysis added)
-        const needsUpdate = msgs.some(newMsg => {
-          const existing = messages.find(m => m.id === newMsg.id);
-          // Update if message exists but prosody analysis was added
-          return existing && !existing.prosodyAnalysis && newMsg.prosodyAnalysis;
-        });
-        
-        if (currentIds !== newIds || needsUpdate) {
-          console.log('📨 Syncing messages:', {
-            count: msgs.length,
-            withProsody: msgs.filter(m => m.prosodyAnalysis).length,
-            audioMessages: msgs.filter(m => m.isAudio).length,
-            reason: currentIds !== newIds ? 'new messages' : 'prosody update',
-            currentIds: currentIds.substring(0, 50) + '...',
-            newIds: newIds.substring(0, 50) + '...'
-          });
-          
-          // Filter out welcome messages from local state to prevent duplication
-          const nonWelcomeLocal = messages.filter(m => !m.id.startsWith('welcome_'));
-          
-          // Merge: keep local messages that aren't in store yet (being processed)
-          const storeIds = new Set(msgs.map(m => m.id));
-          const localOnlyMessages = nonWelcomeLocal.filter(m => !storeIds.has(m.id));
-          
-          // Combine store messages with local-only messages
-          const allMessages = [...msgs, ...localOnlyMessages];
-          
-          // Sort by created_at timestamp for proper chronological order
-          // Messages are already sorted from store, just append local messages at the end
-          // No need to re-sort since store messages have correct created_at order
-          
-          setMessages(allMessages);
-        }
-        
-        if (msgs.length > 0) {
-          setWaitingForTopic(false);
-          // Update conversation history for AI context
-          const historyEntries = msgs.map(msg => ({
-            role: (msg.isUser ? 'user' : 'assistant') as 'user' | 'assistant',
-            content: msg.text,
-            timestamp: new Date().toISOString() // Use current time since msg.timestamp is just time format
-          }));
-          setConversationHistory(historyEntries);
-          
-          // Update current topic from the conversation
-          const conversations = useAppStore.getState().conversations;
-          const currentConv = conversations.find(c => c.id === activeConversationId);
-          if (currentConv && currentConv.topic) {
-            setCurrentTopic(currentConv.topic);
-            // Topic is already established for existing conversations
-            setWaitingForTopic(false);
-          }
-        } else {
-          setConversationHistory([]);
-        }
-      } else {
-        // No active conversation - clear messages if they exist (but preserve welcome messages)
-        if (messages.length > 0 && !messages.some(m => m.id.startsWith('welcome_'))) {
-          setMessages([]);
-          setConversationHistory([]);
-        }
-        
-        // Check if we have a current topic but no active conversation - create one
-        if (currentTopic && currentTopic !== "New Conversation" && currentTopic !== "General Conversation") {
-          const store = useAppStore.getState();
-          const existingConv = store.conversations.find(c => c.topic === currentTopic);
-          
-          if (!existingConv && store.user) {
-            const newConvId = crypto.randomUUID(); // Use UUID for database compatibility
-            const newConv = {
-              id: newConvId,
-              profile_id: store.user.id,
-              topic: currentTopic,
-              title: currentTopic,
-              is_placement_test: false,
-              started_at: new Date().toISOString()
-            };
-            
-            addConversation(newConv);
-            setActiveConversation(newConvId);
-            setWaitingForTopic(false);
-            
-            // Start with empty messages - user speaks first
-            setMessages([]);
-            
-            return; // Exit early since we created the conversation
-          }
-        }
-        
-        // No active conversation - welcome messages will be shown by the other useEffect
-        // Don't clear or set messages here to avoid conflicts
-      }
-    } catch (e) {
-      console.warn('Failed to sync messages from store:', e);
-    }
-  }, [activeConversationId, storeMessages, safeLevel, currentTopic, addConversation, setActiveConversation, addMessageToStore]);
+  // NOTE: Store sync removed - messages are now fetched directly from Supabase
+  // This prevents race conditions and ensures correct conversation messages are shown
 
   // Auto-scroll to bottom when new messages arrive.
   // Use the last-message element scrollIntoView first (more robust),
