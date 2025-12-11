@@ -160,27 +160,50 @@ export function ChatPanel({ topic = "New Conversation", level, onTopicChange, us
     }
   }, [activeConversationId, topic, safeLevel, messages]); // Add messages dependency to check for welcome messages
 
+  // Track previous conversation ID to detect switches
+  const prevConversationIdRef = useRef<string | null>(null);
+  
   // Fetch messages from Supabase when switching to a different conversation
   useEffect(() => {
+    // Detect conversation switch
+    const isConversationSwitch = prevConversationIdRef.current !== null && 
+                                  prevConversationIdRef.current !== activeConversationId;
+    
+    if (isConversationSwitch) {
+      console.log('🔄 Conversation switched from', prevConversationIdRef.current, 'to', activeConversationId);
+      // CRITICAL: Clear messages immediately when switching to prevent showing wrong conversation
+      setMessages([]);
+    }
+    
+    prevConversationIdRef.current = activeConversationId;
+    
     const fetchMessagesFromSupabase = async () => {
       if (!activeConversationId) return;
       
+      const targetConversationId = activeConversationId; // Capture for async check
+      
       try {
-        console.log('🔄 Fetching messages for conversation:', activeConversationId);
-        const response = await fetch(`/api/data?action=get-conversation-messages&conversation_id=${activeConversationId}`);
+        console.log('🔄 Fetching messages for conversation:', targetConversationId);
+        const response = await fetch(`/api/data?action=get-conversation-messages&conversation_id=${targetConversationId}`);
+        
+        // Check if user switched to another conversation while fetching
+        if (prevConversationIdRef.current !== targetConversationId) {
+          console.log('⚠️ Conversation changed during fetch, ignoring results for:', targetConversationId);
+          return;
+        }
         
         if (response.ok) {
           const data = await response.json();
           if (data.messages && data.messages.length > 0) {
-            console.log(`✅ Loaded ${data.messages.length} messages from Supabase for conversation:`, activeConversationId);
+            console.log(`✅ Loaded ${data.messages.length} messages from Supabase for conversation:`, targetConversationId);
             
             // Update the global store with fetched messages
             const currentMessages = useAppStore.getState().messages;
-            const otherMessages = currentMessages.filter(m => m.conversation_id !== activeConversationId);
+            const otherMessages = currentMessages.filter(m => m.conversation_id !== targetConversationId);
             const newMessages = [...otherMessages, ...data.messages];
             useAppStore.setState({ messages: newMessages });
           } else {
-            console.log('📭 No messages found for conversation:', activeConversationId);
+            console.log('📭 No messages found for conversation:', targetConversationId);
           }
         } else {
           console.warn('⚠️ Failed to fetch messages:', response.status);
