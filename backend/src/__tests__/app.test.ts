@@ -12,5 +12,11 @@ describe('Backend Basic Tests', () => {
     expect(testString).toBe('VibeTune');
     expect(testString.length).toBeGreaterThan(0);
   });
+
+  it('should handle array operations', () => {
+    const arr = [1, 2, 3];
+    expect(arr).toHaveLength(3);
+    expect(arr).toContain(2);
+  });
 });
 
