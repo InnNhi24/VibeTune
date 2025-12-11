@@ -723,7 +723,7 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
   );
 }
 
-// Simple Voice Recorder Component
+// Simple Voice Recorder Component with Live Transcription
 interface SimpleVoiceRecorderProps {
   onRecordingComplete: (audioBlob: Blob) => void;
   disabled?: boolean;
@@ -732,13 +732,24 @@ interface SimpleVoiceRecorderProps {
 function SimpleVoiceRecorder({ onRecordingComplete, disabled }: SimpleVoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const finalTranscriptRef = useRef<string>('');
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startRecording = async () => {
     try {
+      // Reset transcript state
+      finalTranscriptRef.current = '';
+      setLiveTranscript('');
+      setInterimTranscript('');
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
@@ -764,6 +775,63 @@ function SimpleVoiceRecorder({ onRecordingComplete, disabled }: SimpleVoiceRecor
         setRecordingTime(prev => prev + 1);
       }, 1000);
 
+      // Start Web Speech API for live transcription
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognitionRef.current = recognition;
+          recognition.interimResults = true;
+          recognition.continuous = true;
+          recognition.lang = 'en-US';
+
+          recognition.onresult = (event: any) => {
+            let interimText = '';
+            let finalText = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              const res = event.results[i];
+              const transcript = res[0]?.transcript || '';
+              if (res.isFinal) {
+                finalText += transcript + ' ';
+              } else {
+                interimText += transcript;
+              }
+            }
+
+            // Append finalized text
+            if (finalText.trim()) {
+              finalTranscriptRef.current = (finalTranscriptRef.current + ' ' + finalText).replace(/\s+/g, ' ').trim();
+              setLiveTranscript(finalTranscriptRef.current);
+              setInterimTranscript('');
+            } else {
+              setInterimTranscript(interimText);
+            }
+          };
+
+          recognition.onerror = (ev: any) => {
+            logger.warn('SpeechRecognition error in placement test:', ev?.error);
+            // On no-speech error, try to restart
+            if (ev?.error === 'no-speech' && isRecording) {
+              setTimeout(() => {
+                try { recognitionRef.current?.start(); } catch (e) { /* noop */ }
+              }, 500);
+            }
+          };
+
+          recognition.onend = () => {
+            // Auto-restart if still recording
+            if (isRecording && recognitionRef.current) {
+              try { recognitionRef.current.start(); } catch (e) { /* noop */ }
+            }
+          };
+
+          recognition.start();
+        } catch (e) {
+          logger.error('Failed to start SpeechRecognition:', e);
+        }
+      }
+
     } catch (error) {
       logger.error('Failed to start recording:', error);
       alert('Could not access microphone. Please check permissions.');
@@ -774,9 +842,22 @@ function SimpleVoiceRecorder({ onRecordingComplete, disabled }: SimpleVoiceRecor
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
+      }
+
+      // Stop speech recognition
+      if (recognitionRef.current) {
+        try { recognitionRef.current.stop(); } catch (e) { /* noop */ }
+        recognitionRef.current = null;
+      }
+
+      // Stop stream tracks
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
     }
   };
@@ -787,36 +868,63 @@ function SimpleVoiceRecorder({ onRecordingComplete, disabled }: SimpleVoiceRecor
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Combined display text
+  const displayText = (liveTranscript + ' ' + interimTranscript).trim();
+
   return (
-    <div className="flex items-center justify-center">
-      {!isRecording ? (
-        <Button
-          onClick={startRecording}
-          disabled={disabled}
-          size="lg"
-          className="bg-accent hover:bg-accent/90 text-accent-foreground"
-        >
-          <Mic className="w-5 h-5 mr-2" />
-          Tap to Record Voice
-        </Button>
-      ) : (
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <motion.div
-              className="w-3 h-3 bg-destructive rounded-full"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-            <span className="text-sm font-medium">{formatTime(recordingTime)}</span>
-          </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-center">
+        {!isRecording ? (
           <Button
-            onClick={stopRecording}
+            onClick={startRecording}
+            disabled={disabled}
             size="lg"
-            variant="destructive"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
           >
-            Stop Recording
+            <Mic className="w-5 h-5 mr-2" />
+            Tap to Record Voice
           </Button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <motion.div
+                className="w-3 h-3 bg-destructive rounded-full"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+              <span className="text-sm font-medium">{formatTime(recordingTime)}</span>
+            </div>
+            <Button
+              onClick={stopRecording}
+              size="lg"
+              variant="destructive"
+            >
+              Stop Recording
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Live Transcription Display */}
+      {isRecording && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-muted/50 border border-border rounded-lg p-3"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+            <span className="text-xs text-muted-foreground">Live transcription</span>
+          </div>
+          <p className="text-sm min-h-[40px]">
+            {displayText || (
+              <span className="text-muted-foreground italic">Listening... speak now</span>
+            )}
+            {interimTranscript && (
+              <span className="text-muted-foreground">{interimTranscript}</span>
+            )}
+          </p>
+        </motion.div>
       )}
     </div>
   );
