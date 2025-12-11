@@ -537,10 +537,31 @@ function ProsodyDetailModal({
               </div>
             )}
 
-            {/* Summary tip */}
+            {/* Dynamic Pro Tip based on lowest score */}
             <div className="p-4 rounded-lg bg-muted/30 border-l-4 border-primary">
               <p className="text-sm text-muted-foreground italic">
-                💡 <strong>Pro Tip:</strong> Focus on one area at a time. Practice the specific words mentioned above slowly and clearly, then gradually increase your speed.
+                💡 <strong>Pro Tip:</strong> {(() => {
+                  // Tips for each area
+                  const tips: Record<string, string> = {
+                    'Pronunciation': 'Focus on mouth positioning and tongue placement. Record yourself saying difficult words and compare with native speakers.',
+                    'Rhythm': 'Practice with a metronome or tap along to English songs. Pay attention to stressed and unstressed syllables.',
+                    'Intonation': 'Listen to how native speakers raise and lower their voice. Practice questions (voice up) vs statements (voice down).',
+                    'Fluency': 'Read aloud daily for 5-10 minutes. Don\'t worry about mistakes - focus on speaking smoothly without long pauses.'
+                  };
+                  
+                  // Find lowest and highest scores
+                  const lowest = scores.reduce((min, curr) => curr.value < min.value ? curr : min);
+                  const highest = scores.reduce((max, curr) => curr.value > max.value ? curr : max);
+                  
+                  // If all scores are good (>80), give encouragement
+                  if (lowest.value >= 80) {
+                    return `Excellent work! Your ${highest.label.toLowerCase()} is outstanding. Keep challenging yourself with longer, more complex sentences.`;
+                  }
+                  
+                  // Otherwise, give tip for the weakest area
+                  const tip = tips[lowest.label] || 'Keep practicing consistently for best results.';
+                  return `Your ${lowest.label.toLowerCase()} needs the most attention (${Math.round(lowest.value)}%). ${tip}`;
+                })()}
               </p>
             </div>
           </TabsContent>
