@@ -135,15 +135,13 @@ Authorization: Bearer <supabase_jwt_token>
 **Description:** Transcribes audio to text using OpenAI Whisper.
 
 **Request:**
-- Content-Type: `multipart/form-data`
-- Body: Audio file
+- Content-Type: `audio/webm` or `audio/wav`
+- Body: Raw audio blob
 
 **Response:**
 ```json
 {
-  "text": "Hello, how are you today?",
-  "duration": 2.5,
-  "confidence": 0.95
+  "text": "Hello, how are you today?"
 }
 ```
 
