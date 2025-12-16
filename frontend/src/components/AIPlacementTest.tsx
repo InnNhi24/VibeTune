@@ -546,8 +546,8 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <div className="h-screen bg-background p-4 flex flex-col overflow-hidden">
+      <div className="max-w-4xl mx-auto flex flex-col flex-1 min-h-0 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
           {onBack && (
@@ -592,8 +592,8 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
         )}
 
         {/* Chat Interface */}
-        <Card className="flex-1">
-          <CardHeader>
+        <Card className="flex-1 flex flex-col min-h-0">
+          <CardHeader className="flex-shrink-0">
             <CardTitle className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
               Conversation
@@ -605,9 +605,9 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
               }
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {/* Messages */}
-            <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+          <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            {/* Messages - scrollable container with fixed height */}
+            <div className="space-y-4 mb-4 flex-1 overflow-y-auto min-h-[200px] max-h-[calc(100vh-400px)]">
               <AnimatePresence>
                 {messages.map((message) => (
                   <motion.div
