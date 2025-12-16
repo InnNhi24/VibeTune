@@ -1242,7 +1242,7 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
 
 
   return (
-  // ChatGPT-style layout: Use absolute positioning for reliable layout
+  // Use absolute positioning for reliable layout
   <div className="absolute inset-0 bg-background rounded-lg border border-border flex flex-col">
       {/* Enhanced Chat Header - Fixed at top */}
         <div className="flex-shrink-0 bg-card border-b border-border p-4">
