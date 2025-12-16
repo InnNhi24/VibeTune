@@ -546,10 +546,10 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="h-screen bg-background p-4 flex flex-col">
+      <div className="max-w-4xl mx-auto w-full flex flex-col flex-1 min-h-0 gap-4">
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between flex-shrink-0">
           {onBack && (
             <Button variant="ghost" size="icon" onClick={onBack}>
               <ArrowLeft className="w-4 h-4" />
@@ -574,8 +574,8 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
           </div>
         </div>
 
-        {/* Progress */}
-        <div className="space-y-2">
+        {/* Progress - Fixed */}
+        <div className="space-y-2 flex-shrink-0">
           <div className="flex justify-between text-sm">
             <span>Progress</span>
             <span>{Math.round(getProgress())}%</span>
@@ -583,17 +583,17 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
           <Progress value={getProgress()} className="h-2" />
         </div>
 
-        {/* Error Alert */}
+        {/* Error Alert - Fixed */}
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="flex-shrink-0">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
-        {/* Chat Interface */}
-        <Card className="flex-1">
-          <CardHeader>
+        {/* Chat Interface - Flexible */}
+        <Card className="flex-1 min-h-0 flex flex-col">
+          <CardHeader className="flex-shrink-0">
             <CardTitle className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
               Conversation
@@ -605,9 +605,9 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
               }
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {/* Messages */}
-            <div className="space-y-4 mb-4 max-h-96 overflow-y-auto">
+          <CardContent className="flex-1 min-h-0 flex flex-col">
+            {/* Messages - Scrollable */}
+            <div className="flex-1 min-h-0 overflow-y-auto mb-4 space-y-4 custom-scrollbar">
               <AnimatePresence>
                 {messages.map((message) => (
                   <motion.div
