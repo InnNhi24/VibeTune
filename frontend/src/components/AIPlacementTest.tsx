@@ -413,17 +413,18 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
     setError(null);
 
     try {
-      // Transcribe audio first
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
-
+      // Transcribe audio first - send raw audio blob (not FormData)
       const transcribeResponse = await fetch('/api/transcribe', {
         method: 'POST',
-        body: formData
+        headers: {
+          'Content-Type': audioBlob.type || 'audio/webm'
+        },
+        body: audioBlob
       });
 
       if (!transcribeResponse.ok) {
-        throw new Error('Transcription failed');
+        const errorData = await transcribeResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Transcription failed');
       }
 
       const { text } = await transcribeResponse.json();
