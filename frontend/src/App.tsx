@@ -313,7 +313,11 @@ function AppContent() {
         setCurrentState("signin");
         return null;
       }
-      return <AIPlacementTest user={user} onComplete={handlePlacementTestComplete} onSkip={handlePlacementTestSkip} onBack={() => setCurrentState("level-selection")} />;
+      return (
+        <div className="h-screen overflow-hidden">
+          <AIPlacementTest user={user} onComplete={handlePlacementTestComplete} onSkip={handlePlacementTestSkip} onBack={() => setCurrentState("level-selection")} />
+        </div>
+      );
 
     case "main-app":
       if (!user) {
