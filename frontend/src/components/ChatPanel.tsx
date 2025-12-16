@@ -659,6 +659,69 @@ ${generatePersonalizedTips(analyses, avgPronunciation, avgRhythm, avgIntonation,
         logger.warn('Error saving user message in topic discovery', error);
       });
       
+      // PROSODY ANALYSIS FOR VOICE MESSAGES IN TOPIC DISCOVERY
+      // Analyze prosody even during topic discovery if it's a voice message
+      if (isAudio && audioBlob && aiReady) {
+        const context = buildConversationContext();
+        try {
+          console.log('🎯 Starting prosody analysis for topic discovery voice message...');
+          
+          const analysisPromise = aiProsodyService.analyzeAudio(
+            audioBlob,
+            messageText.trim(),
+            context
+          );
+          
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Prosody analysis timeout')), 35000);
+          });
+          
+          const prosodyAnalysis = await Promise.race([analysisPromise, timeoutPromise]);
+          
+          // Update the message with prosody analysis
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId 
+              ? { 
+                  ...msg, 
+                  text: (prosodyAnalysis as any)?.transcription || msg.text,
+                  prosodyAnalysis,
+                  isProcessing: false,
+                  audioBlob: msg.audioBlob,
+                  isAudio: msg.isAudio
+                }
+              : msg
+          ));
+          
+          // Save prosody analysis to database
+          if (prosodyAnalysis) {
+            const prosodyFeedback = {
+              overall_score: prosodyAnalysis.overall_score,
+              pronunciation_score: prosodyAnalysis.pronunciation_score,
+              rhythm_score: prosodyAnalysis.rhythm_score,
+              intonation_score: prosodyAnalysis.intonation_score,
+              fluency_score: prosodyAnalysis.fluency_score,
+              detailed_feedback: prosodyAnalysis.detailed_feedback,
+              suggestions: prosodyAnalysis.suggestions
+            };
+            
+            fetch('/api/data?action=update-message-prosody', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messageId,
+                prosodyFeedback,
+                transcript: (prosodyAnalysis as any)?.transcription || messageText.trim()
+              })
+            }).catch(err => logger.warn('Failed to save prosody in topic discovery', err));
+          }
+        } catch (err) {
+          console.warn('Prosody analysis failed in topic discovery:', err);
+          setMessages(prev => prev.map(msg => 
+            msg.id === messageId ? { ...msg, isProcessing: false } : msg
+          ));
+        }
+      }
+      
       try {
         const resp = await fetch('/api/chat', {
           method: 'POST',
