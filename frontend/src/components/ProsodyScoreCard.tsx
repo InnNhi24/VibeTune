@@ -278,14 +278,14 @@ function FeedbackRating({ messageId }: { messageId?: string }) {
     const loadRating = async () => {
       if (messageId && user?.id) {
         try {
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from('feedback_rating')
             .select('rating')
             .eq('message_id', messageId)
             .eq('profile_id', user.id)
-            .single();
+            .maybeSingle(); // Use maybeSingle() to avoid 406 error when no record exists
           
-          if (data) {
+          if (!error && data) {
             setRating(data.rating);
           }
         } catch {
