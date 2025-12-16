@@ -592,8 +592,8 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
         )}
 
         {/* Chat Interface - Takes remaining space */}
-        <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <CardHeader className="flex-shrink-0">
+        <Card className="flex-1 min-h-0 flex flex-col">
+          <CardHeader className="flex-shrink-0 pb-2">
             <CardTitle className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5" />
               Conversation
@@ -605,9 +605,12 @@ I'll ask you about 5 different topics, and you can respond by typing or recordin
               }
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            {/* Messages - Scrollable area */}
-            <div className="flex-1 min-h-0 overflow-y-auto space-y-4 mb-4">
+          <CardContent className="flex-1 min-h-0 flex flex-col px-6 pb-6">
+            {/* Messages - Scrollable area with calculated height */}
+            <div 
+              className="overflow-y-auto space-y-4 mb-4 pr-2" 
+              style={{ maxHeight: 'calc(100vh - 420px)', minHeight: '200px' }}
+            >
               <AnimatePresence>
                 {messages.map((message) => (
                   <motion.div
